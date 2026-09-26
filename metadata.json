@@ -1,0 +1,6 @@
+{
+  "name": "MixerLab",
+  "description": "Mixing Console Simulator & Learning Lab featuring analog mixing consoles and modern digital touchscreen workflows, real-time DSP, troubleshooting scenarios, emergency drills, and interactive audio engineering education.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
