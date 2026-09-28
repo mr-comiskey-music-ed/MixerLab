@@ -12,7 +12,7 @@ interface DigitalConsoleProps {
   selectedChannelIndex: number;
   onSelectChannel: (idx: number) => void;
   meterLevels: {
-    channels: { level: number; clipped: boolean }[];
+    channels: { level: number; clipped: boolean; hasSignal?: boolean }[];
     masterL: number;
     masterR: number;
     masterClipped: boolean;
@@ -36,6 +36,19 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const selectedCh = channels[selectedChannelIndex] || channels[0];
+  const lastTouchTime = useRef(0);
+
+  const handleTouchStartReset = (resetVal: number, setVal: (v: number) => void) => (e: React.TouchEvent) => {
+    const now = Date.now();
+    if (now - lastTouchTime.current < 350) {
+      e.preventDefault();
+      e.stopPropagation();
+      setVal(resetVal);
+      lastTouchTime.current = 0;
+      return;
+    }
+    lastTouchTime.current = now;
+  };
 
   const [delayInfo, setDelayInfo] = useState(() => audioEngine.getDelayInfo());
   const [tapFlash, setTapFlash] = useState(false);
@@ -649,7 +662,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                     className="w-full flex flex-col items-center bg-zinc-900/50 p-1.5 rounded border border-zinc-850 cursor-pointer"
                     title="Double-click to reset Preamp Gain to 0.0 dB (Default)"
                   >
-                    <div className="flex items-center gap-1.5 justify-center w-full">
+                    <div className="flex items-center gap-1 justify-center w-full">
                       <Knob
                         label="PREAMP GAIN"
                         value={selectedCh.gain}
@@ -664,15 +677,27 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                         formatValue={(v) => (v <= -59 ? '-∞ dB' : `${v > 0 ? '+' : ''}${v.toFixed(1)} dB`)}
                         onChange={(v) => updateSelectedField('gain', v)}
                       />
-                      <div
-                        className={`px-1 py-1.5 rounded text-[7.5px] font-mono font-bold border transition-all ${
-                          meterLevels.channels[selectedChannelIndex]?.clipped
-                            ? 'bg-red-600 text-white border-red-400 shadow-[0_0_12px_rgba(239,68,68,0.9)] animate-pulse'
-                            : 'bg-zinc-900 text-zinc-600 border-zinc-800'
-                        }`}
-                        title={meterLevels.channels[selectedChannelIndex]?.clipped ? 'PEAK / CLIPPING DETECTED' : 'Peak Indicator (Normal)'}
-                      >
-                        PEAK
+                      <div className="flex flex-col gap-1 items-center justify-center">
+                        <div
+                          className={`px-1 py-0.5 rounded text-[6.5px] font-mono font-bold border transition-all ${
+                            meterLevels.channels[selectedChannelIndex]?.hasSignal
+                              ? 'bg-emerald-500 text-zinc-950 border-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.8)]'
+                              : 'bg-zinc-900 text-zinc-600 border-zinc-800'
+                          }`}
+                          title={meterLevels.channels[selectedChannelIndex]?.hasSignal ? 'Signal Active (-24dB or higher)' : 'No Signal'}
+                        >
+                          SIG
+                        </div>
+                        <div
+                          className={`px-1 py-0.5 rounded text-[6.5px] font-mono font-bold border transition-all ${
+                            meterLevels.channels[selectedChannelIndex]?.clipped
+                              ? 'bg-red-600 text-white border-red-400 shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-pulse'
+                              : 'bg-zinc-900 text-zinc-600 border-zinc-800'
+                          }`}
+                          title={meterLevels.channels[selectedChannelIndex]?.clipped ? 'PEAK / CLIPPING DETECTED' : 'Peak Indicator (Normal)'}
+                        >
+                          PEAK
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -967,30 +992,25 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                 <div
                   key={ch.id}
                   onClick={() => onSelectChannel(idx)}
-                  className={`flex-1 min-w-[90px] max-w-[110px] flex flex-col items-center bg-zinc-900 p-2 rounded-lg border transition-all cursor-pointer ${
+                  className={`flex-1 min-w-[72px] max-w-[92px] flex flex-col items-center bg-zinc-900 p-1 rounded-lg border transition-all cursor-pointer ${
                     isSelected
                       ? 'border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)] bg-zinc-850'
                       : 'border-zinc-800 hover:border-zinc-700'
                   }`}
                 >
-                  <div className="w-full flex items-center justify-between mb-1.5 bg-zinc-950 p-1 rounded border border-zinc-800">
-                    <div className="flex flex-col truncate">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-mono text-cyan-400 font-bold">Ch {ch.id}</span>
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            meter.clipped ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-ping' : 'bg-zinc-800'
-                          }`}
-                          title={meter.clipped ? 'PEAK / CLIPPING' : 'Normal'}
-                        />
-                      </div>
-                      <span className="text-[10px] font-semibold text-zinc-100 truncate max-w-[70px]" title={ch.name}>
-                        {ch.name}
-                      </span>
+                  <div className="w-full flex items-center justify-between gap-0.5 mb-1 bg-zinc-950 px-1 py-0.5 rounded border border-zinc-800">
+                    <div className="flex items-center gap-1 whitespace-nowrap">
+                      <span className="text-[10px] font-mono text-cyan-400 font-bold whitespace-nowrap">Ch {ch.id}</span>
+                      <div
+                        className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                          meter.clipped ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-ping' : 'bg-zinc-800'
+                        }`}
+                        title={meter.clipped ? 'PEAK / CLIPPING' : 'Normal'}
+                      />
                     </div>
                     <button
                       onClick={() => onSelectChannel(idx)}
-                      className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold border transition-colors ${
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border transition-colors whitespace-nowrap ${
                         isSelected
                           ? 'bg-cyan-500 text-zinc-950 border-cyan-300 font-extrabold shadow-md'
                           : 'bg-zinc-850 text-zinc-300 border-zinc-750 hover:bg-zinc-800'
@@ -1031,8 +1051,13 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                     </button>
                   </div>
 
+                  {/* Instrument Name Label */}
+                  <div className="w-full text-[9px] font-mono font-bold text-center text-cyan-400 bg-zinc-950 py-0.5 px-1 rounded border border-zinc-800 truncate mb-1" title={ch.name}>
+                    {ch.name}
+                  </div>
+
                   {/* Fader & Meter with Log Audio Taper & Aligned Scale */}
-                  <div className="flex items-center justify-between bg-zinc-950 p-1.5 rounded border border-zinc-850 h-52 w-full">
+                  <div className="flex items-center justify-center bg-zinc-950 p-1.5 rounded border border-zinc-850 h-52 w-full">
                     <FaderScale heightClass="h-44" />
                     <div className="flex-1 flex justify-center items-center h-full px-1">
                       <input
@@ -1050,16 +1075,14 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                           const updated = { ...ch, faderLevel: 0 };
                           onUpdateChannel(idx, updated);
                         }}
+                        onTouchStart={handleTouchStartReset(0, (v) => {
+                          const updated = { ...ch, faderLevel: v };
+                          onUpdateChannel(idx, updated);
+                        })}
                         className="fader-vertical h-44 w-8"
-                        title={`Fader: ${ch.faderLevel > 0 ? '+' : ''}${ch.faderLevel.toFixed(1)} dB (Log Audio Taper)\n(double click to reset)`}
+                        title={`Fader: ${ch.faderLevel > 0 ? '+' : ''}${ch.faderLevel.toFixed(1)} dB (Log Audio Taper)\n(double click or double tap to reset)`}
                       />
                     </div>
-                    <MeterLadder
-                      level={meter.level}
-                      clipped={meter.clipped}
-                      height={165}
-                      width={8}
-                    />
                   </div>
 
                   {/* Fader Readout */}
@@ -1068,8 +1091,12 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                       const updated = { ...ch, faderLevel: 0 };
                       onUpdateChannel(idx, updated);
                     }}
+                    onTouchStart={handleTouchStartReset(0, (v) => {
+                      const updated = { ...ch, faderLevel: v };
+                      onUpdateChannel(idx, updated);
+                    })}
                     className="text-[9px] font-mono font-bold text-zinc-300 mt-1 cursor-pointer select-none hover:text-cyan-300 transition-colors"
-                    title="Double-click to reset fader to 0.0 dB Unity"
+                    title="Double-click or double-tap to reset fader to 0.0 dB Unity"
                   >
                     {ch.faderLevel <= -59 ? '-∞' : `${ch.faderLevel > 0 ? '+' : ''}${ch.faderLevel.toFixed(1)} dB`}
                   </span>
@@ -1303,7 +1330,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
           </div>
 
           {/* Master Stereo Meters */}
-          <div className="flex flex-col bg-zinc-950 p-2 rounded-lg border border-zinc-850 gap-1 flex-1 justify-center min-h-[140px]">
+          <div className="flex flex-col bg-zinc-950 p-2 rounded-lg border border-zinc-850 gap-1 justify-center">
             <span className="text-[9px] font-mono text-center text-zinc-400 font-bold">
               STEREO VU METERS (L / R)
             </span>
@@ -1311,14 +1338,14 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
               <MeterLadder
                 level={meterLevels.masterL}
                 clipped={meterLevels.masterClipped}
-                height={160}
+                height={100}
                 width={12}
                 showLabels
               />
               <MeterLadder
                 level={meterLevels.masterR}
                 clipped={meterLevels.masterClipped}
-                height={160}
+                height={100}
                 width={12}
               />
             </div>
@@ -1328,16 +1355,17 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
           <div className="flex flex-col bg-zinc-950 p-2 rounded-lg border border-zinc-850 gap-1">
             <div
               onDoubleClick={() => handleMasterField('mainFader', 0)}
+              onTouchStart={handleTouchStartReset(0, (v) => handleMasterField('mainFader', v))}
               className="flex items-center justify-between text-[10px] font-mono mb-0.5 cursor-pointer select-none"
-              title="Double-click to reset Main Mix to 0.0 dB Unity"
+              title="Double-click or double-tap to reset Main Mix to 0.0 dB Unity"
             >
               <span className="text-red-400 font-bold">MAIN MIX</span>
               <span className="font-bold text-zinc-200 hover:text-red-400 transition-colors">
                 {master.mainFader <= -59 ? '-∞' : `${master.mainFader > 0 ? '+' : ''}${master.mainFader.toFixed(1)} dB`}
               </span>
             </div>
-            <div className="flex justify-center items-center h-44 bg-zinc-950 p-1 rounded border border-zinc-850">
-              <FaderScale heightClass="h-36" isMaster />
+            <div className="flex justify-center items-center h-52 bg-zinc-950 p-1.5 rounded border border-zinc-850">
+              <FaderScale heightClass="h-44" isMaster />
               <input
                 type="range"
                 min={0}
@@ -1349,8 +1377,9 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                   e.preventDefault();
                   handleMasterField('mainFader', 0);
                 }}
-                className="fader-vertical fader-master h-36 w-10"
-                title={`Main Mix: ${master.mainFader > 0 ? '+' : ''}${master.mainFader.toFixed(1)} dB\n(double click to reset)`}
+                onTouchStart={handleTouchStartReset(0, (v) => handleMasterField('mainFader', v))}
+                className="fader-vertical fader-master h-44 w-10"
+                title={`Main Mix: ${master.mainFader > 0 ? '+' : ''}${master.mainFader.toFixed(1)} dB\n(double click or double tap to reset)`}
               />
             </div>
           </div>

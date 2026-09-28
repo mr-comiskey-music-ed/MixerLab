@@ -172,7 +172,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
           />
           <button
             onClick={() => multiFileInputRef.current?.click()}
-            className="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-mono border border-zinc-700 transition-colors cursor-pointer"
+            className="hidden md:inline-flex px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-mono border border-zinc-700 transition-colors cursor-pointer"
             title="Load up to 6 audio stems simultaneously"
           >
             LOAD MULTITRACK
@@ -210,9 +210,9 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
       </div>
 
       {/* Middle Row: Transport Bar & Navigation Tabs */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-zinc-850">
-        {/* Navigation Tabs */}
-        <nav className="flex items-center gap-1">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 pt-2 border-t border-zinc-850">
+        {/* Navigation Tabs (horizontally scrollable on mobile) */}
+        <nav className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-none shrink-0">
           {[
             { id: 'learn', label: 'LEARN' },
             { id: 'console', label: 'MIX CONSOLE' },
@@ -224,7 +224,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
             <button
               key={tab.id}
               onClick={() => onSelectTab(tab.id as typeof activeTab)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold whitespace-nowrap transition-all shrink-0 ${
                 activeTab === tab.id
                   ? 'bg-cyan-500 text-zinc-950 shadow-md font-extrabold'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'
@@ -235,8 +235,8 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
           ))}
         </nav>
 
-        {/* Synchronized Transport Controls */}
-        <div className="flex items-center gap-3 bg-zinc-900/90 px-3 py-1.5 rounded-lg border border-zinc-800">
+        {/* Synchronized Transport Controls (wrapping on mobile) */}
+        <div className="flex flex-wrap items-center gap-2 bg-zinc-900/90 px-2.5 py-1.5 rounded-lg border border-zinc-800">
           {/* Song Selector */}
           <select
             value={currentSongId}

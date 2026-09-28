@@ -53,15 +53,6 @@ export default function App() {
       audioEngine.setEnforcePhantomPower(currentCrisisType === 'phantom_drop');
     } else {
       audioEngine.setEnforcePhantomPower(false);
-      // Ensure channel 3 phantom power is enabled outside scenarios/drills so audio plays freely
-      setChannels(prev => {
-        const next = [...prev];
-        if (next[2] && !next[2].phantom48V) {
-          next[2] = { ...next[2], phantom48V: true };
-          audioEngine.updateChannel(2, next[2]);
-        }
-        return next;
-      });
     }
   }, [activeTab, activeScenarioId, currentCrisisType]);
 
@@ -233,12 +224,19 @@ export default function App() {
   useEffect(() => {
     let animId: number;
     const updateLoop = () => {
-      // Check active PFL solo channel index
-      const activePflIdx = channelsRef.current.findIndex(c => c.soloPfl);
-      const levels = audioEngine.getMeterLevels(activePflIdx >= 0 ? activePflIdx : null);
-      setMeterLevels(levels);
-
-      if (audioEngine.isPlaying) {
+      if (!audioEngine.isPlaying) {
+        setMeterLevels({
+          channels: Array(6).fill({ level: 0, clipped: false }),
+          masterL: 0,
+          masterR: 0,
+          masterClipped: false,
+          aux1: 0,
+          pflActive: false
+        });
+      } else {
+        const activePflIdx = channelsRef.current.findIndex(c => c.soloPfl);
+        const levels = audioEngine.getMeterLevels(activePflIdx >= 0 ? activePflIdx : null);
+        setMeterLevels(levels);
         setCurrentTime(audioEngine.getCurrentTime());
       }
 

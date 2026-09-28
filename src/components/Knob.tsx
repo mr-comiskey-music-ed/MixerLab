@@ -204,6 +204,23 @@ export const Knob: React.FC<KnobProps> = ({
     document.body.style.cursor = 'ns-resize';
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 0) return;
+    const now = Date.now();
+    if (now - lastClickTime.current < 350) {
+      e.preventDefault();
+      e.stopPropagation();
+      onChange(defaultValue);
+      lastClickTime.current = 0;
+      return;
+    }
+    lastClickTime.current = now;
+
+    setIsDragging(true);
+    dragStartY.current = e.touches[0].clientY;
+    dragStartNorm.current = getNormalized(value);
+  };
+
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -239,21 +256,57 @@ export const Knob: React.FC<KnobProps> = ({
     [isDragging, max, min, step, centerDetent, centerValue, normToVal, onChange]
   );
 
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      if (!isDragging || e.touches.length === 0) return;
+      const deltaY = dragStartY.current - e.touches[0].clientY;
+      const deltaNorm = deltaY / 140;
+      let newNorm = Math.min(1, Math.max(0, dragStartNorm.current + deltaNorm));
+
+      let newVal = normToVal(newNorm);
+
+      if (centerDetent) {
+        if (centerValue !== undefined) {
+          if (Math.abs(newVal - centerValue) < (max - min) * 0.035) {
+            newVal = centerValue;
+          }
+        } else if (Math.abs(newVal) < (max - min) * 0.035) {
+          newVal = 0;
+        }
+      }
+
+      newVal = Math.min(max, Math.max(min, newVal));
+      if (step) {
+        newVal = Math.round(newVal / step) * step;
+      }
+      onChange(Number(newVal.toFixed(step < 1 ? 1 : 0)));
+    },
+    [isDragging, max, min, step, centerDetent, centerValue, normToVal, onChange]
+  );
+
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
     document.body.style.cursor = 'default';
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false);
   }, []);
 
   useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove, { passive: true });
+      window.addEventListener('touchend', handleTouchEnd);
       return () => {
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handleTouchEnd);
       };
     }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
@@ -324,6 +377,7 @@ export const Knob: React.FC<KnobProps> = ({
         <div
           ref={knobRef}
           onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
           onDoubleClick={handleDoubleClick}
           onWheel={handleWheel}
           className={`relative ${sizeClasses} rounded-full cursor-pointer touch-none select-none flex items-center justify-center transition-shadow duration-150 ${colorStyles.glow}`}

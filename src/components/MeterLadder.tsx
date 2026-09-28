@@ -1,11 +1,12 @@
 import React from 'react';
-import { useVuBallistics, VuBallisticsMode } from '../utils/vuBallistics';
 import { AnalogVUMeter } from './AnalogVUMeter';
+import { VuBallisticsMode } from '../utils/vuBallistics';
 
 export interface MeterLadderProps {
   level: number; // 0.0 to 1.0
   clipped: boolean;
   segments?: number;
+  totalSegments?: number;
   height?: number;
   width?: number;
   showLabels?: boolean;
@@ -20,6 +21,7 @@ export const MeterLadder: React.FC<MeterLadderProps> = ({
   level,
   clipped,
   segments = 12,
+  totalSegments,
   height = 130,
   width = 10,
   showLabels = false,
@@ -27,10 +29,9 @@ export const MeterLadder: React.FC<MeterLadderProps> = ({
   ballistics = 'vu',
   label,
   theme = 'vintage',
-  showPeakHold = true
+  showPeakHold = false
 }) => {
-  // Compute smooth analog VU ballistics (300ms rise & fall times with natural mass inertia)
-  const vuState = useVuBallistics(level, ballistics);
+  const numSegments = totalSegments ?? segments;
 
   // If user requested needle variant, render authentic analog needle meter
   if (variant === 'needle') {
@@ -47,10 +48,8 @@ export const MeterLadder: React.FC<MeterLadderProps> = ({
     );
   }
 
-  // Level mapped through realistic VU ballistics to segments
-  // vuState.pos is normalized deflection [0.0 to 1.08], where 0.835 is 0 VU
-  const activeSegments = Math.min(segments, Math.round(vuState.pos * segments));
-  const peakSegment = Math.min(segments - 1, Math.round(vuState.peakHold * segments) - 1);
+  // Linear calculation mapping normalized level (0.0 to 1.0) directly to active LED segments
+  const activeSegments = Math.min(numSegments, Math.max(0, Math.round(level * numSegments)));
 
   const labels = ['+6', '+3', '0', '-3', '-6', '-12', '-18', '-24', '-30', '-40'];
 
@@ -70,7 +69,7 @@ export const MeterLadder: React.FC<MeterLadderProps> = ({
       <div
         className="flex flex-col justify-between bg-zinc-950 p-[2px] rounded border border-zinc-800 shadow-inner"
         style={{ height, width }}
-        title={`Meter: ${Math.round(vuState.pos * 100)}% (VU Ballistics: 300ms rise/fall)`}
+        title={`Meter Level: ${Math.round(level * 100)}%`}
       >
         {/* Clip LED at the top */}
         <div
@@ -83,24 +82,21 @@ export const MeterLadder: React.FC<MeterLadderProps> = ({
         />
 
         {/* Meter segments from top (high level) to bottom (low level) */}
-        {Array.from({ length: segments }).map((_, i) => {
-          const segIndex = segments - 1 - i; // 0 is bottom, segments-1 is near top
+        {Array.from({ length: numSegments }).map((_, i) => {
+          const segIndex = numSegments - 1 - i; // 0 is bottom, numSegments-1 is near top
           const isActive = segIndex < activeSegments;
-          const isPeakHold = showPeakHold && segIndex === peakSegment && !isActive;
 
           // Color coding: top 2 red/amber, lower are green
           let activeColor = 'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.7)]';
-          if (segIndex >= segments - 2) {
+          if (segIndex >= numSegments - 2) {
             activeColor = 'bg-rose-500 shadow-[0_0_5px_rgba(244,63,94,0.9)]';
-          } else if (segIndex >= segments - 4) {
+          } else if (segIndex >= numSegments - 4) {
             activeColor = 'bg-amber-400 shadow-[0_0_4px_rgba(251,191,36,0.8)]';
           }
 
           let segmentClass = 'bg-zinc-900 opacity-60';
           if (isActive) {
             segmentClass = activeColor;
-          } else if (isPeakHold) {
-            segmentClass = 'bg-amber-300 shadow-[0_0_6px_rgba(252,211,77,0.9)] opacity-95';
           }
 
           return (

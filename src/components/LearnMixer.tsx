@@ -317,7 +317,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
     const isClipping = meter.clipped || isGainHot;
 
     return (
-      <div className="w-36 flex flex-col bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border border-zinc-800 rounded-lg p-1.5 gap-1.5 shadow-xl relative">
+      <div className="w-28 flex flex-col bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border border-zinc-800 rounded-lg p-1 gap-1 shadow-xl relative">
         {/* Channel Strip Header */}
         <div className="flex items-center justify-between border-b border-zinc-800 pb-1">
           <div className="flex flex-col">
@@ -575,7 +575,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
 
         {/* Fader & Meter (Spotlighted on Step 7) */}
         <div
-          className={`flex items-center justify-between bg-zinc-950 p-1.5 rounded border h-48 transition-all ${
+          className={`flex items-center justify-center bg-zinc-950 p-1.5 rounded border h-48 transition-all ${
             currentStep === 7
               ? 'border-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.4)] ring-2 ring-indigo-500/50'
               : 'border-zinc-850'
@@ -598,12 +598,6 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
               title={`Fader: ${ch.faderLevel > 0 ? '+' : ''}${ch.faderLevel.toFixed(1)} dB\n(double click to reset)`}
             />
           </div>
-          <MeterLadder
-            level={meter.level}
-            clipped={isClipping}
-            height={160}
-            width={6}
-          />
         </div>
 
         {/* Fader Readout */}

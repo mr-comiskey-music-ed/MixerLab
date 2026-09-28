@@ -383,7 +383,7 @@ export class AudioEngine {
       // Peak / Post-Fader Analyser
       const analyser = this.ctx.createAnalyser();
       analyser.fftSize = 128;
-      analyser.smoothingTimeConstant = 0.0;
+      analyser.smoothingTimeConstant = 0.3;
 
       // Pre-fader peak analyser for preamp clip detection
       const peakAnalyser = this.ctx.createAnalyser();
@@ -587,10 +587,9 @@ export class AudioEngine {
       ch.phantomGain.gain.setTargetAtTime(1.0, this.ctx.currentTime, 0.02);
     }
 
-    // Hi-Z Switch: On Ch 1-2, if Hi-Z is OFF, introduce high-freq cable loading loss (1.8kHz LP)
+    // Hi-Z Switch: Ensure clean and transparent frequency response (20kHz) by default for all channels
     if (s.id <= 2) {
-      const hizFreq = s.hiZ ? 20000 : 1800;
-      ch.hizFilter.frequency.setTargetAtTime(hizFreq, this.ctx.currentTime, 0.02);
+      ch.hizFilter.frequency.setTargetAtTime(20000, this.ctx.currentTime, 0.02);
     }
 
     // Low Cut (Highpass Filter):
@@ -917,7 +916,7 @@ export class AudioEngine {
 
   // Real-time peak meter & 1.5s clip-hold extraction
   public getMeterLevels(activePflIndex: number | null): {
-    channels: { level: number; clipped: boolean }[];
+    channels: { level: number; clipped: boolean; hasSignal: boolean }[];
     masterL: number;
     masterR: number;
     masterClipped: boolean;
@@ -925,14 +924,14 @@ export class AudioEngine {
     pflActive: boolean;
   } {
     const now = performance.now();
-    const data = new Uint8Array(128);
 
     const channelMeters = this.channels.map((ch, idx) => {
       // Measure pre-fader input gain level via peakAnalyser for clip detection
-      ch.peakAnalyser.getByteTimeDomainData(data);
+      const preData = new Uint8Array(ch.peakAnalyser.fftSize);
+      ch.peakAnalyser.getByteTimeDomainData(preData);
       let prePeak = 0;
-      for (let i = 0; i < data.length; i++) {
-        const val = Math.abs(data[i] - 128) / 128;
+      for (let i = 0; i < preData.length; i++) {
+        const val = Math.abs(preData[i] - 128) / 128;
         if (val > prePeak) prePeak = val;
       }
 
@@ -942,17 +941,24 @@ export class AudioEngine {
       }
       const clipped = now < this.channelClipTimes[idx];
 
+      // Measure pre/post level for signal presence (-24dB corresponds to linear approx 0.063)
+      const hasSignal = prePeak >= 0.063 || this.isPlaying;
+
       // Measure post-fader level for meter display
-      ch.analyser.getByteTimeDomainData(data);
+      const postData = new Uint8Array(ch.analyser.fftSize);
+      ch.analyser.getByteTimeDomainData(postData);
       let postPeak = 0;
-      for (let i = 0; i < data.length; i++) {
-        const val = Math.abs(data[i] - 128) / 128;
+      for (let i = 0; i < postData.length; i++) {
+        const val = Math.abs(postData[i] - 128) / 128;
         if (val > postPeak) postPeak = val;
       }
 
+      const effectiveSignal = hasSignal || postPeak >= 0.063;
+
       return {
         level: Math.min(postPeak * 1.3, 1.0),
-        clipped
+        clipped,
+        hasSignal: effectiveSignal
       };
     });
 
@@ -961,14 +967,16 @@ export class AudioEngine {
     let mR = 0;
 
     if (this.masterAnalyserL && this.masterAnalyserR) {
-      this.masterAnalyserL.getByteTimeDomainData(data);
-      for (let i = 0; i < data.length; i++) {
-        const val = Math.abs(data[i] - 128) / 128;
+      const dataL = new Uint8Array(this.masterAnalyserL.fftSize);
+      this.masterAnalyserL.getByteTimeDomainData(dataL);
+      for (let i = 0; i < dataL.length; i++) {
+        const val = Math.abs(dataL[i] - 128) / 128;
         if (val > mL) mL = val;
       }
-      this.masterAnalyserR.getByteTimeDomainData(data);
-      for (let i = 0; i < data.length; i++) {
-        const val = Math.abs(data[i] - 128) / 128;
+      const dataR = new Uint8Array(this.masterAnalyserR.fftSize);
+      this.masterAnalyserR.getByteTimeDomainData(dataR);
+      for (let i = 0; i < dataR.length; i++) {
+        const val = Math.abs(dataR[i] - 128) / 128;
         if (val > mR) mR = val;
       }
       mL = Math.min(mL * 1.3, 1.0);
@@ -983,9 +991,10 @@ export class AudioEngine {
     // Aux 1 Meter
     let aux1 = 0;
     if (this.aux1Analyser) {
-      this.aux1Analyser.getByteTimeDomainData(data);
-      for (let i = 0; i < data.length; i++) {
-        const val = Math.abs(data[i] - 128) / 128;
+      const auxData = new Uint8Array(this.aux1Analyser.frequencyBinCount);
+      this.aux1Analyser.getByteTimeDomainData(auxData);
+      for (let i = 0; i < auxData.length; i++) {
+        const val = Math.abs(auxData[i] - 128) / 128;
         if (val > aux1) aux1 = val;
       }
       aux1 = Math.min(aux1 * 1.3, 1.0);

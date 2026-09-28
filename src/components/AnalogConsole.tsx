@@ -10,7 +10,7 @@ interface AnalogConsoleProps {
   channels: ChannelSettings[];
   master: MasterSettings;
   meterLevels: {
-    channels: { level: number; clipped: boolean }[];
+    channels: { level: number; clipped: boolean; hasSignal?: boolean }[];
     masterL: number;
     masterR: number;
     masterClipped: boolean;
@@ -34,6 +34,19 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
 }) => {
   const fileInputs = useRef<(HTMLInputElement | null)[]>([]);
   const [lastInteractedChannelIdx, setLastInteractedChannelIdx] = useState<number>(0);
+  const lastTouchTime = useRef(0);
+
+  const handleTouchStartReset = (resetVal: number, setVal: (v: number) => void) => (e: React.TouchEvent) => {
+    const now = Date.now();
+    if (now - lastTouchTime.current < 350) {
+      e.preventDefault();
+      e.stopPropagation();
+      setVal(resetVal);
+      lastTouchTime.current = 0;
+      return;
+    }
+    lastTouchTime.current = now;
+  };
   const [delayInfo, setDelayInfo] = useState(() => audioEngine.getDelayInfo());
   const [tapFlash, setTapFlash] = useState(false);
 
@@ -74,7 +87,7 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
           return (
             <div
               key={ch.id}
-              className="w-32 flex flex-col bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border border-zinc-800 rounded-lg p-1.5 gap-1.5 shadow-md relative"
+              className="w-28 flex flex-col bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border border-zinc-800 rounded-lg p-1 gap-1 shadow-md relative"
             >
               {/* Channel Strip Header */}
               <div className="flex items-center justify-between border-b border-zinc-800 pb-1">
@@ -108,7 +121,7 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
 
               {/* Preamp & Input Section */}
               <div className="flex flex-col items-center gap-1 bg-zinc-950/60 p-1 rounded border border-zinc-850">
-                <div className="flex items-center gap-1.5 w-full justify-center">
+                <div className="flex items-center gap-1 w-full justify-center">
                   <Knob
                     label={isStereo ? "TRIM" : "GAIN"}
                     value={ch.gain}
@@ -122,15 +135,27 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
                     formatValue={(v) => (v <= -59 ? '-∞ dB' : `${v > 0 ? '+' : ''}${v.toFixed(1)} dB`)}
                     onChange={(v) => handleChannelField(idx, 'gain', v)}
                   />
-                  <div
-                    className={`px-1 py-2 rounded text-[7px] font-mono font-bold border transition-all ${
-                      meter.clipped
-                        ? 'bg-red-600 text-white border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.9)] animate-pulse'
-                        : 'bg-zinc-900 text-zinc-600 border-zinc-800'
-                    }`}
-                    title={meter.clipped ? 'PEAK / CLIPPING DETECTED' : 'Peak Indicator (Normal)'}
-                  >
-                    PEAK
+                  <div className="flex flex-col gap-1 items-center justify-center">
+                    <div
+                      className={`px-1 py-0.5 rounded text-[6.5px] font-mono font-bold border transition-all ${
+                        meter.hasSignal
+                          ? 'bg-emerald-500 text-zinc-950 border-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.8)]'
+                          : 'bg-zinc-900 text-zinc-600 border-zinc-800'
+                      }`}
+                      title={meter.hasSignal ? 'Signal Active (-24dB or higher)' : 'No Signal'}
+                    >
+                      SIG
+                    </div>
+                    <div
+                      className={`px-1 py-0.5 rounded text-[6.5px] font-mono font-bold border transition-all ${
+                        meter.clipped
+                          ? 'bg-red-600 text-white border-red-400 shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-pulse'
+                          : 'bg-zinc-900 text-zinc-600 border-zinc-800'
+                      }`}
+                      title={meter.clipped ? 'PEAK / CLIPPING DETECTED' : 'Peak Indicator (Normal)'}
+                    >
+                      PEAK
+                    </div>
                   </div>
                 </div>
 
@@ -314,8 +339,13 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
                 </button>
               </div>
 
+              {/* Instrument Name Label */}
+              <div className="text-[10px] font-mono font-bold text-center text-cyan-400 bg-zinc-950/80 py-0.5 px-1 rounded border border-zinc-800 truncate" title={ch.name}>
+                {ch.name}
+              </div>
+
               {/* Fader & Meter */}
-              <div className="flex items-center justify-between bg-zinc-950 p-1.5 rounded border border-zinc-850 h-48">
+              <div className="flex items-center justify-center bg-zinc-950 p-1.5 rounded border border-zinc-850 h-48">
                 <FaderScale heightClass="h-40" />
                 <div className="flex-1 flex justify-center items-center h-full px-0.5">
                   <input
@@ -329,28 +359,28 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
                       e.preventDefault();
                       handleChannelField(idx, 'faderLevel', 0);
                     }}
+                    onTouchStart={handleTouchStartReset(0, (v) => handleChannelField(idx, 'faderLevel', v))}
                     className="fader-vertical h-40 w-8"
-                    title={`Fader: ${ch.faderLevel > 0 ? '+' : ''}${ch.faderLevel.toFixed(1)} dB\n(double click to reset)`}
+                    title={`Fader: ${ch.faderLevel > 0 ? '+' : ''}${ch.faderLevel.toFixed(1)} dB\n(double click or double tap to reset)`}
                   />
                 </div>
-                <MeterLadder
-                  level={meter.level}
-                  clipped={meter.clipped}
-                  height={160}
-                  width={6}
-                />
               </div>
 
               {/* Fader Readout */}
-              <div className="flex items-center justify-between text-[9px] font-mono px-0.5">
+              <div
+                onDoubleClick={() => handleChannelField(idx, 'faderLevel', 0)}
+                onTouchStart={handleTouchStartReset(0, (v) => handleChannelField(idx, 'faderLevel', v))}
+                className="flex items-center justify-between text-[9px] font-mono px-0.5 cursor-pointer select-none"
+                title="Double-click or double-tap to reset fader to 0.0 dB"
+              >
                 <span className="text-zinc-500">LEVEL</span>
-                <span className="font-bold text-zinc-200">
+                <span className="font-bold text-zinc-200 hover:text-cyan-300 transition-colors">
                   {ch.faderLevel <= -59 ? '-∞' : `${ch.faderLevel > 0 ? '+' : ''}${ch.faderLevel.toFixed(1)}`}
                 </span>
               </div>
 
-              {/* Load Stem */}
-              <div className="mt-auto pt-1 border-t border-zinc-800/80">
+              {/* Load Stem (hidden on mobile and tablet) */}
+              <div className="hidden md:block mt-auto pt-1 border-t border-zinc-800/80">
                 <input
                   type="file"
                   accept="audio/*"
@@ -622,9 +652,14 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[9px] font-mono mb-0.5">
+            <div
+              onDoubleClick={() => handleMasterField('mainFader', 0)}
+              onTouchStart={handleTouchStartReset(0, (v) => handleMasterField('mainFader', v))}
+              className="flex items-center justify-between text-[9px] font-mono mb-0.5 cursor-pointer select-none"
+              title="Double-click or double-tap to reset Main Mix to 0.0 dB Unity"
+            >
               <span className="text-red-400 font-bold">MAIN MIX</span>
-              <span className="font-bold text-zinc-200">
+              <span className="font-bold text-zinc-200 hover:text-red-400 transition-colors">
                 {master.mainFader <= -59 ? '-∞' : `${master.mainFader > 0 ? '+' : ''}${master.mainFader.toFixed(1)} dB`}
               </span>
             </div>
@@ -641,8 +676,9 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
                   e.preventDefault();
                   handleMasterField('mainFader', 0);
                 }}
+                onTouchStart={handleTouchStartReset(0, (v) => handleMasterField('mainFader', v))}
                 className="fader-vertical fader-master h-44 w-10"
-                title={`Main Mix: ${master.mainFader > 0 ? '+' : ''}${master.mainFader.toFixed(1)} dB\n(double click to reset)`}
+                title={`Main Mix: ${master.mainFader > 0 ? '+' : ''}${master.mainFader.toFixed(1)} dB\n(double click or double tap to reset)`}
               />
             </div>
           </div>

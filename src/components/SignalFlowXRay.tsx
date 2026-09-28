@@ -14,7 +14,6 @@ export const SignalFlowXRay: React.FC<SignalFlowXRayProps> = ({
   onClose,
   channelId = 1,
   channelName = 'Kick / Snare',
-  channelSettings
 }) => {
   // Close on ESC key
   useEffect(() => {
@@ -28,24 +27,6 @@ export const SignalFlowXRay: React.FC<SignalFlowXRayProps> = ({
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
-
-  const gainVal = channelSettings ? channelSettings.gain : 0;
-  const phantom48V = channelSettings ? channelSettings.phantom48V : false;
-  const hiZ = channelSettings ? channelSettings.hiZ : false;
-  const phaseInvert = channelSettings ? channelSettings.phaseInvert : false;
-  const lowCut = channelSettings ? channelSettings.lowCut100Hz : false;
-  const eqHighVal = channelSettings ? channelSettings.eqHigh : 0;
-  const eqMidVal = channelSettings ? channelSettings.eqMid : 0;
-  const eqMidFreq = channelSettings ? channelSettings.eqMidFreq || 2500 : 2500;
-  const eqLowVal = channelSettings ? channelSettings.eqLow : 0;
-  const aux1Pre = channelSettings ? channelSettings.aux1Pre : -60;
-  const fxPost = channelSettings ? channelSettings.fxPost : -60;
-  const faderVal = channelSettings ? channelSettings.faderLevel : 0;
-  const panVal = channelSettings ? channelSettings.pan : 0;
-  const isMuted = channelSettings ? channelSettings.mute : false;
-
-  const formatDb = (v: number) => (v <= -59 ? '-∞ dB' : `${v > 0 ? '+' : ''}${v.toFixed(1)} dB`);
-  const formatPan = (v: number) => (Math.abs(v) < 0.05 ? 'Center' : v < 0 ? `L${Math.round(Math.abs(v) * 100)}` : `R${Math.round(v * 100)}`);
 
   return (
     <div
@@ -73,44 +54,6 @@ export const SignalFlowXRay: React.FC<SignalFlowXRayProps> = ({
           </button>
         </div>
 
-        {/* Live Channel Parameter Status Banner */}
-        {channelSettings && (
-          <div className="grid grid-cols-2 sm:grid-cols-8 gap-2 bg-zinc-950 p-3 rounded-lg border border-zinc-800 font-mono text-xs text-center">
-            <div className="bg-zinc-900 p-1.5 rounded border border-zinc-800">
-              <span className="text-[9px] text-zinc-400 block">GAIN</span>
-              <span className="font-bold text-red-400">{formatDb(gainVal)}</span>
-            </div>
-            <div className="bg-zinc-900 p-1.5 rounded border border-zinc-800">
-              <span className="text-[9px] text-zinc-400 block">+48V / SW</span>
-              <span className={`font-bold ${phantom48V ? 'text-red-400' : 'text-zinc-500'}`}>{phantom48V ? 'ON' : 'OFF'}</span>
-            </div>
-            <div className="bg-zinc-900 p-1.5 rounded border border-zinc-800">
-              <span className="text-[9px] text-zinc-400 block">EQ HIGH</span>
-              <span className="font-bold text-sky-400">{formatDb(eqHighVal)}</span>
-            </div>
-            <div className="bg-zinc-900 p-1.5 rounded border border-zinc-800">
-              <span className="text-[9px] text-zinc-400 block">EQ MID</span>
-              <span className="font-bold text-amber-400">{formatDb(eqMidVal)}</span>
-            </div>
-            <div className="bg-zinc-900 p-1.5 rounded border border-zinc-800">
-              <span className="text-[9px] text-zinc-400 block">EQ LOW</span>
-              <span className="font-bold text-sky-400">{formatDb(eqLowVal)}</span>
-            </div>
-            <div className="bg-zinc-900 p-1.5 rounded border border-zinc-800">
-              <span className="text-[9px] text-zinc-400 block">AUX (MON)</span>
-              <span className="font-bold text-emerald-400">{aux1Pre <= -59 ? '-∞' : formatDb(aux1Pre)}</span>
-            </div>
-            <div className="bg-zinc-900 p-1.5 rounded border border-zinc-800">
-              <span className="text-[9px] text-zinc-400 block">PAN</span>
-              <span className="font-bold text-yellow-400">{formatPan(panVal)}</span>
-            </div>
-            <div className="bg-zinc-900 p-1.5 rounded border border-zinc-800">
-              <span className="text-[9px] text-zinc-400 block">FADER / MUTE</span>
-              <span className={`font-bold ${isMuted ? 'text-rose-500' : 'text-emerald-400'}`}>{isMuted ? 'MUTED' : formatDb(faderVal)}</span>
-            </div>
-          </div>
-        )}
-
         {/* Signal Flow Diagram */}
         <div className="relative bg-zinc-950 p-6 rounded-lg border border-zinc-800 overflow-x-auto">
           <div className="min-w-[800px] flex flex-col gap-8">
@@ -123,23 +66,23 @@ export const SignalFlowXRay: React.FC<SignalFlowXRayProps> = ({
               <div className="z-10 flex flex-col items-center bg-zinc-900 border border-zinc-700 rounded p-2.5 shadow-md w-24 text-center">
                 <span className="text-[10px] text-zinc-400 font-mono">INPUT</span>
                 <span className="text-xs font-bold text-zinc-100">XLR / Line</span>
-                <span className={`text-[9px] font-mono font-bold ${phantom48V ? 'text-red-400' : 'text-zinc-500'}`}>
-                  +48V: {phantom48V ? 'ACTIVE' : 'OFF'}
+                <span className="text-[9px] font-mono font-bold text-zinc-500">
+                  Mic / Source
                 </span>
               </div>
 
               {/* Node 2: Preamp */}
               <div className="z-10 flex flex-col items-center bg-zinc-900 border border-red-500/40 rounded p-2.5 shadow-md w-28 text-center">
                 <span className="text-[10px] text-red-400 font-mono">PREAMP GAIN</span>
-                <span className="text-xs font-bold text-zinc-100">{formatDb(gainVal)}</span>
-                <span className="text-[9px] text-zinc-400 font-mono">{hiZ ? 'Hi-Z Di' : phaseInvert ? 'Ø Inverted' : 'Standard'}</span>
+                <span className="text-xs font-bold text-zinc-100">Trim / Gain</span>
+                <span className="text-[9px] text-zinc-400 font-mono">Analog Stage</span>
               </div>
 
               {/* Node 3: Filter */}
               <div className="z-10 flex flex-col items-center bg-zinc-900 border border-zinc-700 rounded p-2.5 shadow-md w-24 text-center">
                 <span className="text-[10px] text-zinc-400 font-mono">HI-PASS</span>
-                <span className={`text-xs font-bold ${lowCut ? 'text-emerald-400' : 'text-zinc-400'}`}>
-                  {lowCut ? '100Hz CUT' : 'Bypassed'}
+                <span className="text-xs font-bold text-zinc-400">
+                  100Hz HPF
                 </span>
                 <span className="text-[9px] text-zinc-400 font-mono">Rumble Filter</span>
               </div>
@@ -148,10 +91,10 @@ export const SignalFlowXRay: React.FC<SignalFlowXRayProps> = ({
               <div className="z-10 flex flex-col items-center bg-zinc-900 border border-sky-500/50 rounded p-2.5 shadow-md w-32 text-center">
                 <span className="text-[10px] text-sky-400 font-mono">3-BAND EQ</span>
                 <span className="text-[10px] font-bold text-zinc-100">
-                  Hi:{formatDb(eqHighVal)} | Low:{formatDb(eqLowVal)}
+                  Hi / Mid / Low
                 </span>
                 <span className="text-[9px] text-amber-400 font-mono">
-                  Mid:{formatDb(eqMidVal)} @ {eqMidFreq >= 1000 ? `${(eqMidFreq/1000).toFixed(1)}k` : `${Math.round(eqMidFreq)}Hz`}
+                  Parametric Tone
                 </span>
               </div>
 
@@ -159,15 +102,15 @@ export const SignalFlowXRay: React.FC<SignalFlowXRayProps> = ({
               <div className="z-20 relative flex flex-col items-center">
                 <div className="w-4 h-4 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] border-2 border-zinc-900" />
                 <span className="text-[9px] font-mono text-emerald-400 font-bold mt-1">
-                  AUX TAP ({aux1Pre <= -59 ? '-∞' : formatDb(aux1Pre)})
+                  AUX TAP
                 </span>
               </div>
 
               {/* Node 5: Mute & Pan */}
               <div className="z-10 flex flex-col items-center bg-zinc-900 border border-yellow-500/40 rounded p-2.5 shadow-md w-24 text-center">
                 <span className="text-[10px] text-yellow-400 font-mono">PAN / MUTE</span>
-                <span className={`text-xs font-bold ${isMuted ? 'text-rose-500' : 'text-zinc-100'}`}>
-                  {isMuted ? 'MUTED' : formatPan(panVal)}
+                <span className="text-xs font-bold text-zinc-100">
+                  Stereo Image
                 </span>
                 <span className="text-[9px] text-zinc-400 font-mono">Routing</span>
               </div>
@@ -175,15 +118,15 @@ export const SignalFlowXRay: React.FC<SignalFlowXRayProps> = ({
               {/* Node 6: Channel Fader */}
               <div className="z-10 flex flex-col items-center bg-zinc-900 border-2 border-indigo-500 rounded p-2.5 shadow-md w-28 text-center">
                 <span className="text-[10px] text-indigo-400 font-mono">60mm FADER</span>
-                <span className="text-xs font-bold text-white">{formatDb(faderVal)}</span>
-                <span className="text-[9px] text-zinc-400 font-mono">Channel Level</span>
+                <span className="text-xs font-bold text-white">Channel Level</span>
+                <span className="text-[9px] text-zinc-400 font-mono">Attenuation</span>
               </div>
 
               {/* Post-Fade Tap Point */}
               <div className="z-20 relative flex flex-col items-center">
                 <div className="w-4 h-4 rounded-full bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.8)] border-2 border-zinc-900" />
                 <span className="text-[9px] font-mono text-purple-400 font-bold mt-1">
-                  FX TAP ({fxPost <= -59 ? '-∞' : formatDb(fxPost)})
+                  FX TAP
                 </span>
               </div>
 
@@ -195,7 +138,7 @@ export const SignalFlowXRay: React.FC<SignalFlowXRayProps> = ({
               </div>
             </div>
 
-            {/* Branching Aux & FX Routes with Live Values */}
+            {/* Branching Aux & FX Routes */}
             <div className="grid grid-cols-2 gap-4 border-t border-zinc-800/80 pt-4">
               <div className="bg-emerald-950/20 border border-emerald-500/40 rounded-lg p-4 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
@@ -205,9 +148,6 @@ export const SignalFlowXRay: React.FC<SignalFlowXRayProps> = ({
                       AUX (MON) SEND (PRE-FADER)
                     </span>
                   </div>
-                  <span className="text-xs font-mono font-bold text-emerald-400">
-                    {aux1Pre <= -59 ? '-∞ dB' : formatDb(aux1Pre)}
-                  </span>
                 </div>
                 <p className="text-xs text-zinc-300 leading-relaxed">
                   Tapped before the channel fader for CH {channelId} ({channelName}). Stage wedge monitor volume is independent of house fader adjustments.
@@ -222,9 +162,6 @@ export const SignalFlowXRay: React.FC<SignalFlowXRayProps> = ({
                       FX SEND (POST-FADER)
                     </span>
                   </div>
-                  <span className="text-xs font-mono font-bold text-purple-400">
-                    {fxPost <= -59 ? '-∞ dB' : formatDb(fxPost)}
-                  </span>
                 </div>
                 <p className="text-xs text-zinc-300 leading-relaxed">
                   Tapped after the channel fader for CH {channelId} ({channelName}). Proportional to channel level for lush spatial reverb/delay sends.
@@ -236,8 +173,8 @@ export const SignalFlowXRay: React.FC<SignalFlowXRayProps> = ({
 
         {/* Footer Note */}
         <div className="flex items-center justify-between text-xs text-zinc-400 font-mono">
-          <span>Channel {channelId} ({channelName}) Live DSP Signal Topology</span>
-          <span className="text-cyan-400">Active Real-Time HUD</span>
+          <span>Channel {channelId} ({channelName}) DSP Signal Topology</span>
+          <span className="text-cyan-400">Console Flow Architecture</span>
         </div>
       </div>
     </div>
