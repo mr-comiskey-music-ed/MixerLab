@@ -36,30 +36,32 @@ export const BUILTIN_SONGS: SongDefinition[] = [
   },
   {
     id: "song2",
-    title: "Rock Anthem in D (128 BPM)",
-    bpm: 128,
-    key: "D",
+    title: "Give My Heart",
+    bpm: 125,
+    key: "Rock",
+    stemGainDb: -5.95,
     stems: [
-      { id: 1, name: "Rock Drums", type: "drums", color: "#f87171" },
-      { id: 2, name: "Bass", type: "bass", color: "#60a5fa" },
-      { id: 3, name: "Vocal Track", type: "vocal", color: "#facc15" },
-      { id: 4, name: "Rhythm Gtr", type: "guitar", color: "#4ade80" },
-      { id: 5, name: "Lead Gtr", type: "synth", color: "#c084fc" },
-      { id: 6, name: "Tambourine", type: "perc", color: "#fb923c" }
+      { id: 1, name: "Drums", type: "drums", color: "#f87171", url: "/audio/Drums_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) },
+      { id: 2, name: "Bass", type: "bass", color: "#60a5fa", url: "/audio/Bass_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) },
+      { id: 3, name: "Dist E Guit", type: "guitar", color: "#f97316", url: "/audio/DistEGuit_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) },
+      { id: 4, name: "Clean E Guit", type: "guitar", color: "#4ade80", url: "/audio/CleanEGuit_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) },
+      { id: 5, name: "A Guit", type: "guitar", color: "#facc15", url: "/audio/AGuit_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) },
+      { id: 6, name: "Vocals", type: "vocal", color: "#c084fc", url: "/audio/Vocals_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) }
     ]
   },
   {
     id: "song3",
-    title: "Lo-Fi Hip-Hop Loop (85 BPM)",
-    bpm: 85,
-    key: "Fm",
+    title: "Tubular (Modern Hip Hop Beat)",
+    bpm: 140,
+    key: "Hip Hop",
+    stemGainDb: -3.5,
     stems: [
-      { id: 1, name: "Boom Beat", type: "drums", color: "#f87171" },
-      { id: 2, name: "Sub Bass", type: "bass", color: "#60a5fa" },
-      { id: 3, name: "Vocal Chop", type: "vocal", color: "#facc15" },
-      { id: 4, name: "E. Piano", type: "guitar", color: "#4ade80" },
-      { id: 5, name: "Sax Lead", type: "synth", color: "#c084fc" },
-      { id: 6, name: "Vinyl", type: "perc", color: "#fb923c" }
+      { id: 1, name: "808 & Kick", type: "drums", color: "#f87171", url: "/audio/808 Kick_HipHop.mp3", gainFactor: Math.pow(10, -3.5 / 20) },
+      { id: 2, name: "Snares", type: "drums", color: "#fb923c", url: "/audio/Snares_HipHop.mp3", gainFactor: Math.pow(10, -3.5 / 20) },
+      { id: 3, name: "Hi-Hats", type: "perc", color: "#facc15", url: "/audio/Hi-Hats_HipHop.mp3", gainFactor: Math.pow(10, -3.5 / 20) },
+      { id: 4, name: "Bell", type: "perc", color: "#2dd4bf", url: "/audio/Bell_HipHop.mp3", gainFactor: Math.pow(10, -3.5 / 20) },
+      { id: 5, name: "Synths & Strings", type: "synth", color: "#c084fc", url: "/audio/SynthsStrings_HipHop.mp3", gainFactor: Math.pow(10, -3.5 / 20) },
+      { id: 6, name: "Piano", type: "synth", color: "#60a5fa", url: "/audio/Piano_HipHop.mp3", gainFactor: Math.pow(10, -3.5 / 20) }
     ]
   }
 ];

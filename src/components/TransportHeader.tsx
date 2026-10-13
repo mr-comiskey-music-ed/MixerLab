@@ -245,7 +245,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
           >
             {BUILTIN_SONGS.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.title} ({s.key})
+                {s.key && !s.title.includes(s.key) ? `${s.title} (${s.key})` : s.title}
               </option>
             ))}
           </select>

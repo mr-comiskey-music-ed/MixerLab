@@ -39,6 +39,9 @@ export class AudioEngine {
   public startTime: number = 0;
   public pauseOffset: number = 0;
   public loopDuration: number = 8.0;
+  public onDurationChange?: (duration: number) => void;
+  private cachedSongBuffers: Map<string, AudioBuffer[]> = new Map();
+  private pendingSongLoads: Map<string, Promise<AudioBuffer[]>> = new Map();
 
   // Master nodes
   public masterFader: GainNode | null = null;
@@ -118,6 +121,8 @@ export class AudioEngine {
     this.setupFeedbackSimulator();
     this.setupChannels();
     this.loadSong(this.currentSongId);
+    this.preloadSong('song2').catch(() => {});
+    this.preloadSong('song3').catch(() => {});
   }
 
   private setupMasterNodes() {
@@ -457,20 +462,137 @@ export class AudioEngine {
     }
   }
 
-  public loadSong(songId: string) {
-    if (!this.ctx) return;
+  public async fetchAndDecodeAudio(url: string, gainFactor: number = 1.0): Promise<AudioBuffer> {
+    if (!this.ctx) this.init();
+    const baseUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL)
+      ? import.meta.env.BASE_URL
+      : '/';
+    const normalizedUrl = url.startsWith('/')
+      ? `${baseUrl.replace(/\/$/, '')}${url}`
+      : url;
+
+    const res = await fetch(encodeURI(normalizedUrl));
+    if (!res.ok) {
+      throw new Error(`Failed to fetch audio from ${normalizedUrl}: ${res.statusText}`);
+    }
+    const arrayBuffer = await res.arrayBuffer();
+    const audioBuffer = await this.ctx!.decodeAudioData(arrayBuffer);
+
+    // Apply per-stem gain reduction (e.g. -3dB or -5.5dB)
+    if (gainFactor !== 1.0) {
+      for (let c = 0; c < audioBuffer.numberOfChannels; c++) {
+        const channelData = audioBuffer.getChannelData(c);
+        for (let i = 0; i < channelData.length; i++) {
+          channelData[i] *= gainFactor;
+        }
+      }
+    }
+
+    return audioBuffer;
+  }
+
+  public async preloadSong(songId: string): Promise<AudioBuffer[]> {
+    if (this.cachedSongBuffers.has(songId)) {
+      return this.cachedSongBuffers.get(songId)!;
+    }
+    if (this.pendingSongLoads.has(songId)) {
+      return this.pendingSongLoads.get(songId)!;
+    }
+
+    const song = BUILTIN_SONGS.find(s => s.id === songId);
+    if (!song) return [];
+
+    const hasUrls = song.stems.some(s => !!s.url);
+    if (!hasUrls) {
+      if (!this.ctx) this.init();
+      const bufs = generateSyntheticSongStems(this.ctx!, songId);
+      this.cachedSongBuffers.set(songId, bufs);
+      return bufs;
+    }
+
+    const defaultGainFactor = song.stemGainDb !== undefined ? Math.pow(10, song.stemGainDb / 20) : 1.0;
+
+    const loadPromise = (async () => {
+      if (!this.ctx) this.init();
+      const buffers = await Promise.all(
+        song.stems.map(async (stem) => {
+          if (stem.url) {
+            const factor = stem.gainFactor ?? defaultGainFactor;
+            return await this.fetchAndDecodeAudio(stem.url, factor);
+          }
+          return this.ctx!.createBuffer(2, Math.floor((this.ctx!.sampleRate || 44100) * 8), this.ctx!.sampleRate || 44100);
+        })
+      );
+      this.cachedSongBuffers.set(songId, buffers);
+      this.pendingSongLoads.delete(songId);
+      return buffers;
+    })();
+
+    this.pendingSongLoads.set(songId, loadPromise);
+    return loadPromise;
+  }
+
+  public async loadSong(songId: string): Promise<AudioBuffer[]> {
+    if (!this.ctx) this.init();
     this.currentSongId = songId;
     const wasPlaying = this.isPlaying;
     if (wasPlaying) {
       this.stop();
     }
+    this.pauseOffset = 0;
 
-    // Synthesize buffers for the selected song
-    this.stemBuffers = generateSyntheticSongStems(this.ctx, songId);
-    this.loopDuration = this.stemBuffers[0]?.duration || 8.0;
+    const song = BUILTIN_SONGS.find(s => s.id === songId);
+    const hasUrls = song?.stems.some(s => !!s.url);
 
-    if (wasPlaying) {
-      this.play();
+    // If already cached, switch instantly
+    if (this.cachedSongBuffers.has(songId)) {
+      this.stemBuffers = this.cachedSongBuffers.get(songId)!;
+      this.loopDuration = this.stemBuffers[0]?.duration || 8.0;
+      if (this.onDurationChange) {
+        this.onDurationChange(this.loopDuration);
+      }
+      if (wasPlaying) {
+        this.play(0);
+      }
+      return this.stemBuffers;
+    }
+
+    // If song has no audio file URLs, generate synthetic stems synchronously
+    if (!hasUrls) {
+      this.stemBuffers = generateSyntheticSongStems(this.ctx!, songId);
+      this.loopDuration = this.stemBuffers[0]?.duration || 8.0;
+      this.cachedSongBuffers.set(songId, this.stemBuffers);
+      if (this.onDurationChange) {
+        this.onDurationChange(this.loopDuration);
+      }
+      if (wasPlaying) {
+        this.play(0);
+      }
+      return this.stemBuffers;
+    }
+
+    // Fallback temporary buffers while loading
+    this.stemBuffers = generateSyntheticSongStems(this.ctx!, songId);
+    this.loopDuration = songId === 'song3' ? 28.68 : 65.856;
+
+    try {
+      const buffers = await this.preloadSong(songId);
+      if (this.currentSongId === songId) {
+        this.stemBuffers = buffers;
+        this.loopDuration = buffers[0]?.duration || 8.0;
+        if (this.onDurationChange) {
+          this.onDurationChange(this.loopDuration);
+        }
+        if (this.isPlaying) {
+          this.play(this.getCurrentTime());
+        } else if (wasPlaying) {
+          this.play(0);
+        }
+      }
+      return buffers;
+    } catch (err) {
+      console.error(`Failed to load song ${songId}:`, err);
+      return this.stemBuffers;
     }
   }
 

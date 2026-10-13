@@ -4,6 +4,8 @@ export interface StemDefinition {
   type: 'drums' | 'bass' | 'vocal' | 'guitar' | 'synth' | 'perc';
   color: string;
   data?: string; // Optional Base64 data URL if provided by user
+  url?: string; // Optional static audio file path/URL
+  gainFactor?: number; // Optional gain scaling factor (e.g. 10^(-3/20) for -3dB)
 }
 
 export interface SongDefinition {
@@ -12,6 +14,7 @@ export interface SongDefinition {
   bpm: number;
   key: string;
   stems: StemDefinition[];
+  stemGainDb?: number; // Optional default gain adjustment in dB
 }
 
 export interface ChannelSettings {

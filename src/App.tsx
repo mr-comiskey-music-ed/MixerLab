@@ -215,6 +215,7 @@ export default function App() {
   // Initialize engine on first gesture / mount
   useEffect(() => {
     audioEngine.init();
+    audioEngine.onDurationChange = (dur) => setDuration(dur);
     channels.forEach((ch, idx) => audioEngine.updateChannel(idx, ch));
     audioEngine.updateMaster(master);
     setDuration(audioEngine.loopDuration);
@@ -292,9 +293,9 @@ export default function App() {
   };
 
   // Song switching
-  const handleSelectSong = (songId: string) => {
+  const handleSelectSong = async (songId: string) => {
     setCurrentSongId(songId);
-    audioEngine.loadSong(songId);
+    await audioEngine.loadSong(songId);
     setDuration(audioEngine.loopDuration);
     // Update channel names to match selected song stems
     const song = BUILTIN_SONGS.find(s => s.id === songId);
@@ -407,10 +408,6 @@ export default function App() {
     audioEngine.updateAllChannels(nextChannels);
     setMaster(nextMaster);
     audioEngine.updateMaster(nextMaster);
-
-    if (!isPlaying) {
-      handlePlay();
-    }
   };
 
   // Tab selection with audio pause
@@ -667,16 +664,25 @@ export default function App() {
         )}
 
         {/* TAB 4: MATCH THE MIX (A/B CRITICAL LISTENING) */}
+        {/* TAB 4: MATCH THE MIX (COMING SOON) */}
         {activeTab === 'match' && (
-          <div className="w-full flex flex-col items-center">
-            <MatchTheMix
-              channels={channels}
-              master={master}
-              onAuditionReferenceMix={handleAuditionReferenceMix}
-              onSaveMatchScore={(pct) => setMatchScore(pct)}
-              currentMatchScore={matchScore}
-            />
-            {renderConsoleBay("Match The Mix Console — Adjust Levels, Pan & EQ to Match Reference")}
+          <div className="w-full h-[65vh] flex flex-col items-center justify-center p-6">
+            <div className="bg-zinc-900 border-2 border-cyan-500/50 rounded-2xl p-8 max-w-md w-full shadow-2xl flex flex-col items-center gap-4 text-center">
+              <div className="w-12 h-12 rounded-full bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-cyan-400 font-mono font-bold text-xl">
+                ⚡
+              </div>
+              <h2 className="text-xl font-bold font-mono text-zinc-100 tracking-wide">MATCH THE MIX</h2>
+              <p className="text-sm font-mono text-cyan-400 uppercase font-semibold">Coming Soon</p>
+              <p className="text-xs text-zinc-400 leading-relaxed font-mono">
+                A/B critical listening and automated reference mix matching is currently under active development and will be available in the next release.
+              </p>
+              <button
+                onClick={() => handleSelectTab('console')}
+                className="mt-2 px-5 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-mono font-bold text-xs transition-colors shadow-lg cursor-pointer"
+              >
+                RETURN TO MIX CONSOLE
+              </button>
+            </div>
           </div>
         )}
 
