@@ -64,7 +64,6 @@ export const GradeReport: React.FC<GradeReportProps> = ({
   onListenToMix
 }) => {
   const [studentName, setStudentName] = useState<string>('');
-  const [periodId, setPeriodId] = useState<string>('');
   const [generatedCode, setGeneratedCode] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
   const [codeError, setCodeError] = useState<string>('');
@@ -73,7 +72,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
   const [batchInput, setBatchInput] = useState<string>('');
   const [rows, setRows] = useState<VerifiedRow[]>([]);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [sortField, setSortField] = useState<'name' | 'period' | 'total' | 'scenarios' | 'drill' | 'match' | 'mymix'>('name');
+  const [sortField, setSortField] = useState<'name' | 'total' | 'scenarios' | 'drill' | 'match' | 'mymix'>('name');
   const [sortAsc, setSortAsc] = useState<boolean>(true);
 
   // Full report modal: either the student's own preview or a row from the batch
@@ -87,7 +86,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
 
   const buildMySubmission = (): StudentSubmission => ({
     timestamp: new Date().toISOString(),
-    student: { name: studentName.trim(), period: periodId.trim() },
+    student: { name: studentName.trim() },
     scores: {
       scenarios: scenariosCompleted,
       whatChanged: whatChangedBest,
@@ -99,8 +98,8 @@ export const GradeReport: React.FC<GradeReportProps> = ({
   });
 
   const handleGenerateCode = async () => {
-    if (!studentName.trim() || !periodId.trim()) {
-      setCodeError('Enter your name and class period first.');
+    if (!studentName.trim()) {
+      setCodeError('Enter your name first.');
       return;
     }
     setCodeError('');
@@ -136,7 +135,6 @@ export const GradeReport: React.FC<GradeReportProps> = ({
     if (!s) return sortAsc ? '￿' : '';
     switch (sortField) {
       case 'name': return s.student.name.toLowerCase();
-      case 'period': return s.student.period.toLowerCase();
       case 'total': return s.scores.totalPercentage;
       case 'scenarios': return Object.keys(s.scores.scenarios).length;
       case 'drill': return s.scores.whatChanged;
@@ -157,7 +155,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
     if (sortField === field) setSortAsc(!sortAsc);
     else {
       setSortField(field);
-      setSortAsc(field === 'name' || field === 'period');
+      setSortAsc(field === 'name');
     }
   };
 
@@ -165,7 +163,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
   const handleExportCSV = () => {
     if (readableRows.length === 0) return;
     const headers = [
-      'Student Name', 'Period', 'Auto Grade %', 'Scenarios Passed', 'Scenario Points',
+      'Student Name', 'Auto Grade %', 'Scenarios Passed', 'Scenario Points',
       'What Changed (of 8)', 'Match the Mix Avg %', 'Mixer Academy', 'My Mix Song', 'My Mix Explanation',
       'Checksum', 'Submitted'
     ];
@@ -173,7 +171,6 @@ export const GradeReport: React.FC<GradeReportProps> = ({
       const sc = s!.scores;
       return [
         csvCell(s!.student.name),
-        csvCell(s!.student.period),
         sc.totalPercentage,
         Object.values(sc.scenarios).filter((p) => p > 0).length,
         Object.values(sc.scenarios).reduce((a, b) => a + b, 0),
@@ -232,16 +229,6 @@ export const GradeReport: React.FC<GradeReportProps> = ({
               placeholder="e.g. Alex R."
               value={studentName}
               onChange={(e) => setStudentName(e.target.value)}
-              className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-cyan-500 font-mono select-text"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-mono text-zinc-400 font-semibold uppercase">Class Period</label>
-            <input
-              type="text"
-              placeholder="e.g. Period 4"
-              value={periodId}
-              onChange={(e) => setPeriodId(e.target.value)}
               className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-cyan-500 font-mono select-text"
             />
           </div>
@@ -372,7 +359,6 @@ export const GradeReport: React.FC<GradeReportProps> = ({
               <thead>
                 <tr className="bg-zinc-950 text-zinc-400 border-b border-zinc-800">
                   {sortHeader('name', 'Student')}
-                  {sortHeader('period', 'Period')}
                   {sortHeader('total', 'Auto %')}
                   {sortHeader('scenarios', 'Scenarios')}
                   {sortHeader('drill', 'What Changed')}
@@ -389,7 +375,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                   if (!s) {
                     return (
                       <tr key={idx} className="bg-rose-950/10">
-                        <td className="p-3 text-rose-300" colSpan={10}>
+                        <td className="p-3 text-rose-300" colSpan={9}>
                           Couldn't read this code: <span className="text-zinc-500">{r.rawCode.slice(0, 40)}…</span> (it may be
                           cut off. Ask the student to copy it again.)
                         </td>
@@ -400,7 +386,6 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                   return (
                     <tr key={idx} className="hover:bg-zinc-850/50">
                       <td className="p-3 font-semibold text-zinc-100">{s.student.name}</td>
-                      <td className="p-3 text-zinc-400">{s.student.period}</td>
                       <td className="p-3 font-bold text-emerald-400">{s.scores.totalPercentage}%</td>
                       <td className="p-3 text-zinc-300">
                         {Object.values(s.scores.scenarios).filter((p) => p > 0).length} / {TOTAL_SCENARIOS}
@@ -472,7 +457,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                 </div>
                 <h3 className="text-xl sm:text-2xl font-bold font-mono text-zinc-100 mt-1">{report.student.name || 'Student'}</h3>
                 <span className="text-xs font-mono text-zinc-400">
-                  {report.student.period} · Submitted {new Date(report.timestamp).toLocaleString()}
+                  Submitted {new Date(report.timestamp).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center gap-3">
@@ -587,7 +572,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                   onClick={() => {
                     const sc = report.scores;
                     const text =
-                      `MIXERLAB REPORT: ${report.student.name} (${report.student.period})\n` +
+                      `MIXERLAB REPORT: ${report.student.name}\n` +
                       `Submitted: ${new Date(report.timestamp).toLocaleString()}\n` +
                       `Auto grade: ${sc.totalPercentage}%\n` +
                       `Scenarios: ${Object.values(sc.scenarios).filter((p) => p > 0).length}/${TOTAL_SCENARIOS}\n` +

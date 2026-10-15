@@ -88,7 +88,6 @@ export interface StudentSubmission {
   timestamp: string;
   student: {
     name: string;
-    period: string;
   };
   scores: {
     scenarios: Record<number, number>; // scenario id -> points
@@ -103,3 +102,13 @@ export interface StudentSubmission {
 
 /** The app's main tabs, in the order they appear. */
 export type TabId = 'learn' | 'console' | 'scenarios' | 'whatchanged' | 'match' | 'mymix' | 'grades';
+
+/** The tabs grouped under CHALLENGES (shown as sub-tabs). */
+export type ChallengeTabId = 'scenarios' | 'whatchanged' | 'match' | 'mymix';
+export const CHALLENGE_TABS: { id: ChallengeTabId; label: string }[] = [
+  { id: 'scenarios', label: 'SCENARIOS' },
+  { id: 'whatchanged', label: 'WHAT CHANGED?' },
+  { id: 'match', label: 'MATCH THE MIX' },
+  { id: 'mymix', label: 'MY MIX' }
+];
+export const isChallengeTab = (t: TabId): t is ChallengeTabId => CHALLENGE_TABS.some(c => c.id === t);

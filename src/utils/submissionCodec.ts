@@ -78,7 +78,6 @@ export function packSubmission(sub: StudentSubmission): Record<string, unknown> 
   const out: Record<string, unknown> = {
     t: Math.round(new Date(sub.timestamp).getTime() / 1000),
     n: sub.student.name,
-    p: sub.student.period,
     g: sub.scores.totalPercentage
   };
   if (Object.keys(sub.scores.scenarios).length) out.s = sub.scores.scenarios;
@@ -121,7 +120,7 @@ function unpackMyMix(mm: Record<string, any>): MyMix {
 export function unpackSubmission(packed: Record<string, any>): StudentSubmission {
   return {
     timestamp: new Date((Number(packed.t) || 0) * 1000).toISOString(),
-    student: { name: String(packed.n ?? ''), period: String(packed.p ?? '') },
+    student: { name: String(packed.n ?? '') },
     scores: {
       scenarios: packed.s || {},
       whatChanged: Number(packed.w) || 0,
@@ -203,7 +202,7 @@ function decodeLegacy(raw: string): DecodedSubmission | null {
     isValid: envelope.h === fnv1aHash(envelope.d),
     submission: {
       timestamp: payload.timestamp || new Date(0).toISOString(),
-      student: { name: payload.student?.name ?? '', period: payload.student?.period ?? '' },
+      student: { name: payload.student?.name ?? '' },
       scores: {
         scenarios: scores.scenarios || {},
         whatChanged: 0,

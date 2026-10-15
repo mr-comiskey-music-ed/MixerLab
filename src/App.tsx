@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ChannelSettings, MasterSettings, MyMix, ScenarioItem, TabId } from './types/audio';
+import { ChannelSettings, MasterSettings, MyMix, ScenarioItem, TabId, ChallengeTabId, isChallengeTab } from './types/audio';
 import { audioEngine } from './audio/audioEngine';
 import { BUILTIN_SONGS } from './audio/stemSynthesizer';
 import { TransportHeader } from './components/TransportHeader';
@@ -7,10 +7,11 @@ import { AnalogConsole } from './components/AnalogConsole';
 import { DigitalConsole } from './components/DigitalConsole';
 import { SignalFlowXRay } from './components/SignalFlowXRay';
 import { ScenarioChallenges, SCENARIOS } from './components/ScenarioChallenges';
-import { WhatChanged } from './components/WhatChanged';
+import { WhatChanged, WHAT_CHANGED_QUESTIONS } from './components/WhatChanged';
+import { ChallengeTabs } from './components/ChallengeTabs';
 import { MatchTheMix, REFERENCE_PROFILES, ReferenceProfile, buildReferenceMix } from './components/MatchTheMix';
-import { MyMix as MyMixPanel } from './components/MyMix';
-import { GradeReport } from './components/GradeReport';
+import { MyMix as MyMixPanel, MY_MIX_MIN_WORDS } from './components/MyMix';
+import { GradeReport, matchAverage } from './components/GradeReport';
 import { LearnMixer } from './components/LearnMixer';
 import { makeDefaultChannels, makeDefaultMaster } from './utils/mixDefaults';
 
@@ -24,6 +25,8 @@ export default function App() {
   const [duration, setDuration] = useState<number>(8.0);
   const [consoleView, setConsoleView] = useState<'analog' | 'digital'>('analog');
   const [activeTab, setActiveTab] = useState<TabId>('console');
+  // Which challenge the CHALLENGES tab returns to
+  const [lastChallengeTab, setLastChallengeTab] = useState<ChallengeTabId>('scenarios');
   const [selectedDigitalChannelIndex, setSelectedDigitalChannelIndex] = useState<number>(0);
 
   // Signal Flow Modal State
@@ -36,6 +39,7 @@ export default function App() {
   // Scorecard state (lives only in this browser tab; the submission code is the only record)
   const [scenariosCompleted, setScenariosCompleted] = useState<Record<number, number>>({});
   const [whatChangedBest, setWhatChangedBest] = useState<number>(0);
+  const [whatChangedFinished, setWhatChangedFinished] = useState<boolean>(false);
   const [matchScores, setMatchScores] = useState<Record<string, number>>({});
   const [learnCompleted, setLearnCompleted] = useState<boolean>(false);
   const [activeScenarioId, setActiveScenarioId] = useState<number>(1);
@@ -321,8 +325,10 @@ export default function App() {
   };
 
   // ---------- Tabs ----------
-  const handleSelectTab = (tab: TabId) => {
+  const handleSelectTab = (requested: TabId | 'challenges') => {
+    const tab: TabId = requested === 'challenges' ? lastChallengeTab : requested;
     if (tab === activeTab) return;
+    if (isChallengeTab(tab)) setLastChallengeTab(tab);
     if (isPlaying) {
       handlePause();
     }
@@ -444,6 +450,32 @@ export default function App() {
       />
 
       <main className="flex-1 p-4 flex flex-col justify-start">
+        {/* CHALLENGES SUB-TABS */}
+        {isChallengeTab(activeTab) && (
+          <ChallengeTabs
+            active={activeTab}
+            onSelect={handleSelectTab}
+            progress={{
+              scenarios: {
+                text: `${Object.values(scenariosCompleted).filter(p => p >= 100).length}/${SCENARIOS.length} solved`,
+                done: SCENARIOS.every(sc => (scenariosCompleted[sc.id] || 0) >= 100)
+              },
+              whatchanged: {
+                text: whatChangedFinished ? `best ${whatChangedBest}/${WHAT_CHANGED_QUESTIONS}` : 'not tried',
+                done: whatChangedFinished
+              },
+              match: {
+                text: Object.keys(matchScores).length ? `${matchAverage(matchScores)}% avg` : 'not tried',
+                done: REFERENCE_PROFILES.every(p => matchScores[p.id] !== undefined)
+              },
+              mymix: (() => {
+                const words = myMix?.explanation.trim() ? myMix.explanation.trim().split(/\s+/).length : 0;
+                return { text: myMix ? `${words} words` : 'not started', done: words >= MY_MIX_MIN_WORDS };
+              })()
+            }}
+          />
+        )}
+
         {/* LEARN (MIXER ACADEMY) */}
         {activeTab === 'learn' && (
           <div className="w-full flex flex-col items-center">
@@ -500,7 +532,10 @@ export default function App() {
               onPause={handlePause}
               onAudition={applyAudition}
               bestScore={whatChangedBest}
-              onFinish={(correct) => setWhatChangedBest(prev => Math.max(prev, correct))}
+              onFinish={(correct) => {
+                setWhatChangedBest(prev => Math.max(prev, correct));
+                setWhatChangedFinished(true);
+              }}
             />
           </div>
         )}

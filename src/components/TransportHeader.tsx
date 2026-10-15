@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { BUILTIN_SONGS } from '../audio/stemSynthesizer';
-import { TabId } from '../types/audio';
+import { TabId, isChallengeTab } from '../types/audio';
 
 interface TransportHeaderProps {
   currentSongId: string;
@@ -17,7 +17,7 @@ interface TransportHeaderProps {
   consoleView: 'analog' | 'digital';
   onToggleConsoleView: (view: 'analog' | 'digital') => void;
   activeTab: TabId;
-  onSelectTab: (tab: TabId) => void;
+  onSelectTab: (tab: TabId | 'challenges') => void;
   onLoadCustomMultitrack: (files: FileList) => void;
 }
 
@@ -217,17 +217,14 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
           {[
             { id: 'learn', label: 'LEARN' },
             { id: 'console', label: 'MIX CONSOLE' },
-            { id: 'scenarios', label: 'SCENARIOS' },
-            { id: 'whatchanged', label: 'WHAT CHANGED?' },
-            { id: 'match', label: 'MATCH THE MIX' },
-            { id: 'mymix', label: 'MY MIX' },
+            { id: 'challenges', label: 'CHALLENGES' },
             { id: 'grades', label: 'GRADE REPORT' }
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => onSelectTab(tab.id as typeof activeTab)}
+              onClick={() => onSelectTab(tab.id as TabId | 'challenges')}
               className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold whitespace-nowrap transition-all shrink-0 ${
-                activeTab === tab.id
+                activeTab === tab.id || (tab.id === 'challenges' && isChallengeTab(activeTab))
                   ? 'bg-cyan-500 text-zinc-950 shadow-md font-extrabold'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'
               }`}
