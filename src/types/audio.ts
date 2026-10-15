@@ -97,6 +97,7 @@ export interface StudentSubmission {
     totalPercentage: number;
   };
   myMix?: MyMix;
+  assignment?: { letters: string; title: string }; // which challenges this code was graded against
   legacy?: boolean; // decoded from an older (pre-compression) code
 }
 

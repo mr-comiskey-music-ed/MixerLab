@@ -1,7 +1,9 @@
 import React from 'react';
-import { CHALLENGE_TABS, ChallengeTabId } from '../types/audio';
+import { ChallengeTabId } from '../types/audio';
 
 interface ChallengeTabsProps {
+  tabs: { id: ChallengeTabId; label: string }[];
+  assignmentTitle: string; // shown above the tabs when the student opened an assignment link
   active: ChallengeTabId;
   onSelect: (tab: ChallengeTabId) => void;
   progress: Record<ChallengeTabId, { text: string; done: boolean }>;
@@ -15,9 +17,17 @@ const BLURBS: Record<ChallengeTabId, string> = {
 };
 
 /** Sub-tabs under CHALLENGES, each with a small progress readout. */
-export const ChallengeTabs: React.FC<ChallengeTabsProps> = ({ active, onSelect, progress }) => (
-  <nav className="w-full max-w-5xl mx-auto mb-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
-    {CHALLENGE_TABS.map((tab) => {
+const COLS: Record<number, string> = { 1: 'sm:grid-cols-1', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4' };
+
+export const ChallengeTabs: React.FC<ChallengeTabsProps> = ({ tabs, assignmentTitle, active, onSelect, progress }) => (
+  <div className="w-full max-w-5xl mx-auto mb-4 flex flex-col gap-2">
+  {assignmentTitle && (
+    <span className="text-[11px] font-mono text-zinc-400">
+      ASSIGNMENT: <strong className="text-cyan-300">{assignmentTitle}</strong>
+    </span>
+  )}
+  <nav className={`grid grid-cols-2 ${COLS[Math.min(4, tabs.length)] || 'sm:grid-cols-4'} gap-2`}>
+    {tabs.map((tab) => {
       const isActive = tab.id === active;
       const p = progress[tab.id];
       return (
@@ -41,4 +51,5 @@ export const ChallengeTabs: React.FC<ChallengeTabsProps> = ({ active, onSelect, 
       );
     })}
   </nav>
+  </div>
 );

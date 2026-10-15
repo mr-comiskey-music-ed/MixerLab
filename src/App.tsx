@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { ChannelSettings, MasterSettings, MyMix, ScenarioItem, TabId, ChallengeTabId, isChallengeTab } from './types/audio';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { ChannelSettings, MasterSettings, MyMix, ScenarioItem, TabId, ChallengeTabId, isChallengeTab, CHALLENGE_TABS } from './types/audio';
+import { readAssignmentFromUrl, isEverything, matchAverage } from './utils/assignment';
 import { audioEngine } from './audio/audioEngine';
 import { BUILTIN_SONGS } from './audio/stemSynthesizer';
 import { TransportHeader } from './components/TransportHeader';
@@ -11,7 +12,7 @@ import { WhatChanged, WHAT_CHANGED_QUESTIONS } from './components/WhatChanged';
 import { ChallengeTabs } from './components/ChallengeTabs';
 import { MatchTheMix, REFERENCE_PROFILES, ReferenceProfile, buildReferenceMix } from './components/MatchTheMix';
 import { MyMix as MyMixPanel, MY_MIX_MIN_WORDS } from './components/MyMix';
-import { GradeReport, matchAverage } from './components/GradeReport';
+import { GradeReport } from './components/GradeReport';
 import { LearnMixer } from './components/LearnMixer';
 import { makeDefaultChannels, makeDefaultMaster } from './utils/mixDefaults';
 
@@ -25,8 +26,14 @@ export default function App() {
   const [duration, setDuration] = useState<number>(8.0);
   const [consoleView, setConsoleView] = useState<'analog' | 'digital'>('analog');
   const [activeTab, setActiveTab] = useState<TabId>('console');
+
+  // The assignment comes from the link the teacher posted (no ?a= means everything).
+  // Unassigned challenges are hidden.
+  const assignment = useMemo(() => readAssignmentFromUrl(), []);
+  const visibleChallenges = CHALLENGE_TABS.filter(t => assignment.items.includes(t.id));
+
   // Which challenge the CHALLENGES tab returns to
-  const [lastChallengeTab, setLastChallengeTab] = useState<ChallengeTabId>('scenarios');
+  const [lastChallengeTab, setLastChallengeTab] = useState<ChallengeTabId>(visibleChallenges[0]?.id ?? 'scenarios');
   const [selectedDigitalChannelIndex, setSelectedDigitalChannelIndex] = useState<number>(0);
 
   // Signal Flow Modal State
@@ -328,6 +335,7 @@ export default function App() {
   const handleSelectTab = (requested: TabId | 'challenges') => {
     const tab: TabId = requested === 'challenges' ? lastChallengeTab : requested;
     if (tab === activeTab) return;
+    if (isChallengeTab(tab) && !assignment.items.includes(tab)) return; // not part of this assignment
     if (isChallengeTab(tab)) setLastChallengeTab(tab);
     if (isPlaying) {
       handlePause();
@@ -360,6 +368,13 @@ export default function App() {
 
     setActiveTab(tab);
   };
+
+  // An assignment link opens straight onto the first assigned challenge
+  useEffect(() => {
+    if (!isEverything(assignment) && visibleChallenges.length) {
+      handleSelectTab(visibleChallenges[0].id);
+    }
+  }, []);
 
   // Global Spacebar hotkey for Play / Pause
   useEffect(() => {
@@ -446,6 +461,7 @@ export default function App() {
         onToggleConsoleView={setConsoleView}
         activeTab={activeTab}
         onSelectTab={handleSelectTab}
+        showChallenges={visibleChallenges.length > 0}
         onLoadCustomMultitrack={handleLoadCustomMultitrack}
       />
 
@@ -453,6 +469,8 @@ export default function App() {
         {/* CHALLENGES SUB-TABS */}
         {isChallengeTab(activeTab) && (
           <ChallengeTabs
+            tabs={visibleChallenges}
+            assignmentTitle={isEverything(assignment) && !assignment.title ? '' : assignment.title || 'Your assignment'}
             active={activeTab}
             onSelect={handleSelectTab}
             progress={{
@@ -583,6 +601,7 @@ export default function App() {
             matchScores={matchScores}
             learnCompleted={learnCompleted}
             myMix={myMix}
+            assignment={assignment}
             onListenToMix={handleListenToStudentMix}
           />
         )}

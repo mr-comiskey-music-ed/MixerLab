@@ -18,6 +18,7 @@ interface TransportHeaderProps {
   onToggleConsoleView: (view: 'analog' | 'digital') => void;
   activeTab: TabId;
   onSelectTab: (tab: TabId | 'challenges') => void;
+  showChallenges?: boolean;
   onLoadCustomMultitrack: (files: FileList) => void;
 }
 
@@ -37,6 +38,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
   onToggleConsoleView,
   activeTab,
   onSelectTab,
+  showChallenges = true,
   onLoadCustomMultitrack
 }) => {
   const multiFileInputRef = useRef<HTMLInputElement>(null);
@@ -219,7 +221,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
             { id: 'console', label: 'MIX CONSOLE' },
             { id: 'challenges', label: 'CHALLENGES' },
             { id: 'grades', label: 'GRADE REPORT' }
-          ].map((tab) => (
+          ].filter((tab) => showChallenges || tab.id !== 'challenges').map((tab) => (
             <button
               key={tab.id}
               onClick={() => onSelectTab(tab.id as TabId | 'challenges')}

@@ -84,6 +84,10 @@ export function packSubmission(sub: StudentSubmission): Record<string, unknown> 
   if (sub.scores.whatChanged) out.w = sub.scores.whatChanged;
   if (Object.keys(sub.scores.matchScores).length) out.m = sub.scores.matchScores;
   if (sub.scores.learnCompleted) out.l = 1;
+  if (sub.assignment) {
+    out.a = sub.assignment.letters;
+    if (sub.assignment.title) out.T = sub.assignment.title;
+  }
   if (sub.myMix) {
     const mm: Record<string, unknown> = { s: sub.myMix.songId };
     const ch = packChannels(sub.myMix.channels, sub.myMix.songId);
@@ -128,7 +132,8 @@ export function unpackSubmission(packed: Record<string, any>): StudentSubmission
       learnCompleted: packed.l === 1,
       totalPercentage: Number(packed.g) || 0
     },
-    myMix: packed.x ? unpackMyMix(packed.x) : undefined
+    myMix: packed.x ? unpackMyMix(packed.x) : undefined,
+    assignment: typeof packed.a === 'string' ? { letters: packed.a, title: typeof packed.T === 'string' ? packed.T : '' } : undefined
   };
 }
 

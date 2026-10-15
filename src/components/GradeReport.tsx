@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { ChannelSettings, MasterSettings, MyMix, StudentSubmission } from '../types/audio';
 import { SCENARIOS } from './ScenarioChallenges';
-import { REFERENCE_PROFILES } from './MatchTheMix';
-import { WHAT_CHANGED_QUESTIONS } from './WhatChanged';
-import { MY_MIX_MIN_WORDS } from './MyMix';
 import { BUILTIN_SONGS } from '../audio/stemSynthesizer';
 import { encodeSubmission, decodeSubmission } from '../utils/submissionCodec';
+import {
+  Assignment, AssignmentItem, ASSIGNMENT_ITEMS, EVERYTHING, assignmentName, buildAssignmentLink,
+  computeGrade, isEverything, itemsToLetters, lettersToItems, matchAverage
+} from '../utils/assignment';
 
 interface GradeReportProps {
   scenariosCompleted: Record<number, number>;
@@ -13,6 +14,7 @@ interface GradeReportProps {
   matchScores: Record<string, number>;
   learnCompleted: boolean;
   myMix: MyMix | null;
+  assignment: Assignment;
   onListenToMix: (mix: MyMix) => void;
 }
 
@@ -22,34 +24,12 @@ interface VerifiedRow {
   rawCode: string;
 }
 
-const TOTAL_SCENARIOS = SCENARIOS.length;
 const countWords = (t: string) => (t.trim() ? t.trim().split(/\s+/).length : 0);
 
-/** Average of the best score on every reference mix (references not attempted count as 0). */
-export function matchAverage(matchScores: Record<string, number>): number {
-  if (matchScores.legacy !== undefined) return matchScores.legacy; // older codes stored a single score
-  if (REFERENCE_PROFILES.length === 0) return 0;
-  const sum = REFERENCE_PROFILES.reduce((acc, p) => acc + (matchScores[p.id] || 0), 0);
-  return Math.round(sum / REFERENCE_PROFILES.length);
-}
-
-/**
- * Composite grade (auto-scored parts only):
- * Scenarios 40% · What Changed? 20% · Match the Mix 20% · Mixer Academy 20%.
- * My Mix is creative work for the teacher to listen to and grade separately.
- */
-export function computeComposite(
-  scenarios: Record<number, number>,
-  whatChanged: number,
-  matchScores: Record<string, number>,
-  learnCompleted: boolean
-): number {
-  const scenarioPoints = Object.values(scenarios).reduce((a, b) => a + b, 0);
-  const scenarioPct = (scenarioPoints / (TOTAL_SCENARIOS * 100)) * 100;
-  const drillPct = (whatChanged / WHAT_CHANGED_QUESTIONS) * 100;
-  const learnPct = learnCompleted ? 100 : 0;
-  return Math.round(scenarioPct * 0.4 + drillPct * 0.2 + matchAverage(matchScores) * 0.2 + learnPct * 0.2);
-}
+/** The assignment a submission was graded against (older codes: everything). */
+const assignmentOf = (sub: StudentSubmission): Assignment =>
+  sub.assignment ? { items: lettersToItems(sub.assignment.letters), title: sub.assignment.title } : EVERYTHING;
+const assignmentKey = (sub: StudentSubmission) => (sub.assignment ? `${sub.assignment.letters}|${sub.assignment.title}` : 'all|');
 
 const fmtDb = (v: number) => (v <= -59 ? '-∞' : `${v > 0 ? '+' : ''}${Number(v.toFixed(1))}`);
 const fmtPan = (p: number) => (Math.abs(p) < 0.005 ? 'C' : p < 0 ? `L${Math.round(Math.abs(p) * 100)}` : `R${Math.round(p * 100)}`);
@@ -61,6 +41,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
   matchScores,
   learnCompleted,
   myMix,
+  assignment,
   onListenToMix
 }) => {
   const [studentName, setStudentName] = useState<string>('');
@@ -72,7 +53,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
   const [batchInput, setBatchInput] = useState<string>('');
   const [rows, setRows] = useState<VerifiedRow[]>([]);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [sortField, setSortField] = useState<'name' | 'total' | 'scenarios' | 'drill' | 'match' | 'mymix'>('name');
+  const [sortField, setSortField] = useState<'name' | 'assignment' | 'total' | 'scenarios' | 'drill' | 'match' | 'mymix'>('name');
   const [sortAsc, setSortAsc] = useState<boolean>(true);
 
   // Full report modal: either the student's own preview or a row from the batch
@@ -80,9 +61,18 @@ export const GradeReport: React.FC<GradeReportProps> = ({
   const [previewSubmission, setPreviewSubmission] = useState<StudentSubmission | null>(null);
   const [copiedReportText, setCopiedReportText] = useState<boolean>(false);
 
-  const compositeGrade = computeComposite(scenariosCompleted, whatChangedBest, matchScores, learnCompleted);
-  const scenarioPoints = Object.values(scenariosCompleted).reduce((a, b) => a + b, 0);
-  const myMixWords = myMix ? countWords(myMix.explanation) : 0;
+  const myScores = { scenarios: scenariosCompleted, whatChanged: whatChangedBest, matchScores, learnCompleted, totalPercentage: 0 };
+  const myGrade = computeGrade(myScores, myMix, assignment);
+  const compositeGrade = myGrade.total;
+  const assigned = (item: AssignmentItem) => assignment.items.includes(item);
+
+  // Teacher: assignment link builder
+  const [linkItems, setLinkItems] = useState<AssignmentItem[]>(() => (isEverything(assignment) ? [] : assignment.items));
+  const [linkTitle, setLinkTitle] = useState<string>(assignment.title);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [teacherDeskOpen, setTeacherDeskOpen] = useState(false);
+  const showTeacherDesk = isEverything(assignment) || teacherDeskOpen;
+  const assignmentLink = linkItems.length ? buildAssignmentLink({ items: linkItems, title: linkTitle }) : '';
 
   const buildMySubmission = (): StudentSubmission => ({
     timestamp: new Date().toISOString(),
@@ -94,7 +84,8 @@ export const GradeReport: React.FC<GradeReportProps> = ({
       learnCompleted,
       totalPercentage: compositeGrade
     },
-    myMix: myMix || undefined
+    myMix: (assigned('mymix') && myMix) || undefined,
+    assignment: { letters: itemsToLetters(assignment.items), title: assignment.title }
   });
 
   const handleGenerateCode = async () => {
@@ -135,8 +126,9 @@ export const GradeReport: React.FC<GradeReportProps> = ({
     if (!s) return sortAsc ? '￿' : '';
     switch (sortField) {
       case 'name': return s.student.name.toLowerCase();
+      case 'assignment': return assignmentName(assignmentOf(s)).toLowerCase();
       case 'total': return s.scores.totalPercentage;
-      case 'scenarios': return Object.keys(s.scores.scenarios).length;
+      case 'scenarios': return computeGrade(s.scores, s.myMix, assignmentOf(s)).parts.find((p) => p.id === 'scenarios')?.percent ?? -1;
       case 'drill': return s.scores.whatChanged;
       case 'match': return matchAverage(s.scores.matchScores);
       case 'mymix': return s.myMix ? countWords(s.myMix.explanation) : -1;
@@ -150,6 +142,13 @@ export const GradeReport: React.FC<GradeReportProps> = ({
     return sortAsc ? cmp : -cmp;
   });
   const readableRows = sortedRows.filter((r) => r.submission);
+  // Codes made from a different assignment link than most of the class get flagged
+  const mostCommonAssignment = (() => {
+    const counts = new Map<string, number>();
+    readableRows.forEach((r) => counts.set(assignmentKey(r.submission!), (counts.get(assignmentKey(r.submission!)) || 0) + 1));
+    if (counts.size < 2) return null;
+    return [...counts.entries()].sort((x, y) => y[1] - x[1])[0][0];
+  })();
 
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) setSortAsc(!sortAsc);
@@ -163,7 +162,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
   const handleExportCSV = () => {
     if (readableRows.length === 0) return;
     const headers = [
-      'Student Name', 'Auto Grade %', 'Scenarios Passed', 'Scenario Points',
+      'Student Name', 'Assignment', 'Grade %', 'Scenarios Passed', 'Scenario Points',
       'What Changed (of 8)', 'Match the Mix Avg %', 'Mixer Academy', 'My Mix Song', 'My Mix Explanation',
       'Checksum', 'Submitted'
     ];
@@ -171,6 +170,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
       const sc = s!.scores;
       return [
         csvCell(s!.student.name),
+        csvCell(assignmentName(assignmentOf(s!))),
         sc.totalPercentage,
         Object.values(sc.scenarios).filter((p) => p > 0).length,
         Object.values(sc.scenarios).reduce((a, b) => a + b, 0),
@@ -198,6 +198,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
   const reportRow = reportIndex !== null ? readableRows[reportIndex] : null;
   const report: StudentSubmission | null = previewSubmission || reportRow?.submission || null;
   const reportValid = previewSubmission ? true : reportRow?.isValid ?? false;
+  const reportGrade = report ? computeGrade(report.scores, report.myMix, assignmentOf(report)) : null;
   const closeReport = () => {
     setReportIndex(null);
     setPreviewSubmission(null);
@@ -215,7 +216,9 @@ export const GradeReport: React.FC<GradeReportProps> = ({
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6 shadow-xl flex flex-col gap-5">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-3">
           <div className="flex flex-col">
-            <span className="text-xs font-mono font-bold text-emerald-400 uppercase">STUDENT SUBMISSION</span>
+            <span className="text-xs font-mono font-bold text-emerald-400 uppercase">
+              {isEverything(assignment) && !assignment.title ? 'STUDENT SUBMISSION' : `ASSIGNMENT: ${assignmentName(assignment)}`}
+            </span>
             <h2 className="text-xl font-bold text-zinc-100 mt-0.5">MY GRADE REPORT</h2>
           </div>
           <span className="text-2xl font-mono font-extrabold text-emerald-400">{compositeGrade}%</span>
@@ -234,45 +237,20 @@ export const GradeReport: React.FC<GradeReportProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 bg-zinc-950 p-4 rounded-lg border border-zinc-850 text-xs font-mono">
-          <div>
-            <span className="text-zinc-500">Scenarios:</span>
-            <div className="text-sm font-bold text-zinc-200 mt-1">
-              {Object.values(scenariosCompleted).filter((p) => p > 0).length} / {TOTAL_SCENARIOS} ({scenarioPoints} pts)
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 bg-zinc-950 p-4 rounded-lg border border-zinc-800 text-xs font-mono">
+          {myGrade.parts.map((part) => (
+            <div key={part.id}>
+              <span className="text-zinc-500">{part.label}:</span>
+              <div className={`text-sm font-bold mt-1 ${part.percent >= 100 ? 'text-emerald-400' : part.percent > 0 ? 'text-zinc-200' : 'text-amber-400'}`}>
+                {part.percent}%
+              </div>
+              <span className="text-[11px] text-zinc-500">{part.detail}</span>
             </div>
-          </div>
-          <div>
-            <span className="text-zinc-500">What Changed?:</span>
-            <div className="text-sm font-bold text-zinc-200 mt-1">
-              {whatChangedBest} / {WHAT_CHANGED_QUESTIONS} best
-            </div>
-          </div>
-          <div>
-            <span className="text-zinc-500">Match the Mix:</span>
-            <div className="text-sm font-bold text-zinc-200 mt-1">{matchAverage(matchScores)}% avg</div>
-          </div>
-          <div>
-            <span className="text-zinc-500">Mixer Academy:</span>
-            <div className="text-sm font-bold mt-1">
-              {learnCompleted ? <span className="text-emerald-400">✓ DONE</span> : <span className="text-amber-400">INCOMPLETE</span>}
-            </div>
-          </div>
-          <div>
-            <span className="text-zinc-500">My Mix:</span>
-            <div className="text-sm font-bold mt-1">
-              {myMix ? (
-                <span className={myMixWords >= MY_MIX_MIN_WORDS ? 'text-emerald-400' : 'text-amber-400'}>
-                  ✓ {myMixWords} words
-                </span>
-              ) : (
-                <span className="text-amber-400">NOT STARTED</span>
-              )}
-            </div>
-          </div>
+          ))}
         </div>
         <p className="text-[11px] font-mono text-zinc-500 -mt-2">
-          The % grade covers Scenarios (40%), What Changed? (20%), Match the Mix (20%) and Mixer Academy (20%). Your
-          teacher listens to and grades My Mix separately.
+          Your grade is an even split across {myGrade.parts.length === 1 ? 'this part' : `these ${myGrade.parts.length} parts`}.
+          {assigned('mymix') && ' My Mix counts as done once you write at least 40 words; your teacher will also listen to it.'}
         </p>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -318,12 +296,20 @@ export const GradeReport: React.FC<GradeReportProps> = ({
         )}
       </div>
 
-      {/* SECTION 2: TEACHER BATCH VERIFIER */}
+      {/* SECTION 2: TEACHER DESK (tucked away when a student opened an assignment link) */}
+      {!showTeacherDesk ? (
+        <button
+          onClick={() => setTeacherDeskOpen(true)}
+          className="self-center text-[11px] font-mono text-zinc-600 hover:text-zinc-400 underline"
+        >
+          Teacher? Open the grading desk
+        </button>
+      ) : (
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6 shadow-xl flex flex-col gap-5">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-3">
           <div className="flex flex-col">
             <span className="text-xs font-mono font-bold text-purple-400 uppercase">TEACHER GRADING DESK</span>
-            <h2 className="text-xl font-bold text-zinc-100 mt-0.5">BATCH GRADING & CSV EXPORT</h2>
+            <h2 className="text-xl font-bold text-zinc-100 mt-0.5">ASSIGN & GRADE</h2>
           </div>
           {readableRows.length > 0 && (
             <button
@@ -335,8 +321,74 @@ export const GradeReport: React.FC<GradeReportProps> = ({
           )}
         </div>
 
+        {/* Assignment link builder */}
+        <div className="flex flex-col gap-3 bg-zinc-950 p-4 rounded-lg border border-zinc-800">
+          <div>
+            <span className="text-xs font-mono font-bold text-purple-300 uppercase">1 · Create an assignment link</span>
+            <p className="text-[11px] text-zinc-500 mt-0.5">
+              Tick what students should do, then post the link in Google Classroom. Students who open it see only those
+              challenges, and their grade is an even split across what you picked.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ASSIGNMENT_ITEMS.map((item) => {
+              const on = linkItems.includes(item.id);
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setLinkItems(on ? linkItems.filter((x) => x !== item.id) : [...linkItems, item.id])}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold border transition-colors ${
+                    on ? 'bg-purple-600 text-white border-purple-400' : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-zinc-500'
+                  }`}
+                >
+                  {on ? '✓ ' : ''}
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+          <input
+            type="text"
+            value={linkTitle}
+            onChange={(e) => setLinkTitle(e.target.value)}
+            maxLength={60}
+            placeholder="Assignment name (optional), e.g. Unit 3 Ear Training"
+            className="bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-purple-500 font-mono select-text"
+          />
+          {assignmentLink ? (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                readOnly
+                value={assignmentLink}
+                onFocus={(e) => e.target.select()}
+                className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-[11px] text-zinc-300 font-mono select-all"
+              />
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(assignmentLink);
+                  setLinkCopied(true);
+                  setTimeout(() => setLinkCopied(false), 2000);
+                }}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-mono font-bold text-xs rounded-lg"
+              >
+                {linkCopied ? 'COPIED!' : 'COPY LINK'}
+              </button>
+              <a
+                href={assignmentLink}
+                target="_blank"
+                rel="noopener"
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-mono font-bold text-xs rounded-lg text-center"
+              >
+                TRY IT
+              </a>
+            </div>
+          ) : (
+            <span className="text-[11px] font-mono text-zinc-600">Pick at least one item to get a link.</span>
+          )}
+        </div>
+
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-mono text-zinc-400">Paste the whole class's codes below (one per line):</label>
+          <label className="text-xs font-mono font-bold text-purple-300 uppercase">2 · Paste the whole class's codes (one per line)</label>
           <textarea
             value={batchInput}
             onChange={(e) => setBatchInput(e.target.value)}
@@ -359,11 +411,12 @@ export const GradeReport: React.FC<GradeReportProps> = ({
               <thead>
                 <tr className="bg-zinc-950 text-zinc-400 border-b border-zinc-800">
                   {sortHeader('name', 'Student')}
-                  {sortHeader('total', 'Auto %')}
+                  {sortHeader('assignment', 'Assignment')}
+                  {sortHeader('total', 'Grade')}
+                  <th className="p-3">Learn</th>
                   {sortHeader('scenarios', 'Scenarios')}
                   {sortHeader('drill', 'What Changed')}
                   {sortHeader('match', 'Match')}
-                  <th className="p-3">Learn</th>
                   {sortHeader('mymix', 'My Mix')}
                   <th className="p-3">Code</th>
                   <th className="p-3">Review</th>
@@ -375,7 +428,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                   if (!s) {
                     return (
                       <tr key={idx} className="bg-rose-950/10">
-                        <td className="p-3 text-rose-300" colSpan={9}>
+                        <td className="p-3 text-rose-300" colSpan={10}>
                           Couldn't read this code: <span className="text-zinc-500">{r.rawCode.slice(0, 40)}…</span> (it may be
                           cut off. Ask the student to copy it again.)
                         </td>
@@ -383,20 +436,38 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                     );
                   }
                   const readableIdx = readableRows.indexOf(r);
+                  const a = assignmentOf(s);
+                  const parts = computeGrade(s.scores, s.myMix, a).parts;
+                  const cell = (id: AssignmentItem) => {
+                    const part = parts.find((p) => p.id === id);
+                    if (!part) return <span className="text-zinc-700" title="Not in this assignment">·</span>;
+                    if (id === 'whatchanged' && s.legacy) return <span className="text-zinc-600">old code</span>;
+                    return (
+                      <span className={part.percent >= 100 ? 'text-emerald-400' : part.percent > 0 ? 'text-zinc-300' : 'text-amber-400'} title={part.detail}>
+                        {id === 'learn' ? (part.percent >= 100 ? '✓' : '—') : `${part.percent}%`}
+                      </span>
+                    );
+                  };
+                  const odd = mostCommonAssignment !== null && assignmentKey(s) !== mostCommonAssignment;
                   return (
                     <tr key={idx} className="hover:bg-zinc-850/50">
                       <td className="p-3 font-semibold text-zinc-100">{s.student.name}</td>
+                      <td className="p-3 text-zinc-400 whitespace-nowrap">
+                        {assignmentName(a)}
+                        {odd && (
+                          <span
+                            className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-800"
+                            title="This code was made with a different assignment link than most of the class"
+                          >
+                            DIFFERENT
+                          </span>
+                        )}
+                      </td>
                       <td className="p-3 font-bold text-emerald-400">{s.scores.totalPercentage}%</td>
-                      <td className="p-3 text-zinc-300">
-                        {Object.values(s.scores.scenarios).filter((p) => p > 0).length} / {TOTAL_SCENARIOS}
-                      </td>
-                      <td className="p-3 text-zinc-300">
-                        {s.legacy ? <span className="text-zinc-600">old code</span> : `${s.scores.whatChanged} / ${WHAT_CHANGED_QUESTIONS}`}
-                      </td>
-                      <td className="p-3 text-zinc-300">{matchAverage(s.scores.matchScores)}%</td>
-                      <td className="p-3">
-                        {s.scores.learnCompleted ? <span className="text-emerald-400">✓</span> : <span className="text-amber-400">—</span>}
-                      </td>
+                      <td className="p-3">{cell('learn')}</td>
+                      <td className="p-3">{cell('scenarios')}</td>
+                      <td className="p-3">{cell('whatchanged')}</td>
+                      <td className="p-3">{cell('match')}</td>
                       <td className="p-3">
                         {s.myMix ? (
                           <button
@@ -407,7 +478,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                             ▶ LISTEN ({countWords(s.myMix.explanation)}w)
                           </button>
                         ) : (
-                          <span className="text-zinc-600">—</span>
+                          cell('mymix')
                         )}
                       </td>
                       <td className="p-3">
@@ -435,6 +506,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
           </div>
         )}
       </div>
+      )}
 
       {/* POPUP MODAL: FULL STUDENT REPORT */}
       {report && (
@@ -462,7 +534,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex flex-col items-end">
-                  <span className="text-[10px] font-mono text-zinc-400">AUTO GRADE</span>
+                  <span className="text-[10px] font-mono text-zinc-400">GRADE</span>
                   <span className="text-3xl font-mono font-extrabold text-emerald-400">{report.scores.totalPercentage}%</span>
                 </div>
                 <button
@@ -474,34 +546,25 @@ export const GradeReport: React.FC<GradeReportProps> = ({
               </div>
             </div>
 
-            {/* Score cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="bg-zinc-950 p-3.5 rounded-lg border border-zinc-800">
-                <span className="text-[10px] font-mono text-zinc-400 uppercase font-semibold">Scenarios</span>
-                <div className="text-lg font-mono font-bold text-cyan-400 mt-1">
-                  {Object.values(report.scores.scenarios).filter((p) => p > 0).length} / {TOTAL_SCENARIOS} attempted
-                </div>
-                <span className="text-[11px] font-mono text-zinc-500">
-                  {Object.values(report.scores.scenarios).reduce((a, b) => a + b, 0)} of {TOTAL_SCENARIOS * 100} points
-                </span>
-              </div>
-              <div className="bg-zinc-950 p-3.5 rounded-lg border border-zinc-800">
-                <span className="text-[10px] font-mono text-zinc-400 uppercase font-semibold">What Changed?</span>
-                <div className="text-lg font-mono font-bold text-fuchsia-400 mt-1">
-                  {report.legacy ? 'n/a' : `${report.scores.whatChanged} / ${WHAT_CHANGED_QUESTIONS}`}
-                </div>
-                <span className="text-[11px] font-mono text-zinc-500">Best set of 8 ear-training questions</span>
-              </div>
-              <div className="bg-zinc-950 p-3.5 rounded-lg border border-zinc-800">
-                <span className="text-[10px] font-mono text-zinc-400 uppercase font-semibold">Match the Mix</span>
-                <div className="text-lg font-mono font-bold text-amber-400 mt-1">{matchAverage(report.scores.matchScores)}% avg</div>
-                <span className="text-[11px] font-mono text-zinc-500">
-                  {REFERENCE_PROFILES.map((p) => `${p.name.split(' ').slice(-2).join(' ')}: ${report.scores.matchScores[p.id] ?? '—'}${report.scores.matchScores[p.id] !== undefined ? '%' : ''}`).join(' · ')}
-                </span>
+            {/* Score parts for this student's assignment */}
+            <div className="flex flex-col gap-2">
+              <span className="text-[11px] font-mono text-zinc-400">
+                Assignment: <strong className="text-zinc-200">{assignmentName(assignmentOf(report))}</strong> · even split across{' '}
+                {reportGrade!.parts.length} part{reportGrade!.parts.length === 1 ? '' : 's'}
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                {reportGrade!.parts.map((part) => (
+                  <div key={part.id} className="bg-zinc-950 p-3 rounded-lg border border-zinc-800">
+                    <span className="text-[10px] font-mono text-zinc-400 uppercase font-semibold">{part.label}</span>
+                    <div className="text-lg font-mono font-bold text-cyan-300 mt-1">{part.percent}%</div>
+                    <span className="text-[11px] font-mono text-zinc-500">{part.detail}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* Scenario list */}
+            {assignmentOf(report).items.includes('scenarios') && (
             <div className="flex flex-col gap-2">
               <h4 className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wide">Scenarios</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
@@ -528,12 +591,11 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                   );
                 })}
               </div>
-              <span className="text-[11px] font-mono text-zinc-500">
-                Mixer Academy (Learn): {report.scores.learnCompleted ? '✓ completed' : 'not completed'}
-              </span>
             </div>
+            )}
 
             {/* My Mix */}
+            {(assignmentOf(report).items.includes('mymix') || report.myMix) && (
             <div className="flex flex-col gap-2">
               <h4 className="text-xs font-mono font-bold text-orange-400 uppercase tracking-wide">My Mix</h4>
               {report.myMix ? (
@@ -564,21 +626,19 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                 <span className="text-xs font-mono text-zinc-500">No My Mix in this submission.</span>
               )}
             </div>
+            )}
 
             {/* Modal actions */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-zinc-800">
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => {
-                    const sc = report.scores;
                     const text =
                       `MIXERLAB REPORT: ${report.student.name}\n` +
+                      `Assignment: ${assignmentName(assignmentOf(report))}\n` +
                       `Submitted: ${new Date(report.timestamp).toLocaleString()}\n` +
-                      `Auto grade: ${sc.totalPercentage}%\n` +
-                      `Scenarios: ${Object.values(sc.scenarios).filter((p) => p > 0).length}/${TOTAL_SCENARIOS}\n` +
-                      `What Changed?: ${report.legacy ? 'n/a' : `${sc.whatChanged}/${WHAT_CHANGED_QUESTIONS}`}\n` +
-                      `Match the Mix: ${matchAverage(sc.matchScores)}%\n` +
-                      `Mixer Academy: ${sc.learnCompleted ? 'completed' : 'incomplete'}\n` +
+                      `Grade: ${report.scores.totalPercentage}%\n` +
+                      reportGrade!.parts.map((p) => `${p.label}: ${p.percent}% (${p.detail})\n`).join('') +
                       (report.myMix ? `My Mix (${songTitle(report.myMix.songId)}): ${report.myMix.explanation}\n` : '') +
                       `Code check: ${reportValid ? 'OK' : 'EDITED OR DAMAGED'}\n`;
                     navigator.clipboard.writeText(text);
