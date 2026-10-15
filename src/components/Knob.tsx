@@ -7,7 +7,7 @@ interface KnobProps {
   max: number;
   step?: number;
   unit?: string;
-  color?: 'red' | 'blue' | 'light-blue' | 'white' | 'green' | 'purple' | 'yellow' | 'zinc' | 'teal' | 'indigo';
+  color?: 'red' | 'blue' | 'light-blue' | 'white' | 'green' | 'purple' | 'yellow' | 'zinc' | 'teal' | 'indigo' | 'orange';
   size?: 'sm' | 'md' | 'lg';
   onChange: (val: number) => void;
   centerDetent?: boolean;
@@ -178,6 +178,14 @@ export const Knob: React.FC<KnobProps> = ({
       pointer: 'bg-white shadow-[0_1px_3px_rgba(0,0,0,0.9)]',
       glow: 'hover:shadow-[0_0_14px_rgba(129,140,248,0.65)]',
       labelColor: 'text-indigo-400'
+    },
+    orange: {
+      body: 'bg-gradient-to-br from-orange-300 via-orange-500 to-orange-700',
+      border: 'border-orange-200/70',
+      shadow: 'shadow-[0_4px_10px_rgba(0,0,0,0.7),inset_0_1px_1.5px_rgba(255,255,255,0.5)]',
+      pointer: 'bg-white shadow-[0_1px_3px_rgba(0,0,0,0.9)]',
+      glow: 'hover:shadow-[0_0_14px_rgba(249,115,22,0.65)]',
+      labelColor: 'text-orange-400'
     }
   }[color];
 

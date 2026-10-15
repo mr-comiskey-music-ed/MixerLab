@@ -1,124 +1,111 @@
 import React, { useState } from 'react';
-import { ChannelSettings, MasterSettings, SerializedMixerState } from '../types/audio';
+import { ChannelSettings, MasterSettings, MyMix, StudentSubmission } from '../types/audio';
+import { SCENARIOS } from './ScenarioChallenges';
+import { REFERENCE_PROFILES } from './MatchTheMix';
+import { WHAT_CHANGED_QUESTIONS } from './WhatChanged';
+import { MY_MIX_MIN_WORDS } from './MyMix';
+import { BUILTIN_SONGS } from '../audio/stemSynthesizer';
+import { encodeSubmission, decodeSubmission } from '../utils/submissionCodec';
 
 interface GradeReportProps {
-  channels: ChannelSettings[];
-  master: MasterSettings;
   scenariosCompleted: Record<number, number>;
-  drillHighScore: number;
-  drillBestReactionMs: number;
-  matchScore: number;
+  whatChangedBest: number;
+  matchScores: Record<string, number>;
   learnCompleted: boolean;
-  onLoadStudentMix: (loadedChannels: ChannelSettings[], loadedMaster: MasterSettings) => void;
+  myMix: MyMix | null;
+  onListenToMix: (mix: MyMix) => void;
 }
 
-interface VerifiedStudentRow {
-  studentName: string;
-  period: string;
-  totalPercentage: number;
-  scenariosCount: number;
-  drillScore: number;
-  drillReactionMs: number;
-  matchScore: number;
-  learnCompleted: boolean;
-  timestamp: string;
+interface VerifiedRow {
+  submission: StudentSubmission | null; // null = unreadable code
   isValid: boolean;
-  serializedData: SerializedMixerState;
+  rawCode: string;
 }
 
-export function fnv1aHash(str: string, salt: string = "AudioEng2026Salt"): string {
-  let hash = 0x811c9dc5;
-  const combined = salt + str;
-  for (let i = 0; i < combined.length; i++) {
-    hash ^= combined.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0).toString(16).padStart(8, '0');
+const TOTAL_SCENARIOS = SCENARIOS.length;
+const countWords = (t: string) => (t.trim() ? t.trim().split(/\s+/).length : 0);
+
+/** Average of the best score on every reference mix (references not attempted count as 0). */
+export function matchAverage(matchScores: Record<string, number>): number {
+  if (matchScores.legacy !== undefined) return matchScores.legacy; // older codes stored a single score
+  if (REFERENCE_PROFILES.length === 0) return 0;
+  const sum = REFERENCE_PROFILES.reduce((acc, p) => acc + (matchScores[p.id] || 0), 0);
+  return Math.round(sum / REFERENCE_PROFILES.length);
 }
+
+/**
+ * Composite grade (auto-scored parts only):
+ * Scenarios 40% · What Changed? 20% · Match the Mix 20% · Mixer Academy 20%.
+ * My Mix is creative work for the teacher to listen to and grade separately.
+ */
+export function computeComposite(
+  scenarios: Record<number, number>,
+  whatChanged: number,
+  matchScores: Record<string, number>,
+  learnCompleted: boolean
+): number {
+  const scenarioPoints = Object.values(scenarios).reduce((a, b) => a + b, 0);
+  const scenarioPct = (scenarioPoints / (TOTAL_SCENARIOS * 100)) * 100;
+  const drillPct = (whatChanged / WHAT_CHANGED_QUESTIONS) * 100;
+  const learnPct = learnCompleted ? 100 : 0;
+  return Math.round(scenarioPct * 0.4 + drillPct * 0.2 + matchAverage(matchScores) * 0.2 + learnPct * 0.2);
+}
+
+const fmtDb = (v: number) => (v <= -59 ? '-∞' : `${v > 0 ? '+' : ''}${Number(v.toFixed(1))}`);
+const fmtPan = (p: number) => (Math.abs(p) < 0.005 ? 'C' : p < 0 ? `L${Math.round(Math.abs(p) * 100)}` : `R${Math.round(p * 100)}`);
+const songTitle = (id: string) => BUILTIN_SONGS.find((s) => s.id === id)?.title || id;
 
 export const GradeReport: React.FC<GradeReportProps> = ({
-  channels,
-  master,
   scenariosCompleted,
-  drillHighScore,
-  drillBestReactionMs,
-  matchScore,
+  whatChangedBest,
+  matchScores,
   learnCompleted,
-  onLoadStudentMix
+  myMix,
+  onListenToMix
 }) => {
   const [studentName, setStudentName] = useState<string>('');
   const [periodId, setPeriodId] = useState<string>('');
   const [generatedCode, setGeneratedCode] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
+  const [codeError, setCodeError] = useState<string>('');
 
   // Teacher batch verifier state
   const [batchInput, setBatchInput] = useState<string>('');
-  const [verifiedStudents, setVerifiedStudents] = useState<VerifiedStudentRow[]>([]);
-  const [sortField, setSortField] = useState<keyof VerifiedStudentRow>('totalPercentage');
-  const [sortAsc, setSortAsc] = useState<boolean>(false);
+  const [rows, setRows] = useState<VerifiedRow[]>([]);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [sortField, setSortField] = useState<'name' | 'period' | 'total' | 'scenarios' | 'drill' | 'match' | 'mymix'>('name');
+  const [sortAsc, setSortAsc] = useState<boolean>(true);
 
-  // Full Report Modal State
-  const [activeReportData, setActiveReportData] = useState<{
-    studentName: string;
-    period: string;
-    timestamp: string;
-    isValid: boolean;
-    scores: {
-      scenarios: Record<number, number>;
-      drillScore: number;
-      drillReactionMs: number;
-      matchScore: number;
-      learnCompleted: boolean;
-      totalPercentage: number;
-    };
-    mixerState?: {
-      channels: ChannelSettings[];
-      master: MasterSettings;
-    };
-  } | null>(null);
+  // Full report modal: either the student's own preview or a row from the batch
+  const [reportIndex, setReportIndex] = useState<number | null>(null);
+  const [previewSubmission, setPreviewSubmission] = useState<StudentSubmission | null>(null);
   const [copiedReportText, setCopiedReportText] = useState<boolean>(false);
 
-  // Calculate composite score (out of 100%) - Scenarios 40%, Drill 20%, Match 20%, Learn Academy 20%
-  const totalScenarios = 8;
+  const compositeGrade = computeComposite(scenariosCompleted, whatChangedBest, matchScores, learnCompleted);
   const scenarioPoints = Object.values(scenariosCompleted).reduce((a, b) => a + b, 0);
-  const scenarioPct = (scenarioPoints / (totalScenarios * 100)) * 100; // max 100
-  const drillPct = Math.min(100, (drillHighScore / 400) * 100);
-  const learnPct = learnCompleted ? 100 : 0;
-  const compositeGrade = Math.round(scenarioPct * 0.4 + drillPct * 0.2 + matchScore * 0.2 + learnPct * 0.2);
+  const myMixWords = myMix ? countWords(myMix.explanation) : 0;
 
-  const handleGenerateCode = () => {
+  const buildMySubmission = (): StudentSubmission => ({
+    timestamp: new Date().toISOString(),
+    student: { name: studentName.trim(), period: periodId.trim() },
+    scores: {
+      scenarios: scenariosCompleted,
+      whatChanged: whatChangedBest,
+      matchScores,
+      learnCompleted,
+      totalPercentage: compositeGrade
+    },
+    myMix: myMix || undefined
+  });
+
+  const handleGenerateCode = async () => {
     if (!studentName.trim() || !periodId.trim()) {
-      alert("Please enter Student Full Name and Period/ID before generating report.");
+      setCodeError('Enter your name and class period first.');
       return;
     }
-
-    const payload: SerializedMixerState = {
-      version: "2026.1",
-      timestamp: new Date().toISOString(),
-      student: {
-        name: studentName.trim(),
-        period: periodId.trim()
-      },
-      scores: {
-        scenarios: scenariosCompleted,
-        drillScore: drillHighScore,
-        drillReactionMs: drillBestReactionMs,
-        matchScore: matchScore,
-        learnCompleted: learnCompleted,
-        totalPercentage: compositeGrade
-      },
-      mixerState: {
-        channels,
-        master
-      }
-    };
-
-    const jsonStr = JSON.stringify(payload);
-    const checksum = fnv1aHash(jsonStr);
-    const packaged = JSON.stringify({ d: jsonStr, h: checksum });
-    const b64 = btoa(unescape(encodeURIComponent(packaged)));
-
-    setGeneratedCode(b64);
+    setCodeError('');
+    setGeneratedCode(await encodeSubmission(buildMySubmission()));
+    setCopied(false);
   };
 
   const handleCopy = () => {
@@ -128,233 +115,206 @@ export const GradeReport: React.FC<GradeReportProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Teacher Batch Verifier
-  const handleVerifyBatch = () => {
-    const lines = batchInput.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    const results: VerifiedStudentRow[] = [];
-
-    lines.forEach((line) => {
-      try {
-        const decodedStr = decodeURIComponent(escape(atob(line)));
-        const envelope = JSON.parse(decodedStr);
-        const dataStr = envelope.d;
-        const providedHash = envelope.h;
-        const calculatedHash = fnv1aHash(dataStr);
-        const isValid = providedHash === calculatedHash;
-
-        const payload: SerializedMixerState = JSON.parse(dataStr);
-
-        results.push({
-          studentName: payload.student.name,
-          period: payload.student.period,
-          totalPercentage: payload.scores.totalPercentage,
-          scenariosCount: Object.keys(payload.scores.scenarios).length,
-          drillScore: payload.scores.drillScore,
-          drillReactionMs: payload.scores.drillReactionMs,
-          matchScore: payload.scores.matchScore,
-          learnCompleted: Boolean(payload.scores.learnCompleted),
-          timestamp: new Date(payload.timestamp).toLocaleString(),
-          isValid,
-          serializedData: payload
-        });
-      } catch {
-        results.push({
-          studentName: "Corrupted Record",
-          period: "N/A",
-          totalPercentage: 0,
-          scenariosCount: 0,
-          drillScore: 0,
-          drillReactionMs: 0,
-          matchScore: 0,
-          learnCompleted: false,
-          timestamp: "Invalid",
-          isValid: false,
-          serializedData: {} as SerializedMixerState
-        });
-      }
-    });
-
-    setVerifiedStudents(results);
+  // ---------- Teacher batch ----------
+  const handleVerifyBatch = async () => {
+    const lines = batchInput.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    setIsVerifying(true);
+    const results = await Promise.all(
+      lines.map(async (line): Promise<VerifiedRow> => {
+        const decoded = await decodeSubmission(line);
+        return decoded
+          ? { submission: decoded.submission, isValid: decoded.isValid, rawCode: line }
+          : { submission: null, isValid: false, rawCode: line };
+      })
+    );
+    setRows(results);
+    setIsVerifying(false);
   };
 
-  const handleSort = (field: keyof VerifiedStudentRow) => {
-    if (sortField === field) {
-      setSortAsc(!sortAsc);
-    } else {
-      setSortField(field);
-      setSortAsc(false);
+  const sortValue = (r: VerifiedRow): string | number => {
+    const s = r.submission;
+    if (!s) return sortAsc ? '￿' : '';
+    switch (sortField) {
+      case 'name': return s.student.name.toLowerCase();
+      case 'period': return s.student.period.toLowerCase();
+      case 'total': return s.scores.totalPercentage;
+      case 'scenarios': return Object.keys(s.scores.scenarios).length;
+      case 'drill': return s.scores.whatChanged;
+      case 'match': return matchAverage(s.scores.matchScores);
+      case 'mymix': return s.myMix ? countWords(s.myMix.explanation) : -1;
     }
   };
 
-  const sortedStudents = [...verifiedStudents].sort((a, b) => {
-    const valA = a[sortField];
-    const valB = b[sortField];
-    if (typeof valA === 'number' && typeof valB === 'number') {
-      return sortAsc ? valA - valB : valB - valA;
-    }
-    return sortAsc ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+  const sortedRows = [...rows].sort((a, b) => {
+    const va = sortValue(a);
+    const vb = sortValue(b);
+    const cmp = typeof va === 'number' && typeof vb === 'number' ? va - vb : String(va).localeCompare(String(vb));
+    return sortAsc ? cmp : -cmp;
   });
+  const readableRows = sortedRows.filter((r) => r.submission);
 
+  const handleSort = (field: typeof sortField) => {
+    if (sortField === field) setSortAsc(!sortAsc);
+    else {
+      setSortField(field);
+      setSortAsc(field === 'name' || field === 'period');
+    }
+  };
+
+  const csvCell = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
   const handleExportCSV = () => {
-    if (verifiedStudents.length === 0) return;
+    if (readableRows.length === 0) return;
     const headers = [
-      "Student Name",
-      "Period/ID",
-      "Total Grade %",
-      "Scenarios Completed",
-      "Drill High Score",
-      "Avg Reaction (ms)",
-      "Match Mix %",
-      "Learn Academy",
-      "Verified Status",
-      "Submission Date"
+      'Student Name', 'Period', 'Auto Grade %', 'Scenarios Passed', 'Scenario Points',
+      'What Changed (of 8)', 'Match the Mix Avg %', 'Mixer Academy', 'My Mix Song', 'My Mix Explanation',
+      'Checksum', 'Submitted'
     ];
-
-    const rows = verifiedStudents.map(s => [
-      `"${s.studentName}"`,
-      `"${s.period}"`,
-      s.totalPercentage,
-      s.scenariosCount,
-      s.drillScore,
-      s.drillReactionMs,
-      s.matchScore,
-      s.learnCompleted ? "COMPLETED" : "INCOMPLETE",
-      s.isValid ? "VERIFIED" : "TAMPERED / CORRUPTED",
-      `"${s.timestamp}"`
-    ]);
-
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `profx_audio_lab_grades_${new Date().toISOString().slice(0,10)}.csv`);
+    const lines = readableRows.map(({ submission: s, isValid }) => {
+      const sc = s!.scores;
+      return [
+        csvCell(s!.student.name),
+        csvCell(s!.student.period),
+        sc.totalPercentage,
+        Object.values(sc.scenarios).filter((p) => p > 0).length,
+        Object.values(sc.scenarios).reduce((a, b) => a + b, 0),
+        s!.legacy ? csvCell('n/a (old code)') : sc.whatChanged,
+        matchAverage(sc.matchScores),
+        sc.learnCompleted ? 'COMPLETED' : 'INCOMPLETE',
+        csvCell(s!.myMix ? songTitle(s!.myMix.songId) : ''),
+        csvCell(s!.myMix?.explanation || ''),
+        isValid ? 'VERIFIED' : 'EDITED / DAMAGED',
+        csvCell(new Date(s!.timestamp).toLocaleString())
+      ].join(',');
+    });
+    const blob = new Blob([[headers.map(csvCell).join(','), ...lines].join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `mixerlab_grades_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
+
+  // ---------- Report modal ----------
+  const reportRow = reportIndex !== null ? readableRows[reportIndex] : null;
+  const report: StudentSubmission | null = previewSubmission || reportRow?.submission || null;
+  const reportValid = previewSubmission ? true : reportRow?.isValid ?? false;
+  const closeReport = () => {
+    setReportIndex(null);
+    setPreviewSubmission(null);
+  };
+
+  const sortHeader = (field: typeof sortField, label: string) => (
+    <th onClick={() => handleSort(field)} className="p-3 cursor-pointer hover:text-white whitespace-nowrap">
+      {label} {sortField === field ? (sortAsc ? '▲' : '▼') : ''}
+    </th>
+  );
 
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col gap-8 pb-8">
       {/* SECTION 1: STUDENT GRADE REPORT */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-xl flex flex-col gap-5">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6 shadow-xl flex flex-col gap-5">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-3">
           <div className="flex flex-col">
-            <span className="text-xs font-mono font-bold text-emerald-400 uppercase">
-              STUDENT ASSESSMENT DISCLOSURE
-            </span>
-            <h2 className="text-xl font-bold text-zinc-100 mt-0.5">
-              LAB GRADE REPORT & ANTI-TAMPER EXPORT
-            </h2>
+            <span className="text-xs font-mono font-bold text-emerald-400 uppercase">STUDENT SUBMISSION</span>
+            <h2 className="text-xl font-bold text-zinc-100 mt-0.5">MY GRADE REPORT</h2>
           </div>
-          <span className="text-2xl font-mono font-extrabold text-emerald-400">
-            {compositeGrade}% GRADE
-          </span>
+          <span className="text-2xl font-mono font-extrabold text-emerald-400">{compositeGrade}%</span>
         </div>
 
-        {/* Student Information Form */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-mono text-zinc-400 font-semibold uppercase">
-              Student Full Name
-            </label>
+            <label className="text-xs font-mono text-zinc-400 font-semibold uppercase">Your Name</label>
             <input
               type="text"
-              placeholder="e.g. Alex Rivera"
+              placeholder="e.g. Alex R."
               value={studentName}
               onChange={(e) => setStudentName(e.target.value)}
-              className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-cyan-500 font-mono"
+              className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-cyan-500 font-mono select-text"
             />
           </div>
-
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-mono text-zinc-400 font-semibold uppercase">
-              Class Period / Student ID
-            </label>
+            <label className="text-xs font-mono text-zinc-400 font-semibold uppercase">Class Period</label>
             <input
               type="text"
-              placeholder="e.g. Period 4 (ID: 84920)"
+              placeholder="e.g. Period 4"
               value={periodId}
               onChange={(e) => setPeriodId(e.target.value)}
-              className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-cyan-500 font-mono"
+              className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-cyan-500 font-mono select-text"
             />
           </div>
         </div>
 
-        {/* Real-time Performance Metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-zinc-950 p-4 rounded-lg border border-zinc-850 text-xs font-mono">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 bg-zinc-950 p-4 rounded-lg border border-zinc-850 text-xs font-mono">
           <div>
-            <span className="text-zinc-500">Scenarios Completed:</span>
+            <span className="text-zinc-500">Scenarios:</span>
             <div className="text-sm font-bold text-zinc-200 mt-1">
-              {Object.keys(scenariosCompleted).length} / {totalScenarios} ({scenarioPoints} pts)
+              {Object.values(scenariosCompleted).filter((p) => p > 0).length} / {TOTAL_SCENARIOS} ({scenarioPoints} pts)
             </div>
           </div>
           <div>
-            <span className="text-zinc-500">Emergency Drill:</span>
+            <span className="text-zinc-500">What Changed?:</span>
             <div className="text-sm font-bold text-zinc-200 mt-1">
-              {drillHighScore} pts {drillBestReactionMs > 0 ? `(${drillBestReactionMs}ms avg)` : ''}
+              {whatChangedBest} / {WHAT_CHANGED_QUESTIONS} best
             </div>
           </div>
           <div>
-            <span className="text-zinc-500">Match the Mix Accuracy:</span>
-            <div className="text-sm font-bold text-zinc-200 mt-1">
-              {matchScore}% Accuracy
-            </div>
+            <span className="text-zinc-500">Match the Mix:</span>
+            <div className="text-sm font-bold text-zinc-200 mt-1">{matchAverage(matchScores)}% avg</div>
           </div>
           <div>
-            <span className="text-zinc-500">Mixer Academy (Learn):</span>
+            <span className="text-zinc-500">Mixer Academy:</span>
             <div className="text-sm font-bold mt-1">
-              {learnCompleted ? (
-                <span className="text-emerald-400">✓ COMPLETED</span>
+              {learnCompleted ? <span className="text-emerald-400">✓ DONE</span> : <span className="text-amber-400">INCOMPLETE</span>}
+            </div>
+          </div>
+          <div>
+            <span className="text-zinc-500">My Mix:</span>
+            <div className="text-sm font-bold mt-1">
+              {myMix ? (
+                <span className={myMixWords >= MY_MIX_MIN_WORDS ? 'text-emerald-400' : 'text-amber-400'}>
+                  ✓ {myMixWords} words
+                </span>
               ) : (
-                <span className="text-amber-400">INCOMPLETE</span>
+                <span className="text-amber-400">NOT STARTED</span>
               )}
             </div>
           </div>
         </div>
+        <p className="text-[11px] font-mono text-zinc-500 -mt-2">
+          The % grade covers Scenarios (40%), What Changed? (20%), Match the Mix (20%) and Mixer Academy (20%). Your
+          teacher listens to and grades My Mix separately.
+        </p>
 
-        {/* Generate Encoded Base64 Code Button & Full Report Preview */}
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={handleGenerateCode}
             className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono font-bold text-xs rounded-lg shadow-lg border border-emerald-400/50 transition-all"
           >
-            GENERATE ANTI-TAMPER SUBMISSION CODE
+            GENERATE SUBMISSION CODE
           </button>
           <button
-            onClick={() => setActiveReportData({
-              studentName: studentName || 'Current Student',
-              period: periodId || 'Active Session',
-              timestamp: new Date().toISOString(),
-              isValid: true,
-              scores: {
-                scenarios: scenariosCompleted,
-                drillScore: drillHighScore,
-                drillReactionMs: drillBestReactionMs,
-                matchScore: matchScore,
-                learnCompleted: learnCompleted,
-                totalPercentage: compositeGrade
-              },
-              mixerState: { channels, master }
-            })}
-            className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-750 text-cyan-400 font-mono font-bold text-xs rounded-lg border border-cyan-800/60 transition-all flex items-center gap-1.5"
+            onClick={() => setPreviewSubmission(buildMySubmission())}
+            className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-750 text-cyan-400 font-mono font-bold text-xs rounded-lg border border-cyan-800/60 transition-all"
           >
-            <span>📄</span>
-            <span>VIEW FULL ACTION REPORT</span>
+            PREVIEW WHAT MY TEACHER SEES
           </button>
+          {codeError && <span className="text-xs font-mono text-amber-400">{codeError}</span>}
         </div>
 
-        {/* Generated Code Area */}
         {generatedCode && (
           <div className="flex flex-col gap-2 bg-zinc-950 p-4 rounded-lg border border-emerald-500/50">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-mono text-emerald-400 font-bold">
-                ✓ VERIFIED BASE64 SUBMISSION CODE (INCLUDES CHECKSUM + COMPLETE MIXER STATE)
+                ✓ YOUR SUBMISSION CODE ({generatedCode.length} characters)
               </span>
               <button
                 onClick={handleCopy}
                 className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono rounded border border-zinc-700 transition-colors"
               >
-                {copied ? 'COPIED TO CLIPBOARD!' : 'COPY CODE'}
+                {copied ? 'COPIED!' : 'COPY CODE'}
               </button>
             </div>
             <textarea
@@ -364,24 +324,21 @@ export const GradeReport: React.FC<GradeReportProps> = ({
               className="w-full bg-zinc-900 border border-zinc-800 rounded p-2 text-[10px] font-mono text-zinc-400 break-all select-all resize-none focus:outline-none"
             />
             <span className="text-[10px] font-mono text-zinc-500">
-              Submit this code to your instructor. It contains an FNV-1a checksum salted with "AudioEng2026Salt" to verify authenticity.
+              Paste this whole code into your Google Classroom assignment. If you keep working, generate a new code
+              before you turn it in.
             </span>
           </div>
         )}
       </div>
 
-      {/* SECTION 2: TEACHER BATCH VERIFIER & CSV EXPORT */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-xl flex flex-col gap-5">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+      {/* SECTION 2: TEACHER BATCH VERIFIER */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6 shadow-xl flex flex-col gap-5">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-3">
           <div className="flex flex-col">
-            <span className="text-xs font-mono font-bold text-purple-400 uppercase">
-              INSTRUCTOR GRADING DESK
-            </span>
-            <h2 className="text-xl font-bold text-zinc-100 mt-0.5">
-              TEACHER BATCH VERIFIER & CSV EXPORT
-            </h2>
+            <span className="text-xs font-mono font-bold text-purple-400 uppercase">TEACHER GRADING DESK</span>
+            <h2 className="text-xl font-bold text-zinc-100 mt-0.5">BATCH GRADING & CSV EXPORT</h2>
           </div>
-          {verifiedStudents.length > 0 && (
+          {readableRows.length > 0 && (
             <button
               onClick={handleExportCSV}
               className="px-4 py-2 bg-zinc-800 hover:bg-zinc-750 text-emerald-400 font-mono font-bold text-xs rounded-lg border border-emerald-700/60 transition-colors"
@@ -391,157 +348,140 @@ export const GradeReport: React.FC<GradeReportProps> = ({
           )}
         </div>
 
-        {/* Batch Paste Textarea */}
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-mono text-zinc-400">
-            Paste 1 to 35+ Student Base64 submission codes below (one per line):
-          </label>
+          <label className="text-xs font-mono text-zinc-400">Paste the whole class's codes below (one per line):</label>
           <textarea
             value={batchInput}
             onChange={(e) => setBatchInput(e.target.value)}
             rows={4}
-            placeholder="Paste student submission codes here..."
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-200 focus:outline-none focus:border-purple-500"
+            placeholder="ML3d.…"
+            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-200 focus:outline-none focus:border-purple-500 select-text"
           />
           <button
             onClick={handleVerifyBatch}
+            disabled={isVerifying}
             className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white font-mono font-bold text-xs rounded-lg border border-purple-400/50 transition-all self-start"
           >
-            VERIFY & PROCESS ALL CODES
+            {isVerifying ? 'CHECKING…' : 'CHECK ALL CODES'}
           </button>
         </div>
 
-        {/* Results Table */}
-        {verifiedStudents.length > 0 && (
+        {rows.length > 0 && (
           <div className="overflow-x-auto border border-zinc-800 rounded-lg">
             <table className="w-full text-left text-xs font-mono border-collapse">
               <thead>
                 <tr className="bg-zinc-950 text-zinc-400 border-b border-zinc-800">
-                  <th onClick={() => handleSort('studentName')} className="p-3 cursor-pointer hover:text-white">
-                    Student Name
-                  </th>
-                  <th onClick={() => handleSort('period')} className="p-3 cursor-pointer hover:text-white">
-                    Period
-                  </th>
-                  <th onClick={() => handleSort('totalPercentage')} className="p-3 cursor-pointer hover:text-white">
-                    Total Grade
-                  </th>
-                  <th onClick={() => handleSort('scenariosCount')} className="p-3 cursor-pointer hover:text-white">
-                    Scenarios
-                  </th>
-                  <th onClick={() => handleSort('drillScore')} className="p-3 cursor-pointer hover:text-white">
-                    Drill
-                  </th>
-                  <th onClick={() => handleSort('matchScore')} className="p-3 cursor-pointer hover:text-white">
-                    Match
-                  </th>
-                  <th onClick={() => handleSort('learnCompleted')} className="p-3 cursor-pointer hover:text-white">
-                    Learn
-                  </th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Actions</th>
-                  <th className="p-3">Audit</th>
+                  {sortHeader('name', 'Student')}
+                  {sortHeader('period', 'Period')}
+                  {sortHeader('total', 'Auto %')}
+                  {sortHeader('scenarios', 'Scenarios')}
+                  {sortHeader('drill', 'What Changed')}
+                  {sortHeader('match', 'Match')}
+                  <th className="p-3">Learn</th>
+                  {sortHeader('mymix', 'My Mix')}
+                  <th className="p-3">Code</th>
+                  <th className="p-3">Review</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-850">
-                {sortedStudents.map((s, idx) => (
-                  <tr key={idx} className="hover:bg-zinc-850/50">
-                    <td className="p-3 font-semibold text-zinc-100">{s.studentName}</td>
-                    <td className="p-3 text-zinc-400">{s.period}</td>
-                    <td className="p-3 font-bold text-emerald-400">{s.totalPercentage}%</td>
-                    <td className="p-3 text-zinc-300">{s.scenariosCount} / 8</td>
-                    <td className="p-3 text-zinc-300">{s.drillScore} pts</td>
-                    <td className="p-3 text-zinc-300">{s.matchScore}%</td>
-                    <td className="p-3 text-zinc-300">
-                      {s.learnCompleted ? <span className="text-emerald-400">✓ Done</span> : <span className="text-amber-400">Incomplete</span>}
-                    </td>
-                    <td className="p-3">
-                      {s.isValid ? (
-                        <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800">
-                          VERIFIED
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded text-[10px] bg-rose-950 text-rose-400 border border-rose-800">
-                          TAMPERED
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      {s.isValid && s.serializedData.mixerState ? (
+              <tbody className="divide-y divide-zinc-800">
+                {sortedRows.map((r, idx) => {
+                  const s = r.submission;
+                  if (!s) {
+                    return (
+                      <tr key={idx} className="bg-rose-950/10">
+                        <td className="p-3 text-rose-300" colSpan={10}>
+                          Couldn't read this code: <span className="text-zinc-500">{r.rawCode.slice(0, 40)}…</span> (it may be
+                          cut off. Ask the student to copy it again.)
+                        </td>
+                      </tr>
+                    );
+                  }
+                  const readableIdx = readableRows.indexOf(r);
+                  return (
+                    <tr key={idx} className="hover:bg-zinc-850/50">
+                      <td className="p-3 font-semibold text-zinc-100">{s.student.name}</td>
+                      <td className="p-3 text-zinc-400">{s.student.period}</td>
+                      <td className="p-3 font-bold text-emerald-400">{s.scores.totalPercentage}%</td>
+                      <td className="p-3 text-zinc-300">
+                        {Object.values(s.scores.scenarios).filter((p) => p > 0).length} / {TOTAL_SCENARIOS}
+                      </td>
+                      <td className="p-3 text-zinc-300">
+                        {s.legacy ? <span className="text-zinc-600">old code</span> : `${s.scores.whatChanged} / ${WHAT_CHANGED_QUESTIONS}`}
+                      </td>
+                      <td className="p-3 text-zinc-300">{matchAverage(s.scores.matchScores)}%</td>
+                      <td className="p-3">
+                        {s.scores.learnCompleted ? <span className="text-emerald-400">✓</span> : <span className="text-amber-400">—</span>}
+                      </td>
+                      <td className="p-3">
+                        {s.myMix ? (
+                          <button
+                            onClick={() => onListenToMix(s.myMix!)}
+                            className="px-2.5 py-1 bg-zinc-800 hover:bg-orange-950 hover:text-orange-300 text-zinc-300 rounded text-[10px] font-bold border border-zinc-700 transition-colors whitespace-nowrap"
+                            title="Load this student's mix into the console and listen"
+                          >
+                            ▶ LISTEN ({countWords(s.myMix.explanation)}w)
+                          </button>
+                        ) : (
+                          <span className="text-zinc-600">—</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {r.isValid ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800">OK</span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[10px] bg-rose-950 text-rose-400 border border-rose-800" title="The checksum doesn't match: this code was edited or damaged">
+                            EDITED?
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3">
                         <button
-                          onClick={() => onLoadStudentMix(s.serializedData.mixerState.channels, s.serializedData.mixerState.master)}
-                          className="px-2.5 py-1 bg-zinc-800 hover:bg-cyan-950 hover:text-cyan-400 text-zinc-300 rounded text-[10px] font-bold border border-zinc-700 transition-colors"
-                          title="Load this student's actual mixer settings into the audio console to listen"
+                          onClick={() => setReportIndex(readableIdx)}
+                          className="px-2.5 py-1 bg-purple-900/60 hover:bg-purple-800 text-purple-300 rounded text-[10px] font-bold border border-purple-600 transition-colors whitespace-nowrap"
                         >
-                          LOAD MIX
+                          FULL REPORT
                         </button>
-                      ) : (
-                        <span className="text-zinc-600">-</span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      <button
-                        onClick={() => setActiveReportData({
-                          studentName: s.studentName,
-                          period: s.period,
-                          timestamp: s.timestamp,
-                          isValid: s.isValid,
-                          scores: s.serializedData.scores,
-                          mixerState: s.serializedData.mixerState
-                        })}
-                        className="px-2.5 py-1 bg-purple-900/60 hover:bg-purple-800 text-purple-300 rounded text-[10px] font-bold border border-purple-600 transition-colors flex items-center gap-1 shadow-sm"
-                        title="View comprehensive student action audit and console settings report"
-                      >
-                        <span>📋</span>
-                        <span>FULL REPORT</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
 
-      {/* POPUP MODAL: COMPREHENSIVE STUDENT ACTION AUDIT REPORT */}
-      {activeReportData && (
+      {/* POPUP MODAL: FULL STUDENT REPORT */}
+      {report && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl max-w-4xl w-full p-5 sm:p-7 shadow-2xl flex flex-col gap-5 max-h-[92vh] overflow-y-auto text-zinc-100 font-sans">
-            {/* Modal Header */}
+          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl max-w-4xl w-full p-4 sm:p-7 shadow-2xl flex flex-col gap-5 max-h-[92vh] overflow-y-auto text-zinc-100 font-sans">
             <div className="flex flex-wrap items-center justify-between border-b border-zinc-800 pb-4 gap-3">
               <div className="flex flex-col">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-950 text-purple-300 border border-purple-600">
-                    INSTRUCTOR VERIFICATION DOSSIER
+                    {previewSubmission ? 'PREVIEW' : `STUDENT ${reportIndex! + 1} OF ${readableRows.length}`}
                   </span>
-                  {activeReportData.isValid ? (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-700">
-                      ✓ FNV-1a HASH VERIFIED
-                    </span>
+                  {reportValid ? (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-700">✓ CODE OK</span>
                   ) : (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950 text-rose-400 border border-rose-700">
-                      ⚠ UNVERIFIED / TAMPERED
-                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950 text-rose-400 border border-rose-700">⚠ EDITED OR DAMAGED</span>
+                  )}
+                  {report.legacy && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-800 text-zinc-400 border border-zinc-700">OLDER CODE FORMAT</span>
                   )}
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold font-mono text-zinc-100 mt-1">
-                  {activeReportData.studentName}
-                </h3>
+                <h3 className="text-xl sm:text-2xl font-bold font-mono text-zinc-100 mt-1">{report.student.name || 'Student'}</h3>
                 <span className="text-xs font-mono text-zinc-400">
-                  {activeReportData.period} · Submitted: {new Date(activeReportData.timestamp).toLocaleString()}
+                  {report.student.period} · Submitted {new Date(report.timestamp).toLocaleString()}
                 </span>
               </div>
-
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <div className="flex flex-col items-end">
-                  <span className="text-xs font-mono text-zinc-400">COMPOSITE GRADE</span>
-                  <span className="text-3xl font-mono font-extrabold text-emerald-400">
-                    {activeReportData.scores.totalPercentage}%
-                  </span>
+                  <span className="text-[10px] font-mono text-zinc-400">AUTO GRADE</span>
+                  <span className="text-3xl font-mono font-extrabold text-emerald-400">{report.scores.totalPercentage}%</span>
                 </div>
                 <button
-                  onClick={() => setActiveReportData(null)}
+                  onClick={closeReport}
                   className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-mono font-bold flex items-center justify-center border border-zinc-700 transition-colors"
                 >
                   ✕
@@ -549,185 +489,120 @@ export const GradeReport: React.FC<GradeReportProps> = ({
               </div>
             </div>
 
-            {/* Performance Overview Cards */}
+            {/* Score cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-zinc-950 p-3.5 rounded-lg border border-zinc-800">
-                <span className="text-[10px] font-mono text-zinc-400 uppercase font-semibold">
-                  MODULE 1: SCENARIOS
-                </span>
+                <span className="text-[10px] font-mono text-zinc-400 uppercase font-semibold">Scenarios</span>
                 <div className="text-lg font-mono font-bold text-cyan-400 mt-1">
-                  {Object.keys(activeReportData.scores.scenarios).length} / 8 Passed
+                  {Object.values(report.scores.scenarios).filter((p) => p > 0).length} / {TOTAL_SCENARIOS} attempted
                 </div>
                 <span className="text-[11px] font-mono text-zinc-500">
-                  {Object.values(activeReportData.scores.scenarios).reduce((a, b) => a + b, 0)} Total Points
+                  {Object.values(report.scores.scenarios).reduce((a, b) => a + b, 0)} of {TOTAL_SCENARIOS * 100} points
                 </span>
               </div>
-
               <div className="bg-zinc-950 p-3.5 rounded-lg border border-zinc-800">
-                <span className="text-[10px] font-mono text-zinc-400 uppercase font-semibold">
-                  MODULE 2: EMERGENCY DRILL
-                </span>
-                <div className="text-lg font-mono font-bold text-rose-400 mt-1">
-                  {activeReportData.scores.drillScore} Points
+                <span className="text-[10px] font-mono text-zinc-400 uppercase font-semibold">What Changed?</span>
+                <div className="text-lg font-mono font-bold text-fuchsia-400 mt-1">
+                  {report.legacy ? 'n/a' : `${report.scores.whatChanged} / ${WHAT_CHANGED_QUESTIONS}`}
                 </div>
-                <span className="text-[11px] font-mono text-zinc-500">
-                  {activeReportData.scores.drillReactionMs > 0
-                    ? `${(activeReportData.scores.drillReactionMs / 1000).toFixed(2)}s avg reaction`
-                    : 'Not completed'}
-                </span>
+                <span className="text-[11px] font-mono text-zinc-500">Best set of 8 ear-training questions</span>
               </div>
-
               <div className="bg-zinc-950 p-3.5 rounded-lg border border-zinc-800">
-                <span className="text-[10px] font-mono text-zinc-400 uppercase font-semibold">
-                  MODULE 3: MATCH THE MIX
-                </span>
-                <div className="text-lg font-mono font-bold text-amber-400 mt-1">
-                  {activeReportData.scores.matchScore}% Accuracy
-                </div>
+                <span className="text-[10px] font-mono text-zinc-400 uppercase font-semibold">Match the Mix</span>
+                <div className="text-lg font-mono font-bold text-amber-400 mt-1">{matchAverage(report.scores.matchScores)}% avg</div>
                 <span className="text-[11px] font-mono text-zinc-500">
-                  Critical listening spectral curve
+                  {REFERENCE_PROFILES.map((p) => `${p.name.split(' ').slice(-2).join(' ')}: ${report.scores.matchScores[p.id] ?? '—'}${report.scores.matchScores[p.id] !== undefined ? '%' : ''}`).join(' · ')}
                 </span>
               </div>
             </div>
 
-            {/* Section A: Scenarios Detail Breakdown */}
+            {/* Scenario list */}
             <div className="flex flex-col gap-2">
-              <h4 className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wide">
-                Detailed Scenarios Action Log:
-              </h4>
+              <h4 className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wide">Scenarios</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
-                {[
-                  { id: 1, title: 'Vocal Condenser Mic (+48V Phantom)' },
-                  { id: 2, title: 'Passive Electric Bass (Hi-Z Impedance)' },
-                  { id: 3, title: 'Preamp Gain Staging (Kick/Snare Clipping)' },
-                  { id: 4, title: 'Muddy Low End (Bass Low EQ Taper)' },
-                  { id: 5, title: 'Aux (Mon) Foldback Monitor Wedge' },
-                  { id: 6, title: 'Master FOH Overload (Gain Structure)' },
-                  { id: 7, title: 'Stage Acoustic Feedback Loop (Ch 3 Vocal)' },
-                  { id: 8, title: 'PFL Solo Audition (Pre-Fade Listen)' }
-                ].map((sc) => {
-                  const pts = activeReportData.scores.scenarios[sc.id];
-                  const passed = pts !== undefined && pts > 0;
-
+                {SCENARIOS.map((sc) => {
+                  const pts = report.scores.scenarios[sc.id];
+                  const passed = pts !== undefined && pts >= 100;
+                  const tried = pts !== undefined && pts > 0;
                   return (
                     <div
                       key={sc.id}
-                      className={`p-2.5 rounded-lg border flex items-center justify-between ${
+                      className={`p-2.5 rounded-lg border flex items-center justify-between gap-2 ${
                         passed
                           ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-300'
+                          : tried
+                          ? 'bg-amber-950/20 border-amber-800/50 text-amber-300'
                           : 'bg-zinc-950 border-zinc-800 text-zinc-400'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <span>{passed ? '✓' : '○'}</span>
-                        <span className="text-[11px]">#{sc.id} {sc.title}</span>
-                      </div>
-                      <span className="font-bold text-[11px]">
-                        {passed ? `${pts} PTS` : 'INCOMPLETE'}
+                      <span className="text-[11px]">
+                        {passed ? '✓' : tried ? '◐' : '○'} #{sc.id} {sc.title}
                       </span>
+                      <span className="font-bold text-[11px] whitespace-nowrap">{tried ? `${pts} PTS` : '—'}</span>
                     </div>
                   );
                 })}
               </div>
+              <span className="text-[11px] font-mono text-zinc-500">
+                Mixer Academy (Learn): {report.scores.learnCompleted ? '✓ completed' : 'not completed'}
+              </span>
             </div>
 
-            {/* Section B: Detailed Console Parameter Audit */}
-            {activeReportData.mixerState && (
-              <div className="flex flex-col gap-2">
-                <h4 className="text-xs font-mono font-bold text-purple-400 uppercase tracking-wide">
-                  Console Parameters &amp; Mix Settings Audit:
-                </h4>
-                <div className="overflow-x-auto border border-zinc-800 rounded-lg">
-                  <table className="w-full text-left text-[11px] font-mono border-collapse">
-                    <thead>
-                      <tr className="bg-zinc-950 text-zinc-400 border-b border-zinc-800">
-                        <th className="p-2">Channel</th>
-                        <th className="p-2">Gain</th>
-                        <th className="p-2">+48V</th>
-                        <th className="p-2">Hi-Z</th>
-                        <th className="p-2">HPF</th>
-                        <th className="p-2">Low</th>
-                        <th className="p-2">Mid</th>
-                        <th className="p-2">High</th>
-                        <th className="p-2">Aux (Mon)</th>
-                        <th className="p-2">FX</th>
-                        <th className="p-2">Pan</th>
-                        <th className="p-2">Fader</th>
-                        <th className="p-2">Mute</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-850">
-                      {activeReportData.mixerState.channels.map((c) => (
-                        <tr key={c.id} className="hover:bg-zinc-850/50">
-                          <td className="p-2 font-bold text-zinc-200">
-                            Ch {c.id} ({c.name})
-                          </td>
-                          <td className="p-2 text-zinc-300">+{c.gain}dB</td>
-                          <td className="p-2">{c.phantom48V ? <span className="text-red-400 font-bold">ON</span> : <span className="text-zinc-600">OFF</span>}</td>
-                          <td className="p-2">{c.hiZ ? <span className="text-cyan-400 font-bold">ON</span> : <span className="text-zinc-600">OFF</span>}</td>
-                          <td className="p-2">{c.lowCut100Hz ? <span className="text-amber-400 font-bold">ON</span> : <span className="text-zinc-600">OFF</span>}</td>
-                          <td className="p-2 text-zinc-300">{c.eqLow > 0 ? `+${c.eqLow}` : c.eqLow}dB</td>
-                          <td className="p-2 text-zinc-300">{c.eqMid > 0 ? `+${c.eqMid}` : c.eqMid}dB</td>
-                          <td className="p-2 text-zinc-300">{c.eqHigh > 0 ? `+${c.eqHigh}` : c.eqHigh}dB</td>
-                          <td className="p-2 text-zinc-300">{c.aux1Pre <= -59 ? '-∞' : `${c.aux1Pre}dB`}</td>
-                          <td className="p-2 text-zinc-300">{c.fxPost <= -59 ? '-∞' : `${c.fxPost}dB`}</td>
-                          <td className="p-2 text-zinc-300">
-                            {c.pan === 0 ? 'C' : c.pan < 0 ? `L${Math.round(Math.abs(c.pan) * 100)}` : `R${Math.round(c.pan * 100)}`}
-                          </td>
-                          <td className="p-2 font-bold text-zinc-100">
-                            {c.faderLevel <= -59 ? '-∞' : `${c.faderLevel > 0 ? '+' : ''}${c.faderLevel.toFixed(1)}dB`}
-                          </td>
-                          <td className="p-2">{c.mute ? <span className="text-rose-400 font-bold">MUTED</span> : <span className="text-emerald-400">LIVE</span>}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+            {/* My Mix */}
+            <div className="flex flex-col gap-2">
+              <h4 className="text-xs font-mono font-bold text-orange-400 uppercase tracking-wide">My Mix</h4>
+              {report.myMix ? (
+                <>
+                  <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800 flex flex-col gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-mono text-zinc-400">
+                        Song: <strong className="text-zinc-200">{songTitle(report.myMix.songId)}</strong> ·{' '}
+                        {countWords(report.myMix.explanation)} words
+                      </span>
+                      <button
+                        onClick={() => {
+                          onListenToMix(report.myMix!);
+                          closeReport();
+                        }}
+                        className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white font-mono font-bold text-xs rounded-lg transition-colors"
+                      >
+                        ▶ LISTEN IN CONSOLE
+                      </button>
+                    </div>
+                    <p className="text-sm text-zinc-200 leading-relaxed whitespace-pre-wrap select-text">
+                      {report.myMix.explanation || <span className="text-zinc-500 italic">No explanation written.</span>}
+                    </p>
+                  </div>
+                  <MixSettingsTable channels={report.myMix.channels} master={report.myMix.master} />
+                </>
+              ) : (
+                <span className="text-xs font-mono text-zinc-500">No My Mix in this submission.</span>
+              )}
+            </div>
 
-                {/* Master Bus Audit */}
-                <div className="bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 text-xs font-mono flex flex-wrap items-center justify-between gap-3 text-zinc-300">
-                  <span><strong>Main Master Fader:</strong> {activeReportData.mixerState.master.mainFader.toFixed(1)} dB</span>
-                  <span><strong>Aux (Mon) Master:</strong> {activeReportData.mixerState.master.aux1Master.toFixed(1)} dB</span>
-                  <span><strong>FX Return:</strong> {activeReportData.mixerState.master.fxReturn.toFixed(1)} dB ({activeReportData.mixerState.master.fxType})</span>
-                  <span><strong>FX Mute:</strong> {activeReportData.mixerState.master.fxMute ? 'MUTED' : 'ACTIVE'}</span>
-                  <span><strong>Phones:</strong> {activeReportData.mixerState.master.phonesLevel}%</span>
-                </div>
-              </div>
-            )}
-
-            {/* Modal Actions */}
+            {/* Modal actions */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-zinc-800">
-              <div className="flex items-center gap-2">
-                {activeReportData.mixerState && (
-                  <button
-                    onClick={() => {
-                      if (activeReportData.mixerState) {
-                        onLoadStudentMix(activeReportData.mixerState.channels, activeReportData.mixerState.master);
-                        setActiveReportData(null);
-                      }
-                    }}
-                    className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-zinc-950 font-mono font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5"
-                  >
-                    <span>🎛</span>
-                    <span>AUDITION IN MIX CONSOLE</span>
-                  </button>
-                )}
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => {
-                    const text = `PROFX AUDIO LAB REPORT: ${activeReportData.studentName} (${activeReportData.period})\n` +
-                      `Timestamp: ${activeReportData.timestamp}\n` +
-                      `Composite Grade: ${activeReportData.scores.totalPercentage}%\n` +
-                      `Scenarios: ${Object.keys(activeReportData.scores.scenarios).length}/8\n` +
-                      `Drill Score: ${activeReportData.scores.drillScore} pts\n` +
-                      `Match The Mix: ${activeReportData.scores.matchScore}%\n` +
-                      `FNV-1a Hash Status: ${activeReportData.isValid ? 'VERIFIED' : 'TAMPERED'}\n`;
+                    const sc = report.scores;
+                    const text =
+                      `MIXERLAB REPORT: ${report.student.name} (${report.student.period})\n` +
+                      `Submitted: ${new Date(report.timestamp).toLocaleString()}\n` +
+                      `Auto grade: ${sc.totalPercentage}%\n` +
+                      `Scenarios: ${Object.values(sc.scenarios).filter((p) => p > 0).length}/${TOTAL_SCENARIOS}\n` +
+                      `What Changed?: ${report.legacy ? 'n/a' : `${sc.whatChanged}/${WHAT_CHANGED_QUESTIONS}`}\n` +
+                      `Match the Mix: ${matchAverage(sc.matchScores)}%\n` +
+                      `Mixer Academy: ${sc.learnCompleted ? 'completed' : 'incomplete'}\n` +
+                      (report.myMix ? `My Mix (${songTitle(report.myMix.songId)}): ${report.myMix.explanation}\n` : '') +
+                      `Code check: ${reportValid ? 'OK' : 'EDITED OR DAMAGED'}\n`;
                     navigator.clipboard.writeText(text);
                     setCopiedReportText(true);
                     setTimeout(() => setCopiedReportText(false), 2000);
                   }}
                   className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-750 text-zinc-300 font-mono text-xs rounded-lg border border-zinc-700 transition-colors"
                 >
-                  {copiedReportText ? '✓ COPIED TEXT' : 'COPY TEXT SUMMARY'}
+                  {copiedReportText ? '✓ COPIED' : 'COPY TEXT SUMMARY'}
                 </button>
                 <button
                   onClick={() => window.print()}
@@ -736,13 +611,32 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                   PRINT / SAVE PDF
                 </button>
               </div>
-
-              <button
-                onClick={() => setActiveReportData(null)}
-                className="px-5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-mono font-bold text-xs rounded-lg transition-colors"
-              >
-                CLOSE
-              </button>
+              <div className="flex items-center gap-2">
+                {!previewSubmission && reportIndex !== null && (
+                  <>
+                    <button
+                      onClick={() => setReportIndex(Math.max(0, reportIndex - 1))}
+                      disabled={reportIndex === 0}
+                      className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 text-zinc-200 font-mono font-bold text-xs rounded-lg transition-colors"
+                    >
+                      ← PREV
+                    </button>
+                    <button
+                      onClick={() => setReportIndex(Math.min(readableRows.length - 1, reportIndex + 1))}
+                      disabled={reportIndex >= readableRows.length - 1}
+                      className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 text-zinc-200 font-mono font-bold text-xs rounded-lg transition-colors"
+                    >
+                      NEXT →
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={closeReport}
+                  className="px-5 py-2 bg-zinc-700 hover:bg-zinc-600 text-zinc-100 font-mono font-bold text-xs rounded-lg transition-colors"
+                >
+                  CLOSE
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -750,3 +644,57 @@ export const GradeReport: React.FC<GradeReportProps> = ({
     </div>
   );
 };
+
+const MixSettingsTable: React.FC<{ channels: ChannelSettings[]; master: MasterSettings }> = ({ channels, master }) => (
+  <>
+    <div className="overflow-x-auto border border-zinc-800 rounded-lg">
+      <table className="w-full text-left text-[11px] font-mono border-collapse">
+        <thead>
+          <tr className="bg-zinc-950 text-zinc-400 border-b border-zinc-800">
+            <th className="p-2">Channel</th>
+            <th className="p-2">Gain</th>
+            <th className="p-2">HPF</th>
+            <th className="p-2">Comp</th>
+            <th className="p-2">Low</th>
+            <th className="p-2">Mid</th>
+            <th className="p-2">High</th>
+            <th className="p-2">FX</th>
+            <th className="p-2">Pan</th>
+            <th className="p-2">Fader</th>
+            <th className="p-2">Mute</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-zinc-800">
+          {channels.map((c) => (
+            <tr key={c.id}>
+              <td className="p-2 font-bold text-zinc-200 whitespace-nowrap">
+                {c.id}. {c.name}
+              </td>
+              <td className="p-2 text-zinc-300">{fmtDb(c.gain)}</td>
+              <td className="p-2">{c.lowCut100Hz ? <span className="text-emerald-400 font-bold">ON</span> : <span className="text-zinc-600">off</span>}</td>
+              <td className="p-2">{c.comp > 0 ? <span className="text-orange-400 font-bold">{Math.round(c.comp)}</span> : <span className="text-zinc-600">off</span>}</td>
+              <td className="p-2 text-zinc-300">{fmtDb(c.eqLow)}</td>
+              <td className="p-2 text-zinc-300">
+                {fmtDb(c.eqMid)}
+                {c.eqMid !== 0 && <span className="text-zinc-500"> @{c.eqMidFreq >= 1000 ? `${(c.eqMidFreq / 1000).toFixed(1)}k` : Math.round(c.eqMidFreq)}</span>}
+              </td>
+              <td className="p-2 text-zinc-300">{fmtDb(c.eqHigh)}</td>
+              <td className="p-2 text-zinc-300">{fmtDb(c.fxPost)}</td>
+              <td className="p-2 text-zinc-300">{fmtPan(c.pan)}</td>
+              <td className="p-2 font-bold text-zinc-100">{fmtDb(c.faderLevel)}</td>
+              <td className="p-2">{c.mute ? <span className="text-rose-400 font-bold">MUTED</span> : <span className="text-zinc-600">—</span>}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <div className="bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 text-[11px] font-mono flex flex-wrap items-center gap-x-5 gap-y-1 text-zinc-300">
+      <span>
+        <strong>Main fader:</strong> {fmtDb(master.mainFader)} dB
+      </span>
+      <span>
+        <strong>FX:</strong> {master.fxType} · return {fmtDb(master.fxReturn)} dB{master.fxMute ? ' (muted)' : ''}
+      </span>
+    </div>
+  </>
+);

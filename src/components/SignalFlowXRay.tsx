@@ -56,7 +56,7 @@ export const SignalFlowXRay: React.FC<SignalFlowXRayProps> = ({
 
         {/* Signal Flow Diagram */}
         <div className="relative bg-zinc-950 p-6 rounded-lg border border-zinc-800 overflow-x-auto">
-          <div className="min-w-[800px] flex flex-col gap-8">
+          <div className="min-w-[900px] flex flex-col gap-8">
             {/* Primary Channel Strip Audio Trunk */}
             <div className="flex items-center justify-between relative py-4">
               <div className="absolute top-1/2 left-0 right-0 h-1 bg-zinc-800 -translate-y-1/2 z-0" />
@@ -85,6 +85,13 @@ export const SignalFlowXRay: React.FC<SignalFlowXRayProps> = ({
                   100Hz HPF
                 </span>
                 <span className="text-[9px] text-zinc-400 font-mono">Rumble Filter</span>
+              </div>
+
+              {/* Node 3b: One-knob Compressor */}
+              <div className="z-10 flex flex-col items-center bg-zinc-900 border border-orange-500/50 rounded p-2.5 shadow-md w-24 text-center">
+                <span className="text-[10px] text-orange-400 font-mono">COMP</span>
+                <span className="text-xs font-bold text-zinc-100">1-Knob</span>
+                <span className="text-[9px] text-zinc-400 font-mono">Dynamics</span>
               </div>
 
               {/* Node 4: 3-Band EQ */}

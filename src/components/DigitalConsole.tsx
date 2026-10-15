@@ -4,6 +4,7 @@ import { audioEngine } from '../audio/audioEngine';
 import { MeterLadder } from './MeterLadder';
 import { FaderScale } from './FaderScale';
 import { Knob } from './Knob';
+import { CompKnob } from './CompKnob';
 import { sliderPosToDb, dbToSliderPos } from '../utils/faderCurves';
 
 interface DigitalConsoleProps {
@@ -12,7 +13,7 @@ interface DigitalConsoleProps {
   selectedChannelIndex: number;
   onSelectChannel: (idx: number) => void;
   meterLevels: {
-    channels: { level: number; clipped: boolean; hasSignal?: boolean }[];
+    channels: { level: number; clipped: boolean; hasSignal?: boolean; compGr?: number }[];
     masterL: number;
     masterR: number;
     masterClipped: boolean;
@@ -700,6 +701,20 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* ONE-KNOB COMPRESSOR (directly under Preamp Gain) */}
+                  <div
+                    onDoubleClick={() => updateSelectedField('comp', 0)}
+                    className="w-full flex flex-col items-center bg-zinc-900/50 p-1.5 rounded border border-zinc-850 cursor-pointer"
+                    title="Double-click to turn the compressor off"
+                  >
+                    <CompKnob
+                      label="COMPRESSOR"
+                      value={selectedCh.comp ?? 0}
+                      gainReductionDb={meterLevels.channels[selectedChannelIndex]?.compGr ?? 0}
+                      onChange={(v) => updateSelectedField('comp', v)}
+                    />
                   </div>
 
                   {/* AUX & FX SENDS */}

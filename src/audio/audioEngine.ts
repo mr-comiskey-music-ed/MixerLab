@@ -9,6 +9,8 @@ export interface ChannelNodes {
   lowCut: BiquadFilterNode;
   lowCut2: BiquadFilterNode;
   phaseGain: GainNode;
+  compressor: DynamicsCompressorNode;
+  compMakeup: GainNode;
   eqLow: BiquadFilterNode;
   eqMid: BiquadFilterNode;
   eqHigh: BiquadFilterNode;
@@ -26,6 +28,47 @@ export interface ChannelNodes {
   pflAnalyser: AnalyserNode;
   peakAnalyser: AnalyserNode;
   sourceNode: AudioBufferSourceNode | null;
+}
+
+/**
+ * One-knob compressor curve. A single 0-100 knob sets threshold and ratio
+ * together, the way compact mixers (Mackie ProFX, Yamaha MG) do it. Turning the
+ * knob up lowers the THRESHOLD and raises the RATIO, so more of the signal gets
+ * squashed, and harder. Like real hardware, the threshold is fixed, so a quiet
+ * channel (low GAIN) needs more knob before the light comes on.
+ */
+const BUILT_IN_MAKEUP_DB = [0, 0.47, 2.45, 5.03, 7.85, 10.77, 13.74, 16.75, 19.76, 22.79, 25.82];
+
+export function compCurve(amount: number) {
+  const a = Math.max(0, Math.min(100, amount)) / 100;
+  const threshold = -50 * a;                 // 0 dB (off) down to -50 dB
+  const ratio = 1 + 9 * Math.pow(a, 1.2);    // 1:1 (off) up to 10:1
+  const knee = 6;
+  const attack = 0.025 - 0.02 * a;           // 25 ms gentle -> 5 ms grabby
+  const release = 0.2 - 0.08 * a;            // 200 ms -> 120 ms
+  // The Web Audio compressor secretly adds its own fixed make-up gain. We cancel
+  // it so the knob alone never makes a channel louder (see AUTO_MAKEUP_FRACTION).
+  // Values measured in Chrome for this curve at 0, 10, 20 ... 100 on the knob.
+  const pos = a * 10;
+  const i = Math.min(9, Math.floor(pos));
+  const builtInMakeupDb = BUILT_IN_MAKEUP_DB[i] + (BUILT_IN_MAKEUP_DB[i + 1] - BUILT_IN_MAKEUP_DB[i]) * (pos - i);
+  return { threshold, ratio, knee, attack, release, builtInMakeupDb };
+}
+
+/**
+ * Automatic make-up gain: gives back the level the compressor takes
+ * away (based on the recent average gain reduction), so turning COMP up makes
+ * a part more even and controlled rather than just quieter.
+ */
+export const AUTO_MAKEUP_FRACTION = 1.0;
+
+/** Gain reduction (dB, positive number) -> indicator light color. */
+export type CompLightLevel = 'off' | 'green' | 'yellow' | 'red';
+export function compLightLevel(grDb: number): CompLightLevel {
+  if (grDb < 1) return 'off';
+  if (grDb < 6) return 'green';
+  if (grDb < 15) return 'yellow';
+  return 'red';
 }
 
 export class AudioEngine {
@@ -106,6 +149,10 @@ export class AudioEngine {
 
   // Clip state trackers (1.5 second hold)
   public channelClipTimes: number[] = [0, 0, 0, 0, 0, 0];
+  // Smoothed compressor gain reduction per channel (dB, positive) for the indicator lights
+  private compGrSmoothed: number[] = [0, 0, 0, 0, 0, 0];
+  // Slow running average of gain reduction per channel (drives auto make-up gain)
+  private compGrAverage: number[] = [0, 0, 0, 0, 0, 0];
   public masterClipTime: number = 0;
 
   constructor() {
@@ -319,6 +366,17 @@ export class AudioEngine {
       const phaseGain = this.ctx.createGain();
       phaseGain.gain.value = 1.0;
 
+      // One-knob compressor (sits after the preamp/low cut, before the EQ — like the Mackie ProFX)
+      const compressor = this.ctx.createDynamicsCompressor();
+      const offCurve = compCurve(0);
+      compressor.threshold.value = offCurve.threshold;
+      compressor.ratio.value = offCurve.ratio;
+      compressor.knee.value = offCurve.knee;
+      compressor.attack.value = offCurve.attack;
+      compressor.release.value = offCurve.release;
+      const compMakeup = this.ctx.createGain();
+      compMakeup.gain.value = 1.0;
+
       // 3-Band EQ: Low and High operate as gentle shelving filters with fixed Q ~ 0.7
       const eqLow = this.ctx.createBiquadFilter();
       eqLow.type = 'lowshelf';
@@ -410,7 +468,9 @@ export class AudioEngine {
       hizFilter.connect(lowCut);
       lowCut.connect(lowCut2);
       lowCut2.connect(phaseGain);
-      phaseGain.connect(eqLow);
+      phaseGain.connect(compressor);
+      compressor.connect(compMakeup);
+      compMakeup.connect(eqLow);
       eqLow.connect(eqMid);
       eqMid.connect(eqHigh);
 
@@ -441,6 +501,8 @@ export class AudioEngine {
         lowCut,
         lowCut2,
         phaseGain,
+        compressor,
+        compMakeup,
         eqLow,
         eqMid,
         eqHigh,
@@ -598,6 +660,8 @@ export class AudioEngine {
 
   public loadCustomStem(channelIndex: number, audioBuffer: AudioBuffer) {
     if (channelIndex < 0 || channelIndex >= 6) return;
+    // Copy first so the cached song buffers stay untouched (Learn loads test noise here)
+    this.stemBuffers = [...this.stemBuffers];
     this.stemBuffers[channelIndex] = audioBuffer;
     if (audioBuffer.duration > this.loopDuration) {
       this.loopDuration = audioBuffer.duration;
@@ -688,6 +752,15 @@ export class AudioEngine {
     }
   }
 
+  // Make-up gain after the compressor: cancel the built-in make-up, then give back
+  // part of the recent average gain reduction.
+  private compMakeupLinear(index: number, amount: number): number {
+    if (amount <= 0) return 1.0;
+    const cc = compCurve(amount);
+    const db = AUTO_MAKEUP_FRACTION * (this.compGrAverage[index] || 0) - cc.builtInMakeupDb;
+    return Math.pow(10, db / 20);
+  }
+
   // Update channel hardware parameters from UI
   public updateChannel(index: number, s: ChannelSettings) {
     if (!this.ctx || !this.channels[index]) return;
@@ -728,6 +801,20 @@ export class AudioEngine {
 
     // Phase Invert (Ø)
     ch.phaseGain.gain.setTargetAtTime(s.phaseInvert ? -1.0 : 1.0, this.ctx.currentTime, 0.02);
+
+    // One-knob compressor
+    const cc = compCurve(s.comp ?? 0);
+    const now = this.ctx.currentTime;
+    ch.compressor.threshold.setTargetAtTime(cc.threshold, now, 0.03);
+    ch.compressor.ratio.setTargetAtTime(cc.ratio, now, 0.03);
+    ch.compressor.knee.setTargetAtTime(cc.knee, now, 0.03);
+    ch.compressor.attack.setTargetAtTime(cc.attack, now, 0.03);
+    ch.compressor.release.setTargetAtTime(cc.release, now, 0.03);
+    if ((s.comp ?? 0) <= 0) {
+      // Compressor off: forget the running average of gain reduction
+      this.compGrAverage[index] = 0;
+    }
+    ch.compMakeup.gain.setTargetAtTime(this.compMakeupLinear(index, s.comp ?? 0), now, 0.03);
 
     // 3-Band EQ: Low and High operate as shelving filters with gentle fixed Q ~ 0.7
     ch.eqLow.type = 'lowshelf';
@@ -1038,7 +1125,7 @@ export class AudioEngine {
 
   // Real-time peak meter & 1.5s clip-hold extraction
   public getMeterLevels(activePflIndex: number | null): {
-    channels: { level: number; clipped: boolean; hasSignal: boolean }[];
+    channels: { level: number; clipped: boolean; hasSignal: boolean; compGr: number }[];
     masterL: number;
     masterR: number;
     masterClipped: boolean;
@@ -1077,10 +1164,25 @@ export class AudioEngine {
 
       const effectiveSignal = hasSignal || postPeak >= 0.063;
 
+      // Compressor gain reduction: instant attack, slow fall so the light is readable
+      const grNow = Math.max(0, -(ch.compressor.reduction || 0));
+      const prevGr = this.compGrSmoothed[idx] || 0;
+      const gr = grNow >= prevGr ? grNow : prevGr * 0.9 + grNow * 0.1;
+      this.compGrSmoothed[idx] = gr;
+
+      // Auto make-up gain follows the average gain reduction (about a 1 second window)
+      const compOn = (this.channelSettings[idx]?.comp ?? 0) > 0;
+      if (compOn && this.ctx) {
+        this.compGrAverage[idx] = this.compGrAverage[idx] * 0.98 + grNow * 0.02;
+        const amount = this.channelSettings[idx]?.comp ?? 0;
+        ch.compMakeup.gain.setTargetAtTime(this.compMakeupLinear(idx, amount), this.ctx.currentTime, 0.25);
+      }
+
       return {
         level: Math.min(postPeak * 1.3, 1.0),
         clipped,
-        hasSignal: effectiveSignal
+        hasSignal: effectiveSignal,
+        compGr: gr
       };
     });
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ChannelSettings, MasterSettings, ScenarioItem } from './types/audio';
+import { ChannelSettings, MasterSettings, MyMix, ScenarioItem, TabId } from './types/audio';
 import { audioEngine } from './audio/audioEngine';
 import { BUILTIN_SONGS } from './audio/stemSynthesizer';
 import { TransportHeader } from './components/TransportHeader';
@@ -7,10 +7,14 @@ import { AnalogConsole } from './components/AnalogConsole';
 import { DigitalConsole } from './components/DigitalConsole';
 import { SignalFlowXRay } from './components/SignalFlowXRay';
 import { ScenarioChallenges, SCENARIOS } from './components/ScenarioChallenges';
-import { TimedDrill } from './components/TimedDrill';
-import { MatchTheMix } from './components/MatchTheMix';
+import { WhatChanged } from './components/WhatChanged';
+import { MatchTheMix, REFERENCE_PROFILES, ReferenceProfile, buildReferenceMix } from './components/MatchTheMix';
+import { MyMix as MyMixPanel } from './components/MyMix';
 import { GradeReport } from './components/GradeReport';
 import { LearnMixer } from './components/LearnMixer';
+import { makeDefaultChannels, makeDefaultMaster } from './utils/mixDefaults';
+
+type MixState = { channels: ChannelSettings[]; master: MasterSettings };
 
 export default function App() {
   const [currentSongId, setCurrentSongId] = useState<string>('song1');
@@ -19,7 +23,7 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(8.0);
   const [consoleView, setConsoleView] = useState<'analog' | 'digital'>('analog');
-  const [activeTab, setActiveTab] = useState<'console' | 'learn' | 'scenarios' | 'drill' | 'match' | 'grades'>('console');
+  const [activeTab, setActiveTab] = useState<TabId>('console');
   const [selectedDigitalChannelIndex, setSelectedDigitalChannelIndex] = useState<number>(0);
 
   // Signal Flow Modal State
@@ -29,170 +33,28 @@ export default function App() {
     channelName: 'Kick / Snare'
   });
 
-  // Scorecard state
+  // Scorecard state (lives only in this browser tab; the submission code is the only record)
   const [scenariosCompleted, setScenariosCompleted] = useState<Record<number, number>>({});
-  const [drillHighScore, setDrillHighScore] = useState<number>(0);
-  const [drillBestReactionMs, setDrillBestReactionMs] = useState<number>(0);
-  const [matchScore, setMatchScore] = useState<number>(0);
+  const [whatChangedBest, setWhatChangedBest] = useState<number>(0);
+  const [matchScores, setMatchScores] = useState<Record<string, number>>({});
   const [learnCompleted, setLearnCompleted] = useState<boolean>(false);
   const [activeScenarioId, setActiveScenarioId] = useState<number>(1);
-  const [currentCrisisType, setCurrentCrisisType] = useState<string>('');
 
-  useEffect(() => {
-    if (activeTab === 'learn') {
-      audioEngine.setIsolatedChannel(0);
-    } else {
-      audioEngine.setIsolatedChannel(null);
-    }
+  // Mixer state
+  const [channels, setChannels] = useState<ChannelSettings[]>(() => makeDefaultChannels('song1'));
+  const [master, setMaster] = useState<MasterSettings>(() => makeDefaultMaster());
 
-    if (activeTab === 'scenarios') {
-      audioEngine.setEnforcePhantomPower(activeScenarioId === 1);
-      const currentSc = SCENARIOS.find(s => s.id === activeScenarioId) || SCENARIOS[0];
-      handleApplyScenarioState(currentSc.setupState);
-    } else if (activeTab === 'drill') {
-      audioEngine.setEnforcePhantomPower(currentCrisisType === 'phantom_drop');
-    } else {
-      audioEngine.setEnforcePhantomPower(false);
-    }
-  }, [activeTab, activeScenarioId, currentCrisisType]);
+  // Match the Mix: which reference is open, A/B state, and each reference's in-progress mix
+  const [matchProfileId, setMatchProfileId] = useState<string | null>(null);
+  const [matchListening, setMatchListening] = useState<'A' | 'B'>('B');
+  const matchWorkRef = useRef<Record<string, MixState>>({});
 
-  // Initial Mixer Channel Settings
-  const [channels, setChannels] = useState<ChannelSettings[]>([
-    {
-      id: 1,
-      name: "Kick / Snare",
-      type: "drums",
-      gain: 0,
-      phantom48V: false,
-      hiZ: false,
-      phaseInvert: false,
-      lowCut100Hz: false,
-      eqHigh: 0,
-      eqMid: 0,
-      eqMidFreq: 2500,
-      eqLow: 0,
-      aux1Pre: -60,
-      fxPost: -60,
-      pan: 0,
-      mute: false,
-      soloPfl: false,
-      faderLevel: 0
-    },
-    {
-      id: 2,
-      name: "E. Bass",
-      type: "bass",
-      gain: 0,
-      phantom48V: false,
-      hiZ: false,
-      phaseInvert: false,
-      lowCut100Hz: false,
-      eqHigh: 0,
-      eqMid: 0,
-      eqMidFreq: 2500,
-      eqLow: 0,
-      aux1Pre: -60,
-      fxPost: -60,
-      pan: 0,
-      mute: false,
-      soloPfl: false,
-      faderLevel: 0
-    },
-    {
-      id: 3,
-      name: "Lead Vocal",
-      type: "vocal",
-      gain: 0,
-      phantom48V: false,
-      hiZ: false,
-      phaseInvert: false,
-      lowCut100Hz: false,
-      eqHigh: 0,
-      eqMid: 0,
-      eqMidFreq: 2500,
-      eqLow: 0,
-      aux1Pre: -60,
-      fxPost: -60,
-      pan: 0,
-      mute: false,
-      soloPfl: false,
-      faderLevel: 0
-    },
-    {
-      id: 4,
-      name: "E. Guitar",
-      type: "guitar",
-      gain: 0,
-      phantom48V: false,
-      hiZ: false,
-      phaseInvert: false,
-      lowCut100Hz: false,
-      eqHigh: 0,
-      eqMid: 0,
-      eqMidFreq: 2500,
-      eqLow: 0,
-      aux1Pre: -60,
-      fxPost: -60,
-      pan: 0,
-      mute: false,
-      soloPfl: false,
-      faderLevel: 0
-    },
-    {
-      id: 5,
-      name: "Synth Pad",
-      type: "synth",
-      gain: 0,
-      phantom48V: false,
-      hiZ: false,
-      phaseInvert: false,
-      lowCut100Hz: false,
-      eqHigh: 0,
-      eqMid: 0,
-      eqMidFreq: 2500,
-      eqLow: 0,
-      aux1Pre: -60,
-      fxPost: -60,
-      pan: 0,
-      mute: false,
-      soloPfl: false,
-      faderLevel: 0
-    },
-    {
-      id: 6,
-      name: "Perc / Aux",
-      type: "perc",
-      gain: 0,
-      phantom48V: false,
-      hiZ: false,
-      phaseInvert: false,
-      lowCut100Hz: false,
-      eqHigh: 0,
-      eqMid: 0,
-      eqMidFreq: 2500,
-      eqLow: 0,
-      aux1Pre: -60,
-      fxPost: -60,
-      pan: 0,
-      mute: false,
-      soloPfl: false,
-      faderLevel: 0
-    }
-  ]);
-
-  // Master Section Settings
-  const [master, setMaster] = useState<MasterSettings>({
-    mainFader: 0,
-    aux1Master: 0,
-    fxReturn: 0,
-    fxMute: false,
-    fxType: 'plate',
-    phonesLevel: 75
-  });
+  // My Mix: the student's own creative mix (kept separate so other tabs can't overwrite it)
+  const [myMix, setMyMix] = useState<MyMix | null>(null);
 
   // Real-time meter visuals
   const [meterLevels, setMeterLevels] = useState<{
-    channels: { level: number; clipped: boolean }[];
+    channels: { level: number; clipped: boolean; hasSignal?: boolean; compGr?: number }[];
     masterL: number;
     masterR: number;
     masterClipped: boolean;
@@ -212,7 +74,44 @@ export default function App() {
   const masterRef = useRef(master);
   masterRef.current = master;
 
-  // Initialize engine on first gesture / mount
+  // When non-null, the speakers play this mix instead of the console (blind A/B listening).
+  const auditionRef = useRef<MixState | null>(null);
+
+  const applyAudition = useCallback((mix: MixState | null) => {
+    auditionRef.current = mix;
+    const target = mix || { channels: channelsRef.current, master: masterRef.current };
+    audioEngine.updateAllChannels(target.channels);
+    audioEngine.updateMaster(target.master);
+  }, []);
+
+  // Load a whole mix into the console (and the speakers)
+  const loadMixIntoConsole = useCallback((mix: MixState) => {
+    channelsRef.current = mix.channels;
+    masterRef.current = mix.master;
+    setChannels(mix.channels);
+    setMaster(mix.master);
+    auditionRef.current = null;
+    audioEngine.updateAllChannels(mix.channels);
+    audioEngine.updateMaster(mix.master);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'learn') {
+      audioEngine.setIsolatedChannel(0);
+    } else {
+      audioEngine.setIsolatedChannel(null);
+    }
+
+    if (activeTab === 'scenarios') {
+      audioEngine.setEnforcePhantomPower(activeScenarioId === 1);
+      const currentSc = SCENARIOS.find(s => s.id === activeScenarioId) || SCENARIOS[0];
+      handleApplyScenarioState(currentSc.setupState);
+    } else {
+      audioEngine.setEnforcePhantomPower(false);
+    }
+  }, [activeTab, activeScenarioId]);
+
+  // Initialize engine on mount
   useEffect(() => {
     audioEngine.init();
     audioEngine.onDurationChange = (dur) => setDuration(dur);
@@ -221,7 +120,7 @@ export default function App() {
     setDuration(audioEngine.loopDuration);
   }, []);
 
-  // Real-time animation loop for VU meters & playback scrubber
+  // Real-time animation loop for meters & playback scrubber
   useEffect(() => {
     let animId: number;
     const updateLoop = () => {
@@ -240,27 +139,35 @@ export default function App() {
         setMeterLevels(levels);
         setCurrentTime(audioEngine.getCurrentTime());
       }
-
       animId = requestAnimationFrame(updateLoop);
     };
-
     animId = requestAnimationFrame(updateLoop);
     return () => cancelAnimationFrame(animId);
   }, []);
 
-  // Update channel parameters
+  // Touching the console always means "I want to hear MY mix", so it ends any A/B audition.
+  const endAuditionForEdit = () => {
+    if (auditionRef.current) {
+      auditionRef.current = null;
+      setMatchListening('B');
+      audioEngine.updateMaster(masterRef.current);
+    }
+  };
+
   const handleUpdateChannel = useCallback((index: number, newSettings: ChannelSettings) => {
-    setChannels(prev => {
-      const next = [...prev];
-      next[index] = newSettings;
-      audioEngine.updateAllChannels(next);
-      return next;
-    });
+    const next = [...channelsRef.current];
+    next[index] = newSettings;
+    channelsRef.current = next;
+    setChannels(next);
+    endAuditionForEdit();
+    audioEngine.updateAllChannels(next);
   }, []);
 
-  // Update master parameters
   const handleUpdateMaster = useCallback((newSettings: MasterSettings) => {
+    masterRef.current = newSettings;
     setMaster(newSettings);
+    endAuditionForEdit();
+    audioEngine.updateAllChannels(channelsRef.current);
     audioEngine.updateMaster(newSettings);
   }, []);
 
@@ -292,22 +199,22 @@ export default function App() {
     audioEngine.seek(time);
   };
 
-  // Song switching
+  // Song switching (keeps every knob where it is, renames channels to match the new stems)
   const handleSelectSong = async (songId: string) => {
     setCurrentSongId(songId);
-    await audioEngine.loadSong(songId);
-    setDuration(audioEngine.loopDuration);
-    // Update channel names to match selected song stems
+    setCurrentTime(0);
     const song = BUILTIN_SONGS.find(s => s.id === songId);
     if (song) {
-      setChannels(prev =>
-        prev.map((ch, idx) => ({
-          ...ch,
-          name: song.stems[idx]?.name || ch.name,
-          type: song.stems[idx]?.type || ch.type
-        }))
-      );
+      const renamed = channelsRef.current.map((ch, idx) => ({
+        ...ch,
+        name: song.stems[idx]?.name || ch.name,
+        type: song.stems[idx]?.type || ch.type
+      }));
+      channelsRef.current = renamed;
+      setChannels(renamed);
     }
+    await audioEngine.loadSong(songId);
+    setDuration(audioEngine.loopDuration);
   };
 
   // Custom stem file dropping per channel
@@ -316,14 +223,10 @@ export default function App() {
       const buffer = await audioEngine.decodeAudioFile(file);
       audioEngine.loadCustomStem(channelIndex, buffer);
       setDuration(audioEngine.loopDuration);
-      setChannels(prev => {
-        const next = [...prev];
-        next[channelIndex] = {
-          ...next[channelIndex],
-          name: file.name.replace(/\.[^/.]+$/, '').slice(0, 16)
-        };
-        return next;
-      });
+      const next = [...channelsRef.current];
+      next[channelIndex] = { ...next[channelIndex], name: file.name.replace(/\.[^/.]+$/, '').slice(0, 16) };
+      channelsRef.current = next;
+      setChannels(next);
     } catch (e) {
       console.error("Failed to decode audio stem file:", e);
     }
@@ -337,14 +240,10 @@ export default function App() {
       try {
         const buffer = await audioEngine.decodeAudioFile(file);
         audioEngine.loadCustomStem(i, buffer);
-        setChannels(prev => {
-          const next = [...prev];
-          next[i] = {
-            ...next[i],
-            name: file.name.replace(/\.[^/.]+$/, '').slice(0, 16)
-          };
-          return next;
-        });
+        const next = [...channelsRef.current];
+        next[i] = { ...next[i], name: file.name.replace(/\.[^/.]+$/, '').slice(0, 16) };
+        channelsRef.current = next;
+        setChannels(next);
       } catch (e) {
         console.error("Error loading multitrack stem:", e);
       }
@@ -352,45 +251,15 @@ export default function App() {
     setDuration(audioEngine.loopDuration);
   };
 
-  // Apply scenario state (fully resets mixer to clean defaults first, then applies scenario overrides)
+  // Apply scenario state (resets mixer to clean defaults first, then applies scenario overrides).
+  // Scenarios are written for the funk song's channel layout (Lead Vocal on Ch 3, etc.).
   const handleApplyScenarioState = (setup: ScenarioItem['setupState']) => {
-    if (setup.songId && setup.songId !== currentSongId) {
-      handleSelectSong(setup.songId);
+    const songId = setup.songId || 'song1';
+    if (songId !== currentSongId) {
+      handleSelectSong(songId);
     }
 
-    const defaultChannels: ChannelSettings[] = [1, 2, 3, 4, 5, 6].map((id, idx) => ({
-      id,
-      name: ["Kick / Snare", "E. Bass", "Lead Vocal", "E. Guitar", "Synth Pad", "Perc / Aux"][idx],
-      type: ["drums", "bass", "vocal", "guitar", "synth", "perc"][idx] as any,
-      gain: 0,
-      phantom48V: false,
-      hiZ: false,
-      phaseInvert: false,
-      lowCut100Hz: false,
-      eqHigh: 0,
-      eqMid: 0,
-      eqMidFreq: 2500,
-      eqLow: 0,
-      aux1Pre: -60,
-      fxPost: -60,
-      pan: 0,
-      mute: false,
-      soloPfl: false,
-      faderLevel: 0
-    }));
-
-    const defaultMaster: MasterSettings = {
-      mainFader: 0,
-      aux1Master: 0,
-      fxReturn: 0,
-      fxMute: false,
-      fxType: 'plate',
-      phonesLevel: 75
-    };
-
-    let nextChannels = defaultChannels;
-    let nextMaster = defaultMaster;
-
+    const nextChannels = makeDefaultChannels(songId);
     if (setup.channels) {
       setup.channels.forEach((override) => {
         const idx = nextChannels.findIndex(c => c.id === override.id);
@@ -399,22 +268,90 @@ export default function App() {
         }
       });
     }
-
-    if (setup.master) {
-      nextMaster = { ...nextMaster, ...setup.master };
-    }
-
-    setChannels(nextChannels);
-    audioEngine.updateAllChannels(nextChannels);
-    setMaster(nextMaster);
-    audioEngine.updateMaster(nextMaster);
+    const nextMaster = { ...makeDefaultMaster(), ...(setup.master || {}) };
+    loadMixIntoConsole({ channels: nextChannels, master: nextMaster });
   };
 
-  // Tab selection with audio pause
-  const handleSelectTab = (tab: 'console' | 'learn' | 'scenarios' | 'drill' | 'match' | 'grades') => {
+  // ---------- Match the Mix ----------
+  const openMatchProfile = (profile: ReferenceProfile) => {
+    // Park the mix for the reference we're leaving so the student can come back to it
+    if (matchProfileId) {
+      matchWorkRef.current[matchProfileId] = { channels: channelsRef.current, master: masterRef.current };
+    }
+    if (profile.songId !== currentSongId) {
+      handleSelectSong(profile.songId);
+    }
+    const saved = matchWorkRef.current[profile.id];
+    loadMixIntoConsole(saved || { channels: makeDefaultChannels(profile.songId), master: makeDefaultMaster() });
+    setMatchProfileId(profile.id);
+    setMatchListening('B');
+  };
+
+  const handleMatchListen = (which: 'A' | 'B') => {
+    const profile = REFERENCE_PROFILES.find(p => p.id === matchProfileId);
+    if (!profile) return;
+    setMatchListening(which);
+    applyAudition(which === 'A' ? buildReferenceMix(profile) : null);
+  };
+
+  // ---------- My Mix ----------
+  const openMyMix = () => {
+    if (myMix) {
+      if (myMix.songId !== currentSongId) handleSelectSong(myMix.songId);
+      loadMixIntoConsole({ channels: myMix.channels, master: myMix.master });
+    } else {
+      const fresh = { channels: makeDefaultChannels(currentSongId), master: makeDefaultMaster() };
+      loadMixIntoConsole(fresh);
+      setMyMix({ songId: currentSongId, ...fresh, explanation: '' });
+    }
+  };
+
+  // Keep My Mix in sync with the console while the student is working on it
+  useEffect(() => {
+    if (activeTab !== 'mymix') return;
+    setMyMix(prev => (prev ? { ...prev, channels, master, songId: currentSongId } : prev));
+  }, [activeTab, channels, master, currentSongId]);
+
+  // Teacher: listen to a student's submitted My Mix
+  const handleListenToStudentMix = (mix: MyMix) => {
+    if (isPlaying) handlePause();
+    if (mix.songId !== currentSongId) handleSelectSong(mix.songId);
+    loadMixIntoConsole({ channels: mix.channels, master: mix.master });
+    setActiveTab('console');
+  };
+
+  // ---------- Tabs ----------
+  const handleSelectTab = (tab: TabId) => {
+    if (tab === activeTab) return;
     if (isPlaying) {
       handlePause();
     }
+
+    // Leaving a tab
+    if (activeTab === 'match' && matchProfileId) {
+      matchWorkRef.current[matchProfileId] = { channels: channelsRef.current, master: masterRef.current };
+    }
+    if (activeTab === 'match' || activeTab === 'whatchanged') {
+      applyAudition(null);
+      setMatchListening('B');
+    }
+    if (activeTab === 'learn') {
+      // Learn loads test noise into Channel 1; put the real song back
+      audioEngine.loadSong(currentSongId);
+    }
+
+    // Entering a tab
+    if (tab === 'match') {
+      const profile = REFERENCE_PROFILES.find(p => p.id === matchProfileId) || REFERENCE_PROFILES[0];
+      const saved = matchWorkRef.current[profile.id];
+      if (profile.songId !== currentSongId) handleSelectSong(profile.songId);
+      loadMixIntoConsole(saved || { channels: makeDefaultChannels(profile.songId), master: makeDefaultMaster() });
+      setMatchProfileId(profile.id);
+      setMatchListening('B');
+    } else if (tab === 'mymix') {
+      openMyMix();
+    }
+
     setActiveTab(tab);
   };
 
@@ -431,7 +368,6 @@ export default function App() {
       ) {
         return;
       }
-
       if (e.code === 'Space') {
         e.preventDefault();
         if (isPlaying) {
@@ -441,104 +377,15 @@ export default function App() {
         }
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying]);
-
-  // Apply emergency drill crisis across 12 distinct signal flow crises
-  const handleApplyEmergency = (type: string) => {
-    // Stage 1: Prerequisites (Phantom, Hi-Z, Gain)
-    if (type === 'phantom_drop' || type === 'phantom') {
-      const idx = 2; // Ch 3 Vocal
-      handleUpdateChannel(idx, { ...channels[idx], phantom48V: false });
-    } else if (type === 'hiz_mismatch') {
-      const idx = 1; // Ch 2 Bass
-      handleUpdateChannel(idx, { ...channels[idx], hiZ: false, gain: 10 });
-    } else if (type === 'kick_preamp_clip' || type === 'clip') {
-      const idx = 0; // Ch 1 Kick/Snare
-      handleUpdateChannel(idx, { ...channels[idx], gain: 18, faderLevel: 0, mute: false });
-    } else if (type === 'vocal_preamp_hot') {
-      const idx = 2; // Ch 3 Vocal
-      handleUpdateChannel(idx, { ...channels[idx], gain: 18, faderLevel: 0, mute: false });
-    }
-    // Stage 2: Filters & EQ
-    else if (type === 'sub_rumble') {
-      const idx = 2; // Ch 3
-      handleUpdateChannel(idx, { ...channels[idx], lowCut100Hz: false });
-    } else if (type === 'bass_mud') {
-      const idx = 1; // Ch 2 Bass
-      handleUpdateChannel(idx, { ...channels[idx], eqLow: 14 });
-    } else if (type === 'guitar_harsh') {
-      const idx = 3; // Ch 4 Guitar
-      handleUpdateChannel(idx, { ...channels[idx], eqHigh: 14 });
-    } else if (type === 'vocal_feedback' || type === 'feedback') {
-      const idx = 2; // Ch 3 Vocal
-      handleUpdateChannel(idx, { ...channels[idx], gain: 18, faderLevel: 3, eqMid: 9, mute: false });
-    }
-    // Stage 3: Aux & FX Sends
-    else if (type === 'aux1_wedge_spill') {
-      const idx = 0; // Ch 1
-      handleUpdateChannel(idx, { ...channels[idx], aux1Pre: 10 });
-    } else if (type === 'reverb_washout') {
-      handleUpdateMaster({ ...master, fxReturn: 6, fxMute: false });
-    } else if (type === 'vocal_fx_spill') {
-      const idx = 2; // Ch 3
-      handleUpdateChannel(idx, { ...channels[idx], fxPost: 10 });
-    }
-    // Stage 4: Pan & Master Faders
-    else if (type === 'vocal_pan_drift') {
-      const idx = 2; // Ch 3
-      handleUpdateChannel(idx, { ...channels[idx], pan: -0.9 });
-    } else if (type === 'foh_master_overload' || type === 'master') {
-      handleUpdateMaster({ ...master, mainFader: 8 });
-    }
-
-    if (!isPlaying) {
-      handlePlay();
-    }
-  };
-
-  // Match the Mix Audition handler
-  const handleAuditionReferenceMix = (
-    isRef: boolean,
-    refState?: { channels: Partial<ChannelSettings>[]; master: Partial<MasterSettings> }
-  ) => {
-    if (isRef && refState) {
-      // Audition reference
-      if (refState.channels) {
-        refState.channels.forEach((override) => {
-          const idx = channels.findIndex(c => c.id === override.id);
-          if (idx !== -1) {
-            const temp = { ...channels[idx], ...override } as ChannelSettings;
-            audioEngine.updateChannel(idx, temp);
-          }
-        });
-      }
-      if (refState.master) {
-        audioEngine.updateMaster({ ...master, ...refState.master });
-      }
-    } else {
-      // Restore student's active console mix
-      channels.forEach((ch, idx) => audioEngine.updateChannel(idx, ch));
-      audioEngine.updateMaster(master);
-    }
-  };
-
-  // Load student mix from Teacher Batch Verifier
-  const handleLoadStudentMix = (loadedChannels: ChannelSettings[], loadedMaster: MasterSettings) => {
-    setChannels(loadedChannels);
-    setMaster(loadedMaster);
-    loadedChannels.forEach((ch, idx) => audioEngine.updateChannel(idx, ch));
-    audioEngine.updateMaster(loadedMaster);
-    setActiveTab('console');
-  };
+  }, [isPlaying, currentTime]);
 
   // Helper to render the interactive audio console bay
   const renderConsoleBay = (title?: string) => (
     <div id="audio-console-bay" className="w-full flex flex-col items-center mt-6">
       {title && (
-        <div className="w-full max-w-6xl mb-3 flex items-center justify-between px-2">
+        <div className="w-full max-w-6xl mb-3 flex flex-wrap items-center justify-between gap-1 px-2">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
             <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wide">
@@ -577,7 +424,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col selection:bg-cyan-500 selection:text-black">
-      {/* Global Transport Header */}
       <TransportHeader
         currentSongId={currentSongId}
         onSelectSong={handleSelectSong}
@@ -597,9 +443,8 @@ export default function App() {
         onLoadCustomMultitrack={handleLoadCustomMultitrack}
       />
 
-      {/* Main Workspace Canvas */}
       <main className="flex-1 p-4 flex flex-col justify-start">
-        {/* TAB 0: LEARN (MIXER ACADEMY) */}
+        {/* LEARN (MIXER ACADEMY) */}
         {activeTab === 'learn' && (
           <div className="w-full flex flex-col items-center">
             <LearnMixer
@@ -621,14 +466,14 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 1: MIX CONSOLE (ANALOG / DIGITAL) */}
+        {/* MIX CONSOLE (ANALOG / DIGITAL) */}
         {activeTab === 'console' && (
           <div className="w-full flex flex-col items-center">
             {renderConsoleBay()}
           </div>
         )}
 
-        {/* TAB 2: TROUBLESHOOTING SCENARIO CHALLENGES */}
+        {/* TROUBLESHOOTING SCENARIOS */}
         {activeTab === 'scenarios' && (
           <div className="w-full flex flex-col items-center">
             <ScenarioChallenges
@@ -636,7 +481,7 @@ export default function App() {
               master={master}
               onApplyScenarioState={handleApplyScenarioState}
               onRecordScenarioScore={(scId, score) =>
-                setScenariosCompleted(prev => ({ ...prev, [scId]: score }))
+                setScenariosCompleted(prev => ({ ...prev, [scId]: Math.max(prev[scId] || 0, score) }))
               }
               completedScenarios={scenariosCompleted}
               onScenarioChange={setActiveScenarioId}
@@ -645,63 +490,69 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 3: TIMED EMERGENCY DRILL */}
-        {activeTab === 'drill' && (
+        {/* WHAT CHANGED? EAR TRAINING (no console on screen, so nothing gives the answer away) */}
+        {activeTab === 'whatchanged' && (
           <div className="w-full flex flex-col items-center">
-            <TimedDrill
-              channels={channels}
-              master={master}
-              onApplyEmergency={handleApplyEmergency}
-              onResolveDrillScore={(score, reactionMs) => {
-                if (score > drillHighScore) setDrillHighScore(score);
-                setDrillBestReactionMs(reactionMs);
-              }}
-              highScore={drillHighScore}
-              onCrisisChange={setCurrentCrisisType}
+            <WhatChanged
+              currentSongId={currentSongId}
+              isPlaying={isPlaying}
+              onPlay={handlePlay}
+              onPause={handlePause}
+              onAudition={applyAudition}
+              bestScore={whatChangedBest}
+              onFinish={(correct) => setWhatChangedBest(prev => Math.max(prev, correct))}
             />
-            {renderConsoleBay("Emergency Station Console — Act Quickly to Neutralize Crises")}
           </div>
         )}
 
-        {/* TAB 4: MATCH THE MIX (A/B CRITICAL LISTENING) */}
-        {/* TAB 4: MATCH THE MIX (COMING SOON) */}
+        {/* MATCH THE MIX (BLIND A/B) */}
         {activeTab === 'match' && (
-          <div className="w-full h-[65vh] flex flex-col items-center justify-center p-6">
-            <div className="bg-zinc-900 border-2 border-cyan-500/50 rounded-2xl p-8 max-w-md w-full shadow-2xl flex flex-col items-center gap-4 text-center">
-              <div className="w-12 h-12 rounded-full bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-cyan-400 font-mono font-bold text-xl">
-                ⚡
-              </div>
-              <h2 className="text-xl font-bold font-mono text-zinc-100 tracking-wide">MATCH THE MIX</h2>
-              <p className="text-sm font-mono text-cyan-400 uppercase font-semibold">Coming Soon</p>
-              <p className="text-xs text-zinc-400 leading-relaxed font-mono">
-                A/B critical listening and automated reference mix matching is currently under active development and will be available in the next release.
-              </p>
-              <button
-                onClick={() => handleSelectTab('console')}
-                className="mt-2 px-5 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-mono font-bold text-xs transition-colors shadow-lg cursor-pointer"
-              >
-                RETURN TO MIX CONSOLE
-              </button>
-            </div>
+          <div className="w-full flex flex-col items-center">
+            <MatchTheMix
+              channels={channels}
+              activeProfileId={matchProfileId}
+              listening={matchListening}
+              isPlaying={isPlaying}
+              matchScores={matchScores}
+              onStartProfile={openMatchProfile}
+              onListen={handleMatchListen}
+              onPlay={handlePlay}
+              onPause={handlePause}
+              onSaveMatchScore={(id, pct) => setMatchScores(prev => ({ ...prev, [id]: Math.max(prev[id] || 0, pct) }))}
+            />
+            {renderConsoleBay("Your Mix (B) — Match the Reference by Ear")}
           </div>
         )}
 
-        {/* TAB 5: GRADE REPORT & INSTRUCTOR BATCH VERIFIER */}
+        {/* MY MIX (CREATIVE PROJECT) */}
+        {activeTab === 'mymix' && myMix && (
+          <div className="w-full flex flex-col items-center">
+            <MyMixPanel
+              songId={currentSongId}
+              explanation={myMix.explanation}
+              onExplanationChange={(text) => setMyMix(prev => (prev ? { ...prev, explanation: text } : prev))}
+              onStartOver={() => loadMixIntoConsole({ channels: makeDefaultChannels(currentSongId), master: makeDefaultMaster() })}
+              isPlaying={isPlaying}
+              onPlay={handlePlay}
+              onPause={handlePause}
+            />
+            {renderConsoleBay("My Mix — Make It Sound the Way You Want")}
+          </div>
+        )}
+
+        {/* GRADE REPORT & TEACHER BATCH GRADING */}
         {activeTab === 'grades' && (
           <GradeReport
-            channels={channels}
-            master={master}
             scenariosCompleted={scenariosCompleted}
-            drillHighScore={drillHighScore}
-            drillBestReactionMs={drillBestReactionMs}
-            matchScore={matchScore}
+            whatChangedBest={whatChangedBest}
+            matchScores={matchScores}
             learnCompleted={learnCompleted}
-            onLoadStudentMix={handleLoadStudentMix}
+            myMix={myMix}
+            onListenToMix={handleListenToStudentMix}
           />
         )}
       </main>
 
-      {/* Interactive Signal Flow X-Ray HUD Modal */}
       <SignalFlowXRay
         isOpen={xrayState.isOpen}
         onClose={() => setXrayState(prev => ({ ...prev, isOpen: false }))}

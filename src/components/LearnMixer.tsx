@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChannelSettings, MasterSettings } from '../types/audio';
 import { audioEngine } from '../audio/audioEngine';
 import { Knob } from './Knob';
+import { CompKnob } from './CompKnob';
 import { MeterLadder } from './MeterLadder';
 import { FaderScale } from './FaderScale';
 import { DigitalConsole } from './DigitalConsole';
@@ -13,7 +14,7 @@ interface LearnMixerProps {
   onUpdateChannel: (index: number, settings: ChannelSettings) => void;
   onUpdateMaster: (settings: MasterSettings) => void;
   meterLevels: {
-    channels: { level: number; clipped: boolean }[];
+    channels: { level: number; clipped: boolean; hasSignal?: boolean; compGr?: number }[];
     masterL: number;
     masterR: number;
     masterClipped: boolean;
@@ -92,6 +93,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
   const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({});
   const [step9View, setStep9View] = useState<'analog' | 'digital'>('digital');
   const [step9EqInteracted, setStep9EqInteracted] = useState<boolean>(false);
+  const [compReachedSolid, setCompReachedSolid] = useState<boolean>(false);
 
   // Master FX tap tempo state
   const [delayInfo, setDelayInfo] = useState(() => audioEngine.getDelayInfo());
@@ -108,6 +110,14 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
   const chIdx = 0;
   const ch = channels[chIdx] || channels[0];
   const meter = meterLevels.channels[chIdx] || { level: 0, clipped: false };
+  const compGr = meter.compGr ?? 0;
+
+  // Step 3 unlocks once the compressor light has reached yellow (6 dB+ of gain reduction)
+  useEffect(() => {
+    if (currentStep === 3 && compGr >= 6 && !compReachedSolid) {
+      setCompReachedSolid(true);
+    }
+  }, [currentStep, compGr, compReachedSolid]);
 
   // Load selected noise or song into Channel 1
   const setNoiseSource = (type: 'white_noise' | 'pink_noise' | 'song') => {
@@ -165,29 +175,32 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
         // +48V and Hi-Z do NOT satisfy this task!
         return Boolean(ch.lowCut100Hz);
       case 3:
-        // EQ knobs adjusted
-        return Math.abs(ch.eqHigh) >= 1.5 || Math.abs(ch.eqMid) >= 1.5 || Math.abs(ch.eqLow) >= 1.5 || ch.eqMidFreq !== 2500 || !!completedSteps[3];
+        // Compressor turned up far enough (while audio plays) to light up yellow or red
+        return compReachedSolid || !!completedSteps[3];
       case 4:
-        // Aux or FX send adjusted
-        return ch.aux1Pre > -55 || ch.fxPost > -55 || master.fxReturn > -55 || !!completedSteps[4];
+        // EQ knobs adjusted
+        return Math.abs(ch.eqHigh) >= 1.5 || Math.abs(ch.eqMid) >= 1.5 || Math.abs(ch.eqLow) >= 1.5 || ch.eqMidFreq !== 2500 || !!completedSteps[4];
       case 5:
-        // Pan adjusted
-        return Math.abs(ch.pan) >= 0.15 || !!completedSteps[5];
+        // Aux or FX send adjusted
+        return ch.aux1Pre > -55 || ch.fxPost > -55 || master.fxReturn > -55 || !!completedSteps[5];
       case 6:
-        // Solo or Mute toggled
-        return ch.soloPfl || ch.mute || !!completedSteps[6];
+        // Pan adjusted
+        return Math.abs(ch.pan) >= 0.15 || !!completedSteps[6];
       case 7:
-        // Channel Fader moved away from 0dB
-        return Math.abs(ch.faderLevel) >= 2 || ch.faderLevel <= -10 || !!completedSteps[7];
+        // Solo or Mute toggled
+        return ch.soloPfl || ch.mute || !!completedSteps[7];
       case 8:
-        // Master Fader moved
-        return Math.abs(master.mainFader) >= 1.5 || master.mainFader <= -5 || !!completedSteps[8];
+        // Channel Fader moved away from 0dB
+        return Math.abs(ch.faderLevel) >= 2 || ch.faderLevel <= -10 || !!completedSteps[8];
       case 9:
-        // Dragging/manipulating EQ controls on the digital board
-        return step9EqInteracted || !!completedSteps[9];
+        // Master Fader moved
+        return Math.abs(master.mainFader) >= 1.5 || master.mainFader <= -5 || !!completedSteps[9];
       case 10:
+        // Dragging/manipulating EQ controls on the digital board
+        return step9EqInteracted || !!completedSteps[10];
+      case 11:
         // Signal flow viewed
-        return !!completedSteps[10];
+        return !!completedSteps[11];
       default:
         return false;
     }
@@ -202,12 +215,12 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
   const handleNext = () => {
     if (!isCurrentStepCompleted) return;
     markStepComplete(currentStep);
-    if (currentStep === 10 && onCompleteLearn) {
+    if (currentStep === 11 && onCompleteLearn) {
       onCompleteLearn();
     }
-    if (currentStep < 10) {
+    if (currentStep < 11) {
       setCurrentStep(currentStep + 1);
-    } else if (currentStep === 10 && onGoToConsole) {
+    } else if (currentStep === 11 && onGoToConsole) {
       onGoToConsole();
     }
   };
@@ -237,6 +250,15 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
     },
     {
       step: 3,
+      title: "Compressor (One-Knob Dynamics)",
+      subtitle: "Evening out the loud and quiet moments of a sound.",
+      summary: "Real performances are uneven: a singer belts one line and almost whispers the next, a bass player digs in harder on some notes. A compressor automatically turns DOWN the loudest moments so the whole performance sits at a steadier level, then turns the channel back up (make-up gain) so it doesn't just get quieter. The result sounds more controlled, consistent and up-front.",
+      mechanics: "A full studio compressor has many knobs (threshold, ratio, attack, release, make-up gain). Compact mixers like the Mackie ProFX and Yamaha MG combine them into ONE knob:\n• Turning COMP up lowers the THRESHOLD (the level where squashing starts) and raises the RATIO (how hard loud parts get pushed down) at the same time.\n• Make-up gain is added automatically, so turning it up doesn't just make the channel quieter.\n• The light shows GAIN REDUCTION, meaning how much the compressor is turning the signal down right now:\n   OFF = no compression\n   GREEN = light compression (about 1–6 dB)\n   YELLOW = solid compression (about 6–15 dB)\n   RED = extreme compression (15 dB or more)\n• On this mixer it sits right after the preamp and low cut, and before the EQ.",
+      actionTask: "Press PLAY (the DRUM STEM is the easiest to hear) and slowly turn the orange COMP knob up until the light turns YELLOW. Then switch it back and forth between OFF and your setting. Listen to the hits and the space between them: what changes?",
+      proTip: "Use your ears AND the light. Green to yellow is the normal working zone for vocals and bass. Living in the red squashes the life out of a sound, which can be a cool effect (think crushed, pumping drums), but it should be a choice, not an accident."
+    },
+    {
+      step: 4,
       title: "Equalization",
       subtitle: "Sculpting the tonal balance of each sound source to sit harmoniously in the mix.",
       summary: "The 3-band EQ gives you frequency-shaping power: a Low shelf at 80Hz, a sweepable semi-parametric Mid peaking filter (100Hz to 8kHz, center frequency 2.5kHz default), and a High shelf at 10kHz.",
@@ -245,7 +267,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
       proTip: "Cut before you boost. Instead of boosting highs and lows to make a track louder, cut muddy midrange frequencies to create space in your mix."
     },
     {
-      step: 4,
+      step: 5,
       title: "Aux / Monitor Send & Master FX Processor",
       subtitle: "Creating independent stage monitor mixes and feeding reverb/delay effects.",
       summary: "Aux (Auxiliary) and FX sends allow you to branch copies of the audio off the channel strip to different destinations.",
@@ -254,7 +276,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
       proTip: "Never use post-fader sends for performer stage monitors, and never use pre-fader sends for reverbs."
     },
     {
-      step: 5,
+      step: 6,
       title: "Stereo Panning (Pan Law & Spatial Placement)",
       subtitle: "Placing instruments across the stereo soundstage from Left to Right.",
       summary: "The PAN (Panoramic Potentiometer) control divides the channel's signal between the Left and Right master summing buses.",
@@ -263,7 +285,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
       proTip: "Keep Kick Drum, Bass Guitar, Snare, and Lead Vocals dead center for punch and subwoofer efficiency. Pan guitars, synths, and backing vocals wide for stereo dimension."
     },
     {
-      step: 6,
+      step: 7,
       title: "Mute & Solo Isolation",
       subtitle: "Instantly cutting channels or isolating tracks for focused troubleshooting.",
       summary: "The MUTE and SOLO buttons are your primary diagnostic switches during rehearsal and live performance.",
@@ -272,7 +294,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
       proTip: "Always mute open microphones when musicians leave the stage to prevent sudden feedback screech."
     },
     {
-      step: 7,
+      step: 8,
       title: "Channel Fader",
       subtitle: "The primary volume control balancing this channel in the overall mix.",
       summary: "The channel fader is a long-throw linear potentiometer (60mm on compact consoles, 100mm on touring consoles) that determines how much signal feeds the stereo master bus.",
@@ -281,7 +303,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
       proTip: "If your channel fader has to sit at -30 dB or +10 dB to get a balanced volume, your initial input Preamp Gain was set incorrectly. Re-adjust Gain so your faders can ride comfortably near 0 dB."
     },
     {
-      step: 8,
+      step: 9,
       title: "Main Mix Master Section & FOH Summing Bus",
       subtitle: "Summing all channels together into the final stereo mix for the audience.",
       summary: "The Master section is where all individual channels, Aux returns, and FX returns combine into a single stereo signal feeding the PA system.",
@@ -290,7 +312,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
       proTip: "Always leave your master fader at 0 dB (Unity) and balance individual channel faders against it for optimal dynamic range and signal-to-noise ratio."
     },
     {
-      step: 9,
+      step: 10,
       title: "Analog vs. Digital Consoles (Why the Workflow Changes)",
       subtitle: "Comparing 'One-Knob-Per-Function' hardware with modern digital touch screens.",
       summary: "Understanding why digital mixers look and feel different from classic analog mixing boards.",
@@ -299,11 +321,11 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
       proTip: "In modern touring, digital consoles allow engineers to save entire concert mixes onto a USB drive and recall 100+ channels on any board in seconds."
     },
     {
-      step: 10,
+      step: 11,
       title: "Signal Flow (The Audio Journey from Input to PA)",
       subtitle: "The master blueprint: tracing how sound moves through every circuit.",
       summary: "Signal Flow is the single most important concept in audio engineering. It is the exact sequence audio follows through the mixer.",
-      mechanics: "Input Jack ➔ Preamp Gain ➔ Phantom Power / Hi-Z ➔ 100Hz Low Cut ➔ 3-Band EQ ➔ [Pre-Fade Tap for Aux/Mon] ➔ Mute Switch ➔ Solo Bus ➔ Pan Pot ➔ Channel Fader ➔ [Post-Fade Tap for FX] ➔ Master Bus ➔ Main Fader ➔ PA Speakers.\nWhen an issue occurs (e.g. distortion, missing vocal, feedback), tracing this flow step-by-step pinpoints the problem in seconds.",
+      mechanics: "Input Jack ➔ Preamp Gain ➔ Phantom Power / Hi-Z ➔ 100Hz Low Cut ➔ Compressor ➔ 3-Band EQ ➔ [Pre-Fade Tap for Aux/Mon] ➔ Mute Switch ➔ Solo Bus ➔ Pan Pot ➔ Channel Fader ➔ [Post-Fade Tap for FX] ➔ Master Bus ➔ Main Fader ➔ PA Speakers.\nWhen an issue occurs (e.g. distortion, missing vocal, feedback), tracing this flow step-by-step pinpoints the problem in seconds.",
       actionTask: "Click 'OPEN SIGNAL FLOW' to launch the interactive Signal Flow HUD and inspect the live route of your audio!",
       proTip: "Whenever there's no sound, check Signal Flow from the beginning: 1) Cable, 2) Gain & 48V, 3) EQ cuts, 4) Mute & Solo, 5) Channel Fader, 6) Master Fader."
     }
@@ -339,7 +361,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
           <button
             onClick={() => {
               onOpenFlow(ch.id, ch.name);
-              markStepComplete(10);
+              markStepComplete(11);
             }}
             className="px-1 py-0.5 rounded bg-zinc-800 hover:bg-cyan-950 hover:text-cyan-400 text-zinc-400 text-[8px] font-mono border border-zinc-700 transition-colors"
             title="Signal Flow"
@@ -383,6 +405,19 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
             </div>
           </div>
 
+          {/* One-knob Compressor (Spotlighted on Step 3) */}
+          <div
+            className={`w-full rounded p-0.5 transition-all ${
+              currentStep === 3 ? 'ring-2 ring-orange-500/70 bg-orange-950/20 shadow-[0_0_12px_rgba(249,115,22,0.4)]' : ''
+            }`}
+          >
+            <CompKnob
+              value={ch.comp ?? 0}
+              gainReductionDb={compGr}
+              onChange={(v) => handleChannelField('comp', v)}
+            />
+          </div>
+
           {/* Input Switches (Spotlighted on Step 2) */}
           <div
             className={`grid grid-cols-2 gap-1 w-full mt-0.5 p-0.5 rounded transition-all ${
@@ -424,10 +459,10 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
           </div>
         </div>
 
-        {/* 3-Band EQ Section (Spotlighted on Step 3) */}
+        {/* 3-Band EQ Section (Spotlighted on Step 4) */}
         <div
           className={`flex flex-col items-center gap-1 bg-zinc-950/40 p-1 rounded border transition-all ${
-            currentStep === 3
+            currentStep === 4
               ? 'border-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.4)] ring-2 ring-sky-400/50'
               : 'border-zinc-850'
           }`}
@@ -487,10 +522,10 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
           />
         </div>
 
-        {/* Aux & FX Sends (Spotlighted on Step 4) */}
+        {/* Aux & FX Sends (Spotlighted on Step 5) */}
         <div
           className={`flex flex-col items-center gap-1 bg-zinc-950/40 p-1 rounded border transition-all ${
-            currentStep === 4
+            currentStep === 5
               ? 'border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.4)] ring-2 ring-purple-400/50'
               : 'border-zinc-850'
           }`}
@@ -521,10 +556,10 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
           />
         </div>
 
-        {/* Pan (-64 to +64 DAW coding, Spotlighted on Step 5) */}
+        {/* Pan (-64 to +64 DAW coding, Spotlighted on Step 6) */}
         <div
           className={`flex flex-col items-center bg-zinc-950/40 p-1 rounded border transition-all ${
-            currentStep === 5
+            currentStep === 6
               ? 'border-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.4)] ring-2 ring-yellow-400/50'
               : 'border-zinc-850'
           }`}
@@ -544,10 +579,10 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
           />
         </div>
 
-        {/* Mute & Solo (Spotlighted on Step 6) */}
+        {/* Mute & Solo (Spotlighted on Step 7) */}
         <div
           className={`grid grid-cols-2 gap-1 p-0.5 rounded transition-all ${
-            currentStep === 6 ? 'ring-2 ring-rose-500/60 bg-rose-950/20' : ''
+            currentStep === 7 ? 'ring-2 ring-rose-500/60 bg-rose-950/20' : ''
           }`}
         >
           <button
@@ -573,10 +608,10 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
           </button>
         </div>
 
-        {/* Fader & Meter (Spotlighted on Step 7) */}
+        {/* Fader & Meter (Spotlighted on Step 8) */}
         <div
           className={`flex items-center justify-center bg-zinc-950 p-1.5 rounded border h-48 transition-all ${
-            currentStep === 7
+            currentStep === 8
               ? 'border-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.4)] ring-2 ring-indigo-500/50'
               : 'border-zinc-850'
           }`}
@@ -611,7 +646,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
     );
   };
 
-  // Helper to render the exact Master Section from the mixer console (Switched to on Step 8)
+  // Helper to render the exact Master Section from the mixer console (Switched to on Step 9)
   const renderMasterSection = () => {
     return (
       <div className="w-64 flex flex-col bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border-2 border-red-900/60 rounded-lg p-2 gap-2 shadow-2xl">
@@ -836,7 +871,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/60">
-                MIXER LAB ACADEMY // STEP {currentStep} OF 10
+                MIXER LAB ACADEMY // STEP {currentStep} OF 11
               </span>
               {completedSteps[currentStep] && (
                 <span className="text-[10px] font-mono text-emerald-400 font-bold flex items-center gap-1">
@@ -904,7 +939,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
       </div>
 
       {/* Progress Chips Step Bar (Always navigable by clicking) */}
-      <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
+      <div className="grid grid-cols-6 sm:grid-cols-11 gap-1.5">
         {stepsInfo.map((s) => {
           const isCurrent = s.step === currentStep;
           const isDone = completedSteps[s.step];
@@ -924,14 +959,15 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
               <span className="truncate w-full font-bold">
                 {s.step === 1 && "Gain"}
                 {s.step === 2 && "Buttons"}
-                {s.step === 3 && "EQ"}
-                {s.step === 4 && "Aux & FX"}
-                {s.step === 5 && "Pan"}
-                {s.step === 6 && "Mute/Solo"}
-                {s.step === 7 && "Fader"}
-                {s.step === 8 && "Master"}
-                {s.step === 9 && "Digital"}
-                {s.step === 10 && "Flow"}
+                {s.step === 3 && "Comp"}
+                {s.step === 4 && "EQ"}
+                {s.step === 5 && "Aux & FX"}
+                {s.step === 6 && "Pan"}
+                {s.step === 7 && "Mute/Solo"}
+                {s.step === 8 && "Fader"}
+                {s.step === 9 && "Master"}
+                {s.step === 10 && "Digital"}
+                {s.step === 11 && "Flow"}
               </span>
             </button>
           );
@@ -939,15 +975,15 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
       </div>
 
       {/* MAIN INTERACTIVE STAGE */}
-      {currentStep === 9 ? (
-        /* STEP 9: RE-ORIENTED FULL-WIDTH DIGITAL VS ANALOG CONSOLE COMPARISON */
+      {currentStep === 10 ? (
+        /* STEP 10: RE-ORIENTED FULL-WIDTH DIGITAL VS ANALOG CONSOLE COMPARISON */
         <div className="flex flex-col gap-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 shadow-xl flex flex-col gap-4">
             {/* Step Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800 pb-3">
               <div>
                 <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
-                  CHAPTER 9: {currentStepData.title}
+                  CHAPTER 10: {currentStepData.title}
                 </span>
                 <p className="text-xs text-zinc-400 mt-0.5">
                   {currentStepData.subtitle}
@@ -1004,7 +1040,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
                   {isCurrentStepCompleted ? '✓ LAB TASK COMPLETE' : 'ACTION REQUIRED'}
                 </span>
                 <span className="text-xs font-bold text-cyan-300 font-mono">
-                  {isCurrentStepCompleted ? 'Digital EQ adjusted! Ready to continue to Step 10.' : 'Manipulate the EQ on the digital screen below to unlock Next:'}
+                  {isCurrentStepCompleted ? 'Digital EQ adjusted! Ready to continue to Step 11.' : 'Manipulate the EQ on the digital screen below to unlock Next:'}
                 </span>
               </div>
               <p className="text-xs text-zinc-200">
@@ -1069,7 +1105,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
                         settings.eqHigh !== ch.eqHigh
                       ) {
                         setStep9EqInteracted(true);
-                        markStepComplete(9);
+                        markStepComplete(10);
                       }
                       onUpdateChannel(idx, settings);
                     }}
@@ -1086,7 +1122,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
 
             {/* Bottom Progress Tracker */}
             <div className="flex items-center justify-between border-t border-zinc-800 pt-3 text-xs font-mono text-zinc-400">
-              <span>Step 9 of 10</span>
+              <span>Step 10 of 11</span>
               <button
                 onClick={handleNext}
                 disabled={!isCurrentStepCompleted}
@@ -1102,21 +1138,21 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
           </div>
         </div>
       ) : (
-        /* STEPS 1 TO 8 & 10: 2-COLUMN LAYOUT (Hardware Strip on Left, Pedagogy on Right) */
+        /* STEPS 1 TO 9 & 11: 2-COLUMN LAYOUT (Hardware Strip on Left, Pedagogy on Right) */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-          {/* LEFT COLUMN: Hardware Strip (Switches to Master Section on Step 8) */}
+          {/* LEFT COLUMN: Hardware Strip (Switches to Master Section on Step 9) */}
           <div className="lg:col-span-5 flex flex-col items-center gap-2">
             <div className="w-full flex items-center justify-between px-1">
               <span className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-wide">
-                {currentStep === 8 ? 'MASTER CONSOLE SECTION' : 'CHANNEL STRIP 1 (LABORATORY)'}
+                {currentStep === 9 ? 'MASTER CONSOLE SECTION' : 'CHANNEL STRIP 1 (LABORATORY)'}
               </span>
               <span className="text-[10px] font-mono text-cyan-400">
                 Live Audio Engine Active
               </span>
             </div>
 
-            {/* The Hardware Section: Step 8 switches to Master Section, others render Channel 1 */}
-            {currentStep === 8 ? renderMasterSection() : renderChannel1Strip()}
+            {/* The Hardware Section: Step 9 switches to Master Section, others render Channel 1 */}
+            {currentStep === 9 ? renderMasterSection() : renderChannel1Strip()}
           </div>
 
           {/* RIGHT COLUMN: Detailed Pedagogy, Step Explanations, Hands-on Lab Task */}
@@ -1150,14 +1186,14 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
                         : 'bg-zinc-800 text-zinc-500 opacity-40 cursor-not-allowed'
                     }`}
                     title={
-                      currentStep === 10
+                      currentStep === 11
                         ? 'Go to Mix Console'
                         : isCurrentStepCompleted
                         ? 'Proceed to next step'
                         : 'Complete the Hands-On Lab Task to enable Next'
                     }
                   >
-                    {currentStep === 10 ? 'GO TO MIX CONSOLE →' : 'NEXT →'}
+                    {currentStep === 11 ? 'GO TO MIX CONSOLE →' : 'NEXT →'}
                   </button>
                 </div>
               </div>
@@ -1211,8 +1247,8 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
                 </div>
               </div>
 
-              {/* STEP 4: EXACT MASTER FX SECTION COMPANION (Matching AnalogConsole.tsx) */}
-              {currentStep === 4 && (
+              {/* STEP 5: EXACT MASTER FX SECTION COMPANION (Matching AnalogConsole.tsx) */}
+              {currentStep === 5 && (
                 <div className="w-full bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border-2 border-purple-900/60 rounded-lg p-2.5 flex flex-col gap-2 shadow-2xl">
                   {/* Master FX Header */}
                   <div className="flex items-center justify-between border-b border-zinc-800 pb-1">
@@ -1348,8 +1384,8 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
                 </div>
               )}
 
-              {/* STEP 10: SIGNAL FLOW HUD LAUNCHER */}
-              {currentStep === 10 && (
+              {/* STEP 11: SIGNAL FLOW HUD LAUNCHER */}
+              {currentStep === 11 && (
                 <div className="bg-zinc-950 p-4 rounded-lg border border-cyan-400 flex flex-col gap-2.5">
                   <span className="text-xs font-mono font-bold text-cyan-400">
                     INTERACTIVE SIGNAL FLOW HUD:
@@ -1360,7 +1396,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
                   <button
                     onClick={() => {
                       onOpenFlow(ch.id, ch.name);
-                      markStepComplete(10);
+                      markStepComplete(11);
                       if (onCompleteLearn) onCompleteLearn();
                     }}
                     className="px-4 py-2.5 rounded bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-mono font-extrabold text-xs shadow-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
@@ -1373,7 +1409,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
 
               {/* Bottom Progress Tracker & Unlock Indicator */}
               <div className="flex items-center justify-between border-t border-zinc-800 pt-3 text-xs font-mono text-zinc-400">
-                <span>Step {currentStep} of 10</span>
+                <span>Step {currentStep} of 11</span>
                 <button
                   onClick={handleNext}
                   disabled={!isCurrentStepCompleted}
@@ -1383,7 +1419,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
                       : 'text-zinc-600 cursor-not-allowed'
                   }`}
                 >
-                  {currentStep === 10
+                  {currentStep === 11
                     ? isCurrentStepCompleted
                       ? 'Go to Mix Console →'
                       : '🔒 Open Flow to Complete'

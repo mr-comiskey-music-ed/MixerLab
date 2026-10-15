@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { ChannelSettings, MasterSettings } from '../types/audio';
 import { audioEngine } from '../audio/audioEngine';
 import { Knob } from './Knob';
+import { CompKnob } from './CompKnob';
 import { MeterLadder } from './MeterLadder';
 import { FaderScale } from './FaderScale';
 import { sliderPosToDb, dbToSliderPos } from '../utils/faderCurves';
@@ -10,7 +11,7 @@ interface AnalogConsoleProps {
   channels: ChannelSettings[];
   master: MasterSettings;
   meterLevels: {
-    channels: { level: number; clipped: boolean; hasSignal?: boolean }[];
+    channels: { level: number; clipped: boolean; hasSignal?: boolean; compGr?: number }[];
     masterL: number;
     masterR: number;
     masterClipped: boolean;
@@ -158,6 +159,13 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {/* One-knob Compressor (sits right under GAIN, like the Mackie ProFX) */}
+                <CompKnob
+                  value={ch.comp ?? 0}
+                  gainReductionDb={meter.compGr ?? 0}
+                  onChange={(v) => handleChannelField(idx, 'comp', v)}
+                />
 
                 {/* Input Switches */}
                 <div className="grid grid-cols-2 gap-1 w-full mt-0.5">
@@ -616,6 +624,10 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
                 <div className="flex items-center justify-between text-[8px] font-mono bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800">
                   <span className="text-zinc-400">3. HP Filter</span>
                   <span className="text-white font-bold">{recentCh.lowCut100Hz ? '100Hz ON' : 'Bypass'}</span>
+                </div>
+                <div className="flex items-center justify-between text-[8px] font-mono bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800">
+                  <span className="text-zinc-400">3b. Compressor</span>
+                  <span className="text-orange-400 font-bold">{(recentCh.comp ?? 0) > 0 ? Math.round(recentCh.comp) : 'Off'}</span>
                 </div>
                 <div className="flex items-center justify-between text-[8px] font-mono bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800">
                   <span className="text-zinc-400">4a. EQ High</span>

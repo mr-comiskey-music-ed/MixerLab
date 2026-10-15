@@ -27,6 +27,8 @@ export interface ChannelSettings {
   hiZ: boolean;
   phaseInvert: boolean;
   lowCut100Hz: boolean;
+  // One-knob compressor (0 = off, 100 = maximum squash)
+  comp: number;
   // 3-Band EQ
   eqHigh: number; // -15 to +15 dB (12kHz shelf)
   eqMid: number;  // -15 to +15 dB (peaking)
@@ -73,35 +75,31 @@ export interface ScenarioItem {
   };
 }
 
-export interface StudentScorecard {
-  studentName: string;
-  periodId: string;
-  scenariosCompleted: number[];
-  scenarioScores: Record<number, number>;
-  drillHighScore: number;
-  drillBestReactionTimeMs: number;
-  matchScore: number;
-  timestamp: string;
-  saltHash?: string;
+/** A student's own creative mix, built in the My Mix tab. */
+export interface MyMix {
+  songId: string;
+  channels: ChannelSettings[];
+  master: MasterSettings;
+  explanation: string;
 }
 
-export interface SerializedMixerState {
-  version: string;
+/** Everything a student's submission code carries. Nothing is stored anywhere else. */
+export interface StudentSubmission {
   timestamp: string;
   student: {
     name: string;
     period: string;
   };
   scores: {
-    scenarios: Record<number, number>;
-    drillScore: number;
-    drillReactionMs: number;
-    matchScore: number;
+    scenarios: Record<number, number>; // scenario id -> points
+    whatChanged: number;               // best correct answers out of 8 (What Changed? drill)
+    matchScores: Record<string, number>; // reference id -> best % match
     learnCompleted: boolean;
     totalPercentage: number;
   };
-  mixerState: {
-    channels: ChannelSettings[];
-    master: MasterSettings;
-  };
+  myMix?: MyMix;
+  legacy?: boolean; // decoded from an older (pre-compression) code
 }
+
+/** The app's main tabs, in the order they appear. */
+export type TabId = 'learn' | 'console' | 'scenarios' | 'whatchanged' | 'match' | 'mymix' | 'grades';

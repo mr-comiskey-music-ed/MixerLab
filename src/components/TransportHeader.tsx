@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { BUILTIN_SONGS } from '../audio/stemSynthesizer';
+import { TabId } from '../types/audio';
 
 interface TransportHeaderProps {
   currentSongId: string;
@@ -15,8 +16,8 @@ interface TransportHeaderProps {
   onSeek: (time: number) => void;
   consoleView: 'analog' | 'digital';
   onToggleConsoleView: (view: 'analog' | 'digital') => void;
-  activeTab: 'console' | 'learn' | 'scenarios' | 'drill' | 'match' | 'grades';
-  onSelectTab: (tab: 'console' | 'learn' | 'scenarios' | 'drill' | 'match' | 'grades') => void;
+  activeTab: TabId;
+  onSelectTab: (tab: TabId) => void;
   onLoadCustomMultitrack: (files: FileList) => void;
 }
 
@@ -217,8 +218,9 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
             { id: 'learn', label: 'LEARN' },
             { id: 'console', label: 'MIX CONSOLE' },
             { id: 'scenarios', label: 'SCENARIOS' },
-            { id: 'drill', label: 'EMERGENCY DRILL' },
+            { id: 'whatchanged', label: 'WHAT CHANGED?' },
             { id: 'match', label: 'MATCH THE MIX' },
+            { id: 'mymix', label: 'MY MIX' },
             { id: 'grades', label: 'GRADE REPORT' }
           ].map((tab) => (
             <button
@@ -241,7 +243,9 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
           <select
             value={currentSongId}
             onChange={(e) => onSelectSong(e.target.value)}
-            className="bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-xs font-mono text-zinc-200 focus:outline-none focus:border-cyan-500"
+            disabled={activeTab === 'match'}
+            title={activeTab === 'match' ? 'In Match the Mix, the song is set by the reference you pick' : 'Choose a song'}
+            className="disabled:opacity-60 bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-xs font-mono text-zinc-200 focus:outline-none focus:border-cyan-500"
           >
             {BUILTIN_SONGS.map((s) => (
               <option key={s.id} value={s.id}>
