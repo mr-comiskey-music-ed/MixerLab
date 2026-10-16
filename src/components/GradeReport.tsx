@@ -417,8 +417,8 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                   {sortHeader('assignment', 'Assignment')}
                   {sortHeader('total', 'Grade')}
                   <th className="p-3">Learn</th>
-                  {sortHeader('scenarios', 'Scenarios')}
                   {sortHeader('drill', 'What Changed')}
+                  {sortHeader('scenarios', 'Scenarios')}
                   {sortHeader('match', 'Match')}
                   {sortHeader('mymix', 'My Mix')}
                   <th className="p-3 whitespace-nowrap">Freq Tone ID</th>
@@ -471,8 +471,8 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                       </td>
                       <td className="p-3 font-bold text-emerald-400">{s.scores.totalPercentage}%</td>
                       <td className="p-3">{cell('learn')}</td>
-                      <td className="p-3">{cell('scenarios')}</td>
                       <td className="p-3">{cell('whatchanged')}</td>
+                      <td className="p-3">{cell('scenarios')}</td>
                       <td className="p-3">{cell('match')}</td>
                       <td className="p-3">
                         {s.myMix ? (
