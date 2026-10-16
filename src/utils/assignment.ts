@@ -77,6 +77,14 @@ export function matchAverage(matchScores: Record<string, number>): number {
   return Math.round(sum / REFERENCE_PROFILES.length);
 }
 
+/** Grade for Match the Mix: each reference earns 50% for trying it plus half its best match score. */
+export function matchGrade(matchScores: Record<string, number>): number {
+  if (matchScores.legacy !== undefined) return Math.round(50 + matchScores.legacy / 2);
+  if (REFERENCE_PROFILES.length === 0) return 0;
+  const sum = REFERENCE_PROFILES.reduce((acc, p) => acc + (matchScores[p.id] !== undefined ? 50 + matchScores[p.id] / 2 : 0), 0);
+  return Math.round(sum / REFERENCE_PROFILES.length);
+}
+
 export interface GradePart {
   id: AssignmentItem;
   label: string;
@@ -107,7 +115,16 @@ export function computeGrade(
         parts.push({ id: 'whatchanged', label: item.label, percent: Math.round((scores.whatChanged / WHAT_CHANGED_QUESTIONS) * 100), detail: `Best ${scores.whatChanged}/${WHAT_CHANGED_QUESTIONS}` });
         break;
       case 'match':
-        parts.push({ id: 'match', label: item.label, percent: matchAverage(scores.matchScores), detail: `${matchAverage(scores.matchScores)}% average` });
+        {
+          const tried = scores.matchScores.legacy !== undefined ? 1 : REFERENCE_PROFILES.filter((p) => scores.matchScores[p.id] !== undefined).length;
+          const total = scores.matchScores.legacy !== undefined ? 1 : REFERENCE_PROFILES.length;
+          parts.push({
+            id: 'match',
+            label: item.label,
+            percent: matchGrade(scores.matchScores),
+            detail: `${tried}/${total} tried · ${matchAverage(scores.matchScores)}% average match`
+          });
+        }
         break;
       case 'freqid':
       case 'freqband':

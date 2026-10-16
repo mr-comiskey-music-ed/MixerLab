@@ -302,6 +302,15 @@ export default function App() {
     setMatchListening('B');
   };
 
+  /** Start the current reference over from a fresh, zeroed console (the best score is kept). */
+  const restartMatchProfile = () => {
+    const profile = REFERENCE_PROFILES.find(p => p.id === matchProfileId);
+    if (!profile) return;
+    delete matchWorkRef.current[profile.id];
+    loadMixIntoConsole({ channels: makeDefaultChannels(profile.songId), master: makeDefaultMaster() });
+    setMatchListening('B');
+  };
+
   const handleMatchListen = (which: 'A' | 'B') => {
     const profile = REFERENCE_PROFILES.find(p => p.id === matchProfileId);
     if (!profile) return;
@@ -410,7 +419,7 @@ export default function App() {
   }, [isPlaying, currentTime, activeTab]);
 
   // Helper to render the interactive audio console bay
-  const renderConsoleBay = (title?: string) => (
+  const renderConsoleBay = (title?: string, matchMode = false) => (
     <div id="audio-console-bay" className="w-full flex flex-col items-center mt-6">
       {title && (
         <div className="w-full max-w-6xl mb-3 flex flex-wrap items-center justify-between gap-1 px-2">
@@ -434,9 +443,11 @@ export default function App() {
           onUpdateMaster={handleUpdateMaster}
           onLoadCustomStem={handleLoadCustomStem}
           onOpenXRay={(channelId, channelName) => setXrayState({ isOpen: true, channelId, channelName })}
+          matchMode={matchMode}
         />
       ) : (
         <DigitalConsole
+          matchMode={matchMode}
           channels={channels}
           master={master}
           selectedChannelIndex={selectedDigitalChannelIndex}
@@ -492,12 +503,13 @@ export default function App() {
                 done: whatChangedFinished
               },
               match: {
-                text: Object.keys(matchScores).length ? `${matchAverage(matchScores)}% avg` : 'not tried',
+                text: Object.keys(matchScores).length ? `${matchAverage(matchScores)}% avg match` : 'not tried',
                 done: REFERENCE_PROFILES.every(p => matchScores[p.id] !== undefined)
               },
               mymix: (() => {
                 const words = myMix?.explanation.trim() ? myMix.explanation.trim().split(/\s+/).length : 0;
-                return { text: myMix ? `${words} words` : 'not started', done: words >= MY_MIX_MIN_WORDS };
+                const done = words >= MY_MIX_MIN_WORDS;
+                return { text: myMix ? (done ? 'ready' : 'in progress') : 'not started', done };
               })()
             }}
           />
@@ -577,12 +589,13 @@ export default function App() {
               isPlaying={isPlaying}
               matchScores={matchScores}
               onStartProfile={openMatchProfile}
+              onTryAgain={restartMatchProfile}
               onListen={handleMatchListen}
               onPlay={handlePlay}
               onPause={handlePause}
               onSaveMatchScore={(id, pct) => setMatchScores(prev => ({ ...prev, [id]: Math.max(prev[id] || 0, pct) }))}
             />
-            {renderConsoleBay("Your Mix (B) — Match the Reference by Ear")}
+            {renderConsoleBay("Your Mix (B) — Match the Reference by Ear", true)}
           </div>
         )}
 

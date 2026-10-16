@@ -24,6 +24,7 @@ interface DigitalConsoleProps {
   onUpdateChannel: (index: number, settings: ChannelSettings) => void;
   onUpdateMaster: (settings: MasterSettings) => void;
   onOpenXRay: (channelId: number, channelName: string) => void;
+  matchMode?: boolean; // Match the Mix: only faders, pan, LOW and HIGH EQ count, so grey out the rest
 }
 
 export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
@@ -34,7 +35,8 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
   meterLevels,
   onUpdateChannel,
   onUpdateMaster,
-  onOpenXRay
+  onOpenXRay,
+  matchMode = false
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const selectedCh = channels[selectedChannelIndex] || channels[0];
@@ -567,7 +569,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
               </div>
 
               {/* Channel Preamp Quick Toggles */}
-              <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              <div className={`flex items-center gap-1.5 flex-wrap justify-end${matchMode ? ' opacity-25 grayscale pointer-events-none' : ''}`}>
                 <button
                   onClick={() => updateSelectedField('phantom48V', !selectedCh.phantom48V)}
                   onDoubleClick={(e) => {
@@ -651,7 +653,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                   {/* DIGITAL PREAMP GAIN */}
                   <div
                     onDoubleClick={() => updateSelectedField('gain', 0)}
-                    className="w-full flex flex-col items-center bg-zinc-900/50 p-1.5 rounded border border-zinc-850 cursor-pointer"
+                    className={`w-full flex flex-col items-center bg-zinc-900/50 p-1.5 rounded border border-zinc-850 cursor-pointer${matchMode ? ' opacity-25 grayscale pointer-events-none' : ''}`}
                     title="Double-click to reset Preamp Gain to 0.0 dB (Default)"
                   >
                     <div className="flex items-center gap-1 justify-center w-full">
@@ -697,7 +699,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                   {/* ONE-KNOB COMPRESSOR (directly under Preamp Gain) */}
                   <div
                     onDoubleClick={() => updateSelectedField('comp', 0)}
-                    className="w-full flex flex-col items-center bg-zinc-900/50 p-1.5 rounded border border-zinc-850 cursor-pointer"
+                    className={`w-full flex flex-col items-center bg-zinc-900/50 p-1.5 rounded border border-zinc-850 cursor-pointer${matchMode ? ' opacity-25 grayscale pointer-events-none' : ''}`}
                     title="Double-click to turn the compressor off"
                   >
                     <CompKnob
@@ -710,7 +712,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
 
                   {/* AUX & FX SENDS */}
                   <div
-                    className="w-full flex flex-col items-center bg-zinc-900/50 p-1.5 rounded border border-zinc-850 gap-1"
+                    className={`w-full flex flex-col items-center bg-zinc-900/50 p-1.5 rounded border border-zinc-850 gap-1${matchMode ? ' opacity-25 grayscale pointer-events-none' : ''}`}
                     title="Aux & FX Sends"
                   >
                     <span className="text-[9px] font-mono text-zinc-400 font-bold">AUX & FX</span>
@@ -863,7 +865,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                       updateSelectedField('eqMid', 0);
                       updateSelectedField('eqMidFreq', 2500);
                     }}
-                    className="flex flex-col items-center justify-between gap-1 p-1.5 bg-zinc-950/60 rounded border border-amber-900/40 cursor-pointer"
+                    className={`flex flex-col items-center justify-between gap-1 p-1.5 bg-zinc-950/60 rounded border border-amber-900/40 cursor-pointer${matchMode ? ' opacity-25 grayscale pointer-events-none' : ''}`}
                     title="Double-click anywhere to reset Mid to 0.0 dB and 2.50 kHz Center"
                   >
                     <div className="flex items-center justify-between w-full px-1 border-b border-zinc-850 pb-0.5">

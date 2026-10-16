@@ -73,6 +73,7 @@ interface MatchTheMixProps {
   onPlay: () => void;
   onPause: () => void;
   onSaveMatchScore: (profileId: string, percentage: number) => void;
+  onTryAgain: () => void;
 }
 
 /**
@@ -98,7 +99,8 @@ export const MatchTheMix: React.FC<MatchTheMixProps> = ({
   onListen,
   onPlay,
   onPause,
-  onSaveMatchScore
+  onSaveMatchScore,
+  onTryAgain
 }) => {
   const [evaluationResult, setEvaluationResult] = useState<{
     overallScore: number;
@@ -108,7 +110,17 @@ export const MatchTheMix: React.FC<MatchTheMixProps> = ({
   const currentProfile = REFERENCE_PROFILES.find((p) => p.id === activeProfileId) || REFERENCE_PROFILES[0];
   const song = BUILTIN_SONGS.find((s) => s.id === currentProfile.songId);
 
+  const [needsMoves, setNeedsMoves] = useState(false);
+
   const handleEvaluateMix = () => {
+    // "Trying" means moving something: an untouched console doesn't earn the 50% for trying
+    const touched = channels.some((c) => c.faderLevel !== 0 || c.pan !== 0 || c.eqLow !== 0 || c.eqHigh !== 0 || c.mute);
+    if (!touched) {
+      setEvaluationResult(null);
+      setNeedsMoves(true);
+      return;
+    }
+    setNeedsMoves(false);
     let totalScoreSum = 0;
     const breakdown = currentProfile.targets.map((target) => {
       const ch = channels.find((c) => c.id === target.channelId);
@@ -177,6 +189,7 @@ export const MatchTheMix: React.FC<MatchTheMixProps> = ({
               onClick={() => {
                 if (p.id === activeProfileId) return;
                 setEvaluationResult(null);
+                setNeedsMoves(false);
                 onStartProfile(p);
               }}
               className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold border transition-colors ${
@@ -253,6 +266,12 @@ export const MatchTheMix: React.FC<MatchTheMixProps> = ({
             : 'Now hearing B (your mix). Adjust the console below, then flip back to A to compare.'}
         </p>
 
+        {needsMoves && (
+          <div className="text-xs font-mono text-amber-300 bg-amber-950/30 border border-amber-800/50 rounded-lg px-3 py-2">
+            Your console is still at zero. Listen to A, then move the faders, pan, LOW and HIGH EQ before checking.
+          </div>
+        )}
+
         {/* Evaluation Breakdown */}
         {evaluationResult && (
           <div className="bg-zinc-950 p-4 sm:p-5 rounded-lg border border-sky-500/60 flex flex-col gap-3">
@@ -283,9 +302,23 @@ export const MatchTheMix: React.FC<MatchTheMixProps> = ({
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-zinc-500 font-mono">
-              Your best score for each reference is what goes on your grade report. Keep listening and adjusting!
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[11px] text-zinc-500 font-mono flex-1 min-w-[200px]">
+                Your best score for each reference is what goes on your grade report: 50% for trying it, plus up to
+                50% more for how close you get. Keep adjusting and check again, or start over from a fresh console.
+              </p>
+              <button
+                onClick={() => {
+                  setEvaluationResult(null);
+                  setNeedsMoves(false);
+                  onTryAgain();
+                }}
+                className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-mono font-bold text-xs border border-zinc-600"
+                title="Reset the console to zero and try this reference again (your best score is kept)"
+              >
+                ↺ TRY AGAIN
+              </button>
+            </div>
           </div>
         )}
       </div>

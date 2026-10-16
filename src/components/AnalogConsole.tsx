@@ -23,6 +23,7 @@ interface AnalogConsoleProps {
   onUpdateMaster: (settings: MasterSettings) => void;
   onLoadCustomStem: (channelIndex: number, file: File) => void;
   onOpenXRay: (channelId: number, channelName: string) => void;
+  matchMode?: boolean; // Match the Mix: only faders, pan, LOW and HIGH EQ count, so grey out the rest
 }
 
 export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
@@ -32,7 +33,8 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
   onUpdateChannel,
   onUpdateMaster,
   onLoadCustomStem,
-  onOpenXRay
+  onOpenXRay,
+  matchMode = false
 }) => {
   const fileInputs = useRef<(HTMLInputElement | null)[]>([]);
   const [lastInteractedChannelIdx, setLastInteractedChannelIdx] = useState<number>(0);
@@ -112,7 +114,7 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
               </div>
 
               {/* Preamp & Input Section */}
-              <div className="flex flex-col items-center gap-1 bg-zinc-950/60 p-1 rounded border border-zinc-850">
+              <div className={`flex flex-col items-center gap-1 bg-zinc-950/60 p-1 rounded border border-zinc-850${matchMode ? ' opacity-25 grayscale pointer-events-none' : ''}`}>
                 <span className="text-[10px] uppercase font-semibold text-zinc-400 tracking-wider text-center leading-none">
                   {isStereo ? 'TRIM' : 'GAIN'}
                 </span>
@@ -234,6 +236,7 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
                   defaultValue={0}
                   onChange={(v) => handleChannelField(idx, 'eqHigh', v)}
                 />
+                <div className={`flex flex-col items-center gap-1${matchMode ? ' opacity-25 grayscale pointer-events-none' : ''}`}>
                 <Knob
                   label="MID FREQ"
                   value={ch.eqMidFreq || 2500}
@@ -259,6 +262,7 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
                   defaultValue={0}
                   onChange={(v) => handleChannelField(idx, 'eqMid', v)}
                 />
+                </div>
                 <Knob
                   label="LOW"
                   value={ch.eqLow}
@@ -274,7 +278,7 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
               </div>
 
               {/* Aux & FX Sends */}
-              <div className="flex flex-col items-center gap-1 bg-zinc-950/40 p-1 rounded border border-zinc-850">
+              <div className={`flex flex-col items-center gap-1 bg-zinc-950/40 p-1 rounded border border-zinc-850${matchMode ? ' opacity-25 grayscale pointer-events-none' : ''}`}>
                 <Knob
                   label="AUX (MON)"
                   value={ch.aux1Pre}

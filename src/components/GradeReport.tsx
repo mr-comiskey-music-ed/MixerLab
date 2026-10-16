@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { ChannelSettings, MasterSettings, MyMix, StudentSubmission, EqWizardScores } from '../types/audio';
 import { SCENARIOS } from './ScenarioChallenges';
 import { BUILTIN_SONGS } from '../audio/stemSynthesizer';
+import { summarizeMixChanges } from '../utils/mixChanges';
 import { encodeSubmission, decodeSubmission } from '../utils/submissionCodec';
 import {
   Assignment, AssignmentItem, ASSIGNMENT_ITEMS, EVERYTHING, assignmentName, buildAssignmentLink,
-  computeGrade, isEverything, itemsToLetters, lettersToItems, matchAverage
+  computeGrade, isEverything, itemsToLetters, lettersToItems, matchGrade
 } from '../utils/assignment';
 
 interface GradeReportProps {
@@ -49,6 +50,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
   const [studentName, setStudentName] = useState<string>('');
   const [generatedCode, setGeneratedCode] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
+  const [openChanges, setOpenChanges] = useState<number[]>([]); // batch rows with the My Mix change list open
   const [codeError, setCodeError] = useState<string>('');
 
   // Teacher batch verifier state
@@ -130,10 +132,10 @@ export const GradeReport: React.FC<GradeReportProps> = ({
     switch (sortField) {
       case 'name': return s.student.name.toLowerCase();
       case 'assignment': return assignmentName(assignmentOf(s)).toLowerCase();
-      case 'total': return s.scores.totalPercentage;
+      case 'total': return computeGrade(s.scores, s.myMix, assignmentOf(s)).total;
       case 'scenarios': return computeGrade(s.scores, s.myMix, assignmentOf(s)).parts.find((p) => p.id === 'scenarios')?.percent ?? -1;
       case 'drill': return s.scores.whatChanged;
-      case 'match': return matchAverage(s.scores.matchScores);
+      case 'match': return matchGrade(s.scores.matchScores);
       case 'mymix': return s.myMix ? countWords(s.myMix.explanation) : -1;
     }
   };
@@ -166,7 +168,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
     if (readableRows.length === 0) return;
     const headers = [
       'Student Name', 'Assignment', 'Grade %', 'Scenarios Passed', 'Scenario Points',
-      'What Changed (of 8)', 'Match the Mix Avg %', 'Mixer Academy', 'My Mix Song', 'My Mix Explanation',
+      'What Changed (of 8)', 'Match the Mix %', 'Mixer Academy', 'My Mix Song', 'My Mix Explanation',
       'Checksum', 'Submitted'
     ];
     const lines = readableRows.map(({ submission: s, isValid }) => {
@@ -174,11 +176,11 @@ export const GradeReport: React.FC<GradeReportProps> = ({
       return [
         csvCell(s!.student.name),
         csvCell(assignmentName(assignmentOf(s!))),
-        sc.totalPercentage,
+        computeGrade(sc, s!.myMix, assignmentOf(s!)).total,
         Object.values(sc.scenarios).filter((p) => p > 0).length,
         Object.values(sc.scenarios).reduce((a, b) => a + b, 0),
         s!.legacy ? csvCell('n/a (old code)') : sc.whatChanged,
-        matchAverage(sc.matchScores),
+        matchGrade(sc.matchScores),
         sc.learnCompleted ? 'COMPLETED' : 'INCOMPLETE',
         csvCell(s!.myMix ? songTitle(s!.myMix.songId) : ''),
         csvCell(s!.myMix?.explanation || ''),
@@ -443,7 +445,8 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                   }
                   const readableIdx = readableRows.indexOf(r);
                   const a = assignmentOf(s);
-                  const parts = computeGrade(s.scores, s.myMix, a).parts;
+                  const grade = computeGrade(s.scores, s.myMix, a);
+                  const parts = grade.parts;
                   const cell = (id: AssignmentItem) => {
                     const part = parts.find((p) => p.id === id);
                     if (!part) return <span className="text-zinc-700" title="Not in this assignment">·</span>;
@@ -455,8 +458,11 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                     );
                   };
                   const odd = mostCommonAssignment !== null && assignmentKey(s) !== mostCommonAssignment;
+                  const changes = s.myMix ? summarizeMixChanges(s.myMix) : null;
+                  const isOpen = openChanges.includes(idx);
                   return (
-                    <tr key={idx} className="hover:bg-zinc-850/50">
+                    <React.Fragment key={idx}>
+                    <tr className="hover:bg-zinc-850/50">
                       <td className="p-3 font-semibold text-zinc-100">{s.student.name}</td>
                       <td className="p-3 text-zinc-400 whitespace-nowrap">
                         {assignmentName(a)}
@@ -469,13 +475,14 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                           </span>
                         )}
                       </td>
-                      <td className="p-3 font-bold text-emerald-400">{s.scores.totalPercentage}%</td>
+                      <td className="p-3 font-bold text-emerald-400">{grade.total}%</td>
                       <td className="p-3">{cell('learn')}</td>
                       <td className="p-3">{cell('whatchanged')}</td>
                       <td className="p-3">{cell('scenarios')}</td>
                       <td className="p-3">{cell('match')}</td>
                       <td className="p-3">
                         {s.myMix ? (
+                          <span className="inline-flex items-center">
                           <button
                             onClick={() => onListenToMix(s.myMix!)}
                             className="px-2.5 py-1 bg-zinc-800 hover:bg-orange-950 hover:text-orange-300 text-zinc-300 rounded text-[10px] font-bold border border-zinc-700 transition-colors whitespace-nowrap"
@@ -483,6 +490,18 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                           >
                             ▶ LISTEN ({countWords(s.myMix.explanation)}w)
                           </button>
+                          {changes && (
+                            <button
+                              onClick={() => setOpenChanges((prev) => (prev.includes(idx) ? prev.filter((x) => x !== idx) : [...prev, idx]))}
+                              className={`ml-1.5 px-2 py-1 rounded text-[10px] font-bold border transition-colors whitespace-nowrap ${
+                                isOpen ? 'bg-orange-950 text-orange-300 border-orange-700' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700'
+                              }`}
+                              title="Show every console setting this student changed from a fresh console"
+                            >
+                              {isOpen ? '▴' : '▾'} {changes.count} CHANGES
+                            </button>
+                          )}
+                          </span>
                         ) : (
                           cell('mymix')
                         )}
@@ -508,6 +527,23 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                         </button>
                       </td>
                     </tr>
+                    {isOpen && changes && (
+                      <tr className="bg-zinc-950/70">
+                        <td colSpan={99} className="px-3 pb-3 pt-1">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1 text-[11px] font-mono">
+                            {changes.rows.map((row) => (
+                              <div key={row.name} className="flex gap-2">
+                                <span className="font-bold text-zinc-300 whitespace-nowrap">{row.name}:</span>
+                                <span className={row.changes.length ? 'text-zinc-400' : 'text-zinc-600 italic'}>
+                                  {row.changes.length ? row.changes.join(', ') : 'untouched'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -544,7 +580,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
               <div className="flex items-center gap-3">
                 <div className="flex flex-col items-end">
                   <span className="text-[10px] font-mono text-zinc-400">GRADE</span>
-                  <span className="text-3xl font-mono font-extrabold text-emerald-400">{report.scores.totalPercentage}%</span>
+                  <span className="text-3xl font-mono font-extrabold text-emerald-400">{reportGrade!.total}%</span>
                 </div>
                 <button
                   onClick={closeReport}
@@ -646,7 +682,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                       `MIXERLAB REPORT: ${report.student.name}\n` +
                       `Assignment: ${assignmentName(assignmentOf(report))}\n` +
                       `Submitted: ${new Date(report.timestamp).toLocaleString()}\n` +
-                      `Grade: ${report.scores.totalPercentage}%\n` +
+                      `Grade: ${reportGrade!.total}%\n` +
                       reportGrade!.parts.map((p) => `${p.label}: ${p.percent}% (${p.detail})\n`).join('') +
                       (report.myMix ? `My Mix (${songTitle(report.myMix.songId)}): ${report.myMix.explanation}\n` : '') +
                       `Code check: ${reportValid ? 'OK' : 'EDITED OR DAMAGED'}\n`;
