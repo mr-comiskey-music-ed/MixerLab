@@ -40,13 +40,15 @@ export const BUILTIN_SONGS: SongDefinition[] = [
     bpm: 125,
     key: "Rock",
     stemGainDb: -5.95,
+    // Extra trim before the mixer so all six stems together no longer peak the master:
+    // drums -2 dB, vocals -4.5 dB, everything else -3 dB
     stems: [
-      { id: 1, name: "Drums", type: "drums", color: "#f87171", url: "/audio/Drums_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) },
-      { id: 2, name: "Bass", type: "bass", color: "#60a5fa", url: "/audio/Bass_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) },
-      { id: 3, name: "Dist E Guit", type: "guitar", color: "#f97316", url: "/audio/DistEGuit_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) },
-      { id: 4, name: "Clean E Guit", type: "guitar", color: "#4ade80", url: "/audio/CleanEGuit_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) },
-      { id: 5, name: "A Guit", type: "guitar", color: "#facc15", url: "/audio/AGuit_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) },
-      { id: 6, name: "Vocals", type: "vocal", color: "#c084fc", url: "/audio/Vocals_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) }
+      { id: 1, name: "Drums", type: "drums", color: "#f87171", url: "/audio/Drums_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) * Math.pow(10, -2 / 20) },
+      { id: 2, name: "Bass", type: "bass", color: "#60a5fa", url: "/audio/Bass_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) * Math.pow(10, -3 / 20) },
+      { id: 3, name: "Dist E Guit", type: "guitar", color: "#f97316", url: "/audio/DistEGuit_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) * Math.pow(10, -3 / 20) },
+      { id: 4, name: "Clean E Guit", type: "guitar", color: "#4ade80", url: "/audio/CleanEGuit_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) * Math.pow(10, -3 / 20) },
+      { id: 5, name: "A Guit", type: "guitar", color: "#facc15", url: "/audio/AGuit_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) * Math.pow(10, -3 / 20) },
+      { id: 6, name: "Vocals", type: "vocal", color: "#c084fc", url: "/audio/Vocals_GMH.mp3", gainFactor: 0.95 * Math.pow(10, -5.5 / 20) * Math.pow(10, -4.5 / 20) }
     ]
   },
   {
