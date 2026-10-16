@@ -101,14 +101,6 @@ const CHANGE_TYPES: ChangeType[] = [
     apply: (ch) => ({ ...ch, eqHigh: -15 })
   },
   {
-    id: 'low_cut',
-    short: 'had the 100Hz LOW CUT switched on',
-    listenFor: 'The bottom end was filtered away, so the part got thinner and lost its weight.',
-    big: false,
-    fits: ['drums', 'bass', 'synth'],
-    apply: (ch) => ({ ...ch, lowCut100Hz: true, eqLow: 0 })
-  },
-  {
     id: 'compressed',
     short: 'got squashed (heavy compression)',
     listenFor: 'The hits lost their punch and everything got flattened to one level. Quiet details popped up while the peaks got held down.',

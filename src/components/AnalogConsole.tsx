@@ -160,13 +160,6 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
                   </div>
                 </div>
 
-                {/* One-knob Compressor (sits right under GAIN, like the Mackie ProFX) */}
-                <CompKnob
-                  value={ch.comp ?? 0}
-                  gainReductionDb={meter.compGr ?? 0}
-                  onChange={(v) => handleChannelField(idx, 'comp', v)}
-                />
-
                 {/* Input Switches */}
                 <div className="grid grid-cols-2 gap-1 w-full mt-0.5">
                   {!isStereo ? (
@@ -219,6 +212,13 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
                     100Hz LOW CUT
                   </button>
                 </div>
+
+                {/* One-knob Compressor (sits below the +48V / Hi-Z / low-cut switches) */}
+                <CompKnob
+                  value={ch.comp ?? 0}
+                  gainReductionDb={meter.compGr ?? 0}
+                  onChange={(v) => handleChannelField(idx, 'comp', v)}
+                />
               </div>
 
               {/* 3-Band EQ Section */}
