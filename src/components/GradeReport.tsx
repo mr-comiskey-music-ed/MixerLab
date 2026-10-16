@@ -9,6 +9,9 @@ import {
   computeGrade, isEverything, itemsToLetters, lettersToItems, matchGrade
 } from '../utils/assignment';
 
+/** Total grade colour, like a level meter: 0–59% red, 60–84% yellow, 85–100% green. */
+const totalGradeColor = (pct: number) => (pct >= 85 ? 'text-green-400' : pct >= 60 ? 'text-yellow-400' : 'text-red-400');
+
 interface GradeReportProps {
   scenariosCompleted: Record<number, number>;
   whatChangedBest: number;
@@ -226,7 +229,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
             </span>
             <h2 className="text-2xl font-bold text-zinc-100 mt-0.5">MY GRADE REPORT</h2>
           </div>
-          <span className="text-2xl font-mono font-extrabold text-emerald-400">{compositeGrade}%</span>
+          <span className={`text-2xl font-mono font-extrabold ${totalGradeColor(compositeGrade)}`}>{compositeGrade}%</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -475,7 +478,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                           </span>
                         )}
                       </td>
-                      <td className="p-3 font-bold text-emerald-400">{grade.total}%</td>
+                      <td className={`p-3 font-bold ${totalGradeColor(grade.total)}`}>{grade.total}%</td>
                       <td className="p-3">{cell('learn')}</td>
                       <td className="p-3">{cell('whatchanged')}</td>
                       <td className="p-3">{cell('scenarios')}</td>
@@ -580,7 +583,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
               <div className="flex items-center gap-3">
                 <div className="flex flex-col items-end">
                   <span className="text-[10px] font-mono text-zinc-400">GRADE</span>
-                  <span className="text-3xl font-mono font-extrabold text-emerald-400">{reportGrade!.total}%</span>
+                  <span className={`text-3xl font-mono font-extrabold ${totalGradeColor(reportGrade!.total)}`}>{reportGrade!.total}%</span>
                 </div>
                 <button
                   onClick={closeReport}
