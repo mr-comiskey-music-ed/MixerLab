@@ -23,20 +23,20 @@ const LIGHT_STYLES: Record<CompLightLevel, { lamp: string; text: string; word: s
   yellow: {
     lamp: 'bg-amber-400 border-amber-200 shadow-[0_0_8px_rgba(251,191,36,0.9)]',
     text: 'text-amber-400',
-    word: 'SOLID'
+    word: 'MED'
   },
   red: {
     lamp: 'bg-red-500 border-red-300 shadow-[0_0_10px_rgba(239,68,68,0.95)]',
     text: 'text-red-400',
-    word: 'EXTREME'
+    word: 'HEAVY'
   }
 };
 
 export const LIGHT_DESCRIPTIONS: Record<CompLightLevel, string> = {
   off: 'No compression happening',
   green: 'Light compression (about 1–6 dB of gain reduction)',
-  yellow: 'Solid compression (about 6–15 dB of gain reduction)',
-  red: 'Extreme compression (more than 15 dB of gain reduction)'
+  yellow: 'Medium compression (about 6–15 dB of gain reduction)',
+  red: 'Heavy compression (more than 15 dB of gain reduction)'
 };
 
 /**
