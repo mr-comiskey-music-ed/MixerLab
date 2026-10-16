@@ -18,7 +18,7 @@ export const LogoWordmark: React.FC<{ height?: number; className?: string }> = (
   <svg height={height} viewBox="0 0 495 108" className={className} role="img" aria-label="MixerLab">
     <defs>
       <linearGradient id="mlWordmarkMeter" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="495" y2="0">
-        <stop offset="0.58" stopColor="#22c55e" /><stop offset="0.65" stopColor="#facc15" /><stop offset="0.85" stopColor="#facc15" /><stop offset="0.93" stopColor="#ef4444" />
+        <stop offset="0.6" stopColor="#22c55e" /><stop offset="0.67" stopColor="#facc15" /><stop offset="0.85" stopColor="#facc15" /><stop offset="0.93" stopColor="#ef4444" />
       </linearGradient>
     </defs>
     <g fill="url(#mlWordmarkMeter)">
