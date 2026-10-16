@@ -31,11 +31,12 @@ export const FxPanel: React.FC<FxPanelProps> = ({ master, onField }) => {
   };
 
   const boxClass = 'flex flex-col items-center justify-center p-1.5 bg-zinc-900/60 rounded border border-zinc-850 gap-0.5';
-  const hintRow = (left: string, mid: string, right: string) => (
-    <div className="flex items-center justify-between w-full px-1.5 text-[7px] font-mono text-zinc-400">
-      <span>{left}</span>
-      <span className="text-purple-300 font-bold">{mid}</span>
-      <span>{right}</span>
+  // SHORT / LONG style end labels, in line with the value readout under the knob
+  const readoutRow = (left: string, value: string, right: string) => (
+    <div className="flex items-center justify-between w-full px-1.5 -mt-0.5 font-mono">
+      <span className="text-[7px] text-zinc-400">{left}</span>
+      <span className="text-[9px] tabular-nums text-zinc-400">{value}</span>
+      <span className="text-[7px] text-zinc-400">{right}</span>
     </div>
   );
 
@@ -67,7 +68,7 @@ export const FxPanel: React.FC<FxPanelProps> = ({ master, onField }) => {
           }`}
           title="Click rhythmically to set the delay time"
         >
-          TAP TEMPO · {delayMs}ms
+          TAP TEMPO
         </button>
       ) : (
         <div className="text-[8px] font-mono text-center text-zinc-400 py-0.5 bg-zinc-900/90 rounded border border-zinc-850">
@@ -90,10 +91,10 @@ export const FxPanel: React.FC<FxPanelProps> = ({ master, onField }) => {
             color="purple"
             size="sm"
             defaultValue={50}
-            formatValue={(v) => `${((type === 'plate' ? PLATE_BASE_SECONDS : HALL_BASE_SECONDS) * reverbDecayScale(v)).toFixed(1)}s`}
+            hideValue
             onChange={(v) => onField('fxDecay', v)}
           />
-          {hintRow('SHORT', `${Math.round(decay)}%`, 'LONG')}
+          {readoutRow('SHORT', `${((type === 'plate' ? PLATE_BASE_SECONDS : HALL_BASE_SECONDS) * scale).toFixed(1)}s`, 'LONG')}
         </div>
       )}
 
@@ -109,13 +110,13 @@ export const FxPanel: React.FC<FxPanelProps> = ({ master, onField }) => {
             color="purple"
             size="sm"
             defaultValue={DEFAULT_DELAY_MS}
-            formatValue={(v) => `${Math.round(v)}ms`}
+            hideValue
             onChange={(v) => {
               audioEngine.setDelayTime(v / 1000);
               setDelayMs(Math.round(v));
             }}
           />
-          {hintRow('FAST', '', 'SLOW')}
+          {readoutRow('FAST', `${delayMs}ms`, 'SLOW')}
         </div>
       )}
 
@@ -131,13 +132,13 @@ export const FxPanel: React.FC<FxPanelProps> = ({ master, onField }) => {
             size="sm"
             unit="%"
             defaultValue={50}
-            formatValue={(v) => `${Math.round(v)}%`}
+            hideValue
             onChange={(v) => {
               onField('chorusIntensity', v);
               audioEngine.setChorusIntensity(v);
             }}
           />
-          {hintRow('SUBTLE', `${Math.round(master.chorusIntensity ?? 50)}%`, 'DEEP')}
+          {readoutRow('SUBTLE', `${Math.round(master.chorusIntensity ?? 50)}%`, 'DEEP')}
         </div>
       )}
     </>

@@ -15,6 +15,7 @@ interface KnobProps {
   defaultValue?: number;
   isGain?: boolean;
   zeroNorm?: number; // custom normalized position for 0 (e.g. 0.7222 for 2 o'clock, 0.5 for 12 o'clock)
+  hideValue?: boolean; // the parent draws the value readout
   hideLabel?: boolean; // the parent draws the label (e.g. centred over a whole row)
   centerValue?: number; // custom value pinned exactly to 12 o'clock (normalized = 0.5), e.g. 2500 for freq knob
 }
@@ -22,6 +23,7 @@ interface KnobProps {
 export const Knob: React.FC<KnobProps> = ({
   label,
   hideLabel = false,
+  hideValue = false,
   value,
   min,
   max,
@@ -416,13 +418,15 @@ export const Knob: React.FC<KnobProps> = ({
         </div>
       </div>
 
-      <span
-        onDoubleClick={handleDoubleClick}
-        className="text-[9px] font-mono tabular-nums text-zinc-400 mt-1 tracking-tight hover:text-zinc-200 transition-colors cursor-pointer"
-        title="Double-click to reset to default"
-      >
-        {displayVal}
-      </span>
+      {!hideValue && (
+        <span
+          onDoubleClick={handleDoubleClick}
+          className="text-[9px] font-mono tabular-nums text-zinc-400 mt-1 tracking-tight hover:text-zinc-200 transition-colors cursor-pointer"
+          title="Double-click to reset to default"
+        >
+          {displayVal}
+        </span>
+      )}
 
       {(isHovered || isDragging) && (
         <div className="absolute -top-9 left-1/2 -translate-x-1/2 z-30 px-2 py-1 bg-zinc-900 text-zinc-100 text-[10px] font-mono rounded border border-zinc-700 shadow-lg pointer-events-none text-center whitespace-nowrap">
