@@ -131,9 +131,16 @@ export function mixBlocks(stems: StemInfo[]): number[] {
 
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
+/**
+ * Sections of a song that make confusing EQ examples. Tubular opens with about six
+ * seconds of a heavily filtered hi-hat, so clips from it start after that.
+ */
+const SKIP_UNTIL: Record<string, number> = { song3: 6.5 };
+const afterIntro = (songId: string, starts: number[]) => starts.filter((s) => s >= (SKIP_UNTIL[songId] ?? 0));
+
 /** A random full-mix clip, avoiding recently used start points. */
 export function pickMixClip(songStems: StemInfo[], duration: number, avoid: Clip[] = []): Clip | null {
-  const starts = goodStarts(mixBlocks(songStems), duration);
+  const starts = afterIntro(songStems[0].songId, goodStarts(mixBlocks(songStems), duration));
   const fresh = starts.filter((s) => !avoid.some((c) => c.songId === songStems[0].songId && Math.abs(c.start - s) < duration));
   const list = fresh.length ? fresh : starts;
   if (!list.length) return null;
@@ -142,7 +149,7 @@ export function pickMixClip(songStems: StemInfo[], duration: number, avoid: Clip
 
 /** A random clip of one stem with sound all the way through. */
 export function pickStemClip(stem: StemInfo, duration: number): Clip | null {
-  const starts = goodStarts(stem.blocksDb, duration);
+  const starts = afterIntro(stem.songId, goodStarts(stem.blocksDb, duration));
   if (!starts.length) return null;
   return { songId: stem.songId, start: pick(starts), duration, stemIndex: stem.stemIndex };
 }

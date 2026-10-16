@@ -1,5 +1,35 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { EQ_QUESTIONS } from '../../types/audio';
+
+/**
+ * Desktop keyboard shortcuts for a quiz screen. `keys` maps a key name (' ', 'ArrowLeft', ',' …)
+ * to an action; typing in a text box or slider is left alone.
+ */
+export function useHotkeys(keys: Record<string, () => void>) {
+  const ref = useRef(keys);
+  ref.current = keys;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      const action = ref.current[e.key];
+      if (!action) return;
+      e.preventDefault();
+      if (e.repeat) return;
+      // A just-clicked button would also "click" on Space; drop focus so only the shortcut runs
+      if (document.activeElement instanceof HTMLButtonElement) document.activeElement.blur();
+      action();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+}
+
+/** Small keyboard reminder, shown on larger screens only. */
+export const KeyHint: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <span className="hidden md:block text-[11px] font-mono text-zinc-500">⌨ {children}</span>
+);
 
 /** Header for a running level: title, question count, progress dots. */
 export const QuizHeader: React.FC<{

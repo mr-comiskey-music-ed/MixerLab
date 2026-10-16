@@ -5,7 +5,7 @@ import { eqWizardPlayer } from '../../audio/eqWizardAudio';
 import { Clip, EQ_WIZARD_SONGS, getSongStems, pickMixClip } from '../../audio/clipFinder';
 import { GraphicEQ, GeqOverlay } from '../GraphicEQ';
 import { FREQ_BAND_LEVELS, freqBandChange, makeFreqBandQuestions, levelPct } from './levels';
-import { QuizHeader, LevelResults, ABSwitch } from './QuizParts';
+import { QuizHeader, LevelResults, ABSwitch, useHotkeys, KeyHint } from './QuizParts';
 
 interface Props {
   levelIndex: number;
@@ -15,6 +15,7 @@ interface Props {
 }
 
 const CLIP_SECONDS = 9;
+const LOOP_FADE_SECONDS = 1.2; // fade in and out on every pass of the loop
 
 export const FreqBandId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }) => {
   const level = FREQ_BAND_LEVELS[levelIndex];
@@ -60,17 +61,29 @@ export const FreqBandId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }
 
   const picked = picks[qIndex];
   const answerId = `${q.bandId}:${q.dir}`;
-  const results = picks.map((p, i) => (p === null ? null : p === `${questions[i].bandId}:${questions[i].dir}` ? 100 : 0));
+  // Levels 5-6 (five bands): one band to the left or right, same boost/cut, earns half credit.
+  // Mixing up a boost and a cut never does.
+  const scoreFor = (pick: string, qq: (typeof questions)[number]) => {
+    if (pick === `${qq.bandId}:${qq.dir}`) return 100;
+    if (!level.vocab) return 0;
+    const [pb, pd] = pick.split(':');
+    const gap = Math.abs(level.bands.findIndex((b) => b.id === pb) - level.bands.findIndex((b) => b.id === qq.bandId));
+    return pd === qq.dir && gap === 1 ? 50 : 0;
+  };
+  const results = picks.map((p, i) => (p === null ? null : scoreFor(p, questions[i])));
+  const sc = results[qIndex];
   const accuracy = Math.round(results.reduce<number>((a, r) => a + (r ?? 0), 0) / EQ_QUESTIONS);
   const levelScore = levelPct(accuracy);
   const describe = (bandId: string, dir: string) =>
     `${level.bands.find((b) => b.id === bandId)?.label} ${level.cutsToo ? (dir === 'boost' ? 'boost' : 'cut') : 'boost'}`;
 
-  const play = () => clip && eqWizardPlayer.playClip(clip, freqBandChange(level, q));
+  const play = () => clip && eqWizardPlayer.playClip(clip, freqBandChange(level, q), [], LOOP_FADE_SECONDS);
   const flip = (w: 'A' | 'B') => {
     setWhich(w);
     eqWizardPlayer.setWhich(w);
   };
+  const flipKey = (w: 'A' | 'B') => () => !finished && flip(w);
+  useHotkeys({ ArrowLeft: flipKey('A'), ArrowRight: flipKey('B'), '<': flipKey('A'), '>': flipKey('B'), ',': flipKey('A'), '.': flipKey('B') });
 
   const rows = level.cutsToo ? 2 : 1;
   const overlays: GeqOverlay[] = useMemo(() => {
@@ -87,12 +100,13 @@ export const FreqBandId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }
           label: level.cutsToo ? `${dir === 'boost' ? '▲' : '▼'} ${b.label}` : b.label,
           sub: level.cutsToo ? (dir === 'boost' ? 'BOOST' : 'CUT') : undefined,
           color: b.color,
-          state: picked === null ? 'idle' : id === answerId ? 'correct' : id === picked ? 'wrong' : 'faded'
+          state: picked === null ? 'idle' : id === answerId ? 'correct' : id === picked ? (sc === 50 ? 'partial' : 'wrong') : 'faded',
+          partialText: picked === id && sc === 50 ? '50%' : undefined
         });
       });
     }
     return list;
-  }, [level, picked, answerId]);
+  }, [level, picked, answerId, sc]);
 
   const choose = (id: string) => {
     if (picked !== null) return;
@@ -155,6 +169,7 @@ export const FreqBandId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }
         onStop={() => eqWizardPlayer.stopAll()}
         onWhich={flip}
       />
+      <KeyHint>← / → (or &lt; / &gt;) switch between ORIGINAL and CHANGED</KeyHint>
 
       <GraphicEQ
         bands={GEQ_31}
@@ -189,10 +204,10 @@ export const FreqBandId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }
       {picked !== null && (
         <div
           className={`rounded-lg border px-3 py-2.5 text-sm ${
-            picked === answerId ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-200' : 'bg-rose-950/20 border-rose-900/60 text-rose-200'
+            picked === answerId ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-200' : sc === 50 ? 'bg-amber-950/30 border-amber-800/60 text-amber-200' : 'bg-rose-950/20 border-rose-900/60 text-rose-200'
           }`}
         >
-          <strong>{picked === answerId ? 'Nice ears!' : 'Not quite.'}</strong> It was a <strong>{describe(q.bandId, q.dir)}</strong>{' '}
+          <strong>{picked === answerId ? 'Nice ears!' : sc === 50 ? 'One band away, half credit.' : 'Not quite.'}</strong> It was a <strong>{describe(q.bandId, q.dir)}</strong>{' '}
           of {level.amount} dB. Flip between A and B again now that you know.
         </div>
       )}

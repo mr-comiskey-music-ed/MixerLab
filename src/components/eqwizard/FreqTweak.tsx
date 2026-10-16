@@ -8,7 +8,7 @@ import {
   FREQ_TWEAK_LEVELS, FreqTweakLevel, TweakBand, TweakKnob, TweakQuestion, TweakSettings, FLAT_TWEAK,
   makeTweakQuestion, tweakScore, levelPct
 } from './levels';
-import { QuizHeader, LevelResults, ABSwitch } from './QuizParts';
+import { QuizHeader, LevelResults, ABSwitch, useHotkeys, KeyHint } from './QuizParts';
 
 interface Props {
   levelIndex: number;
@@ -107,6 +107,8 @@ export const FreqTweak: React.FC<Props> = ({ levelIndex, best, onDone, onQuit })
     setWhich(w);
     eqWizardPlayer.setWhich(w);
   };
+  const flipKey = (w: 'A' | 'B') => () => !finished && flip(w);
+  useHotkeys({ ArrowLeft: flipKey('A'), ArrowRight: flipKey('B'), '<': flipKey('A'), '>': flipKey('B'), ',': flipKey('A'), '.': flipKey('B') });
 
   const submitted = scores[qIndex] !== null;
   const result = round && submitted ? tweakScore(level, { ...knobs, freq: level.active.includes('freq') ? knobs.freq : FIXED_MID_FREQ }, round.question.fix) : null;
@@ -186,6 +188,7 @@ export const FreqTweak: React.FC<Props> = ({ levelIndex, best, onDone, onQuit })
             onStop={() => eqWizardPlayer.stopAll()}
             onWhich={flip}
           />
+          <KeyHint>← / → (or &lt; / &gt;) switch between TARGET and YOURS</KeyHint>
           {round.question.multi && (
             <p className="text-xs font-bold text-amber-300 -mt-2 text-center">(More than one knob was changed.)</p>
           )}

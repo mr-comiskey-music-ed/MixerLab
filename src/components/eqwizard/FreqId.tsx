@@ -4,7 +4,7 @@ import { GEQ_31, formatHz } from '../../audio/eqBands';
 import { eqWizardPlayer } from '../../audio/eqWizardAudio';
 import { GraphicEQ, GeqOverlay } from '../GraphicEQ';
 import { FREQ_ID_LEVELS, makeFreqIdQuestions, bandScore, levelPct, COLORS } from './levels';
-import { QuizHeader, HeadphonesNote, LevelResults } from './QuizParts';
+import { QuizHeader, HeadphonesNote, LevelResults, useHotkeys, KeyHint } from './QuizParts';
 
 interface Props {
   levelIndex: number;
@@ -41,6 +41,7 @@ export const FreqId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }) =>
   const levelScore = levelPct(accuracy);
 
   const play = () => eqWizardPlayer.playTone(q.freq);
+  useHotkeys({ ' ': () => !finished && play() });
 
   const answerLabel = (ans: string) =>
     level.kind === 'bands' ? `${formatHz(level.bands![Number(ans)])} Hz band` : level.regions!.find((r) => r.id === ans)?.label || ans;
@@ -140,6 +141,7 @@ export const FreqId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }) =>
           🔊 {eqWizardPlayer.isPlaying ? 'Playing…' : 'Play Tone'}
         </button>
         <span className="text-sm text-zinc-300">{level.blurb} Click your answer on the EQ.</span>
+        <KeyHint>Space bar plays the tone</KeyHint>
       </div>
 
       <GraphicEQ

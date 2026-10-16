@@ -55,7 +55,7 @@ class EqWizardPlayer {
   }
 
   /** Start a looping clip. `change` is the hidden EQ move; `student` is the student's own EQ (FreqTweak). */
-  async playClip(clip: Clip, change: FilterSpec[], student: FilterSpec[] = []) {
+  async playClip(clip: Clip, change: FilterSpec[], student: FilterSpec[] = [], fadeSeconds = 0) {
     this.stopAll();
     const myToken = this.token;
     const ctx = this.ctx;
@@ -94,13 +94,35 @@ class EqWizardPlayer {
     this.gainB.connect(this.out);
 
     const now = ctx.currentTime + 0.05;
+    const loopEnd = Math.min(clip.start + clip.duration, ...buffers.map((b) => b.duration));
+
+    // Optional long fade in/out on every pass of the loop, so the clip's edges never click or jump.
+    // The envelope sits ahead of the A/B split, so ORIGINAL and CHANGED fade identically.
+    let env: AudioNode = input;
+    if (fadeSeconds > 0) {
+      const period = loopEnd - clip.start;
+      const f = Math.min(fadeSeconds, period / 2.5);
+      const e = ctx.createGain();
+      e.connect(input);
+      e.gain.setValueAtTime(0, now);
+      const cycles = Math.ceil(1200 / period); // about 20 minutes of looping
+      for (let k = 0; k < cycles; k++) {
+        const t0 = now + k * period;
+        e.gain.setValueAtTime(0, t0);
+        e.gain.linearRampToValueAtTime(1, t0 + f);
+        e.gain.setValueAtTime(1, t0 + period - f);
+        e.gain.linearRampToValueAtTime(0, t0 + period);
+      }
+      env = e;
+    }
+
     this.sources = buffers.map((buf) => {
       const src = ctx.createBufferSource();
       src.buffer = buf;
       src.loop = true;
       src.loopStart = clip.start;
-      src.loopEnd = Math.min(buf.duration, clip.start + clip.duration);
-      src.connect(input);
+      src.loopEnd = loopEnd;
+      src.connect(env);
       src.start(now, clip.start);
       return src;
     });
