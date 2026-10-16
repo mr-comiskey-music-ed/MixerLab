@@ -714,7 +714,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
             {master.fxType === 'plate' && 'LUSH EMT 140 STEEL PLATE (2.0s)'}
             {master.fxType === 'hall' && 'CONCERT HALL BLOOM (3.4s)'}
             {master.fxType === 'delay' && `${delayInfo.delayMs}ms · ${delayInfo.bpm} BPM`}
-            {master.fxType === 'chorus' && `DUAL LFO STEREO SHIMMER (${Math.round(master.chorusIntensity ?? 50)}%)`}
+            {master.fxType === 'chorus' && `JUNO-STYLE STEREO CHORUS (${Math.round(master.chorusIntensity ?? 50)}%)`}
           </div>
 
           {/* Chorus Intensity Control */}
@@ -1289,7 +1289,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
                     {master.fxType === 'plate' && 'LUSH EMT 140 STEEL PLATE (2.0s)'}
                     {master.fxType === 'hall' && 'CONCERT HALL BLOOM (3.4s)'}
                     {master.fxType === 'delay' && `${delayInfo.delayMs}ms · ${delayInfo.bpm} BPM`}
-                    {master.fxType === 'chorus' && `DUAL LFO STEREO SHIMMER (${Math.round(master.chorusIntensity ?? 50)}%)`}
+                    {master.fxType === 'chorus' && `JUNO-STYLE STEREO CHORUS (${Math.round(master.chorusIntensity ?? 50)}%)`}
                   </div>
 
                   {/* Chorus Intensity Control */}

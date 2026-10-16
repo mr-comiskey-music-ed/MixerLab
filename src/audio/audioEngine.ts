@@ -133,7 +133,9 @@ export class AudioEngine {
   public chorusLfo: OscillatorNode | null = null;
   public chorusLfoGain: GainNode | null = null;
   public chorusFilterNode: BiquadFilterNode | null = null;
-  public chorusFeedbackGain: GainNode | null = null;
+  public chorusDelayNodeR: DelayNode | null = null;
+  public chorusLfoGainR: GainNode | null = null;
+  public chorusFilterNodeR: BiquadFilterNode | null = null;
   public currentChorusIntensity: number = 50; // 0 to 100%
 
   // Feedback simulator nodes
@@ -301,32 +303,44 @@ export class AudioEngine {
     this.fxFeedbackGain.connect(this.fxDelayNode);
     delayHp.connect(this.fxReturnGain);
 
-    // 4. Stereo Modulated Chorus Engine (Dual LFO Shimmer)
+    // 4. Juno-style stereo chorus: two short delay lines swept by ONE slow triangle LFO in opposite
+    //    directions (no feedback), darkened a little like the bucket-brigade chips in the Juno-60.
+    //    The result is a wide, thick doubling, not a pitchy wobble or a flanger sweep.
     this.chorusSendGain = this.ctx.createGain();
     this.chorusSendGain.gain.value = 0.0;
-    this.chorusDelayNode = this.ctx.createDelay(0.1);
-    this.chorusDelayNode.delayTime.value = 0.022;
+    this.chorusDelayNode = this.ctx.createDelay(0.05);
+    this.chorusDelayNodeR = this.ctx.createDelay(0.05);
+    this.chorusDelayNode.delayTime.value = 0.0036;
+    this.chorusDelayNodeR.delayTime.value = 0.0036;
     this.chorusLfo = this.ctx.createOscillator();
-    this.chorusLfo.type = 'sine';
-    this.chorusLfo.frequency.value = 1.15;
+    this.chorusLfo.type = 'triangle';
+    this.chorusLfo.frequency.value = 0.6;
     this.chorusLfoGain = this.ctx.createGain();
-    this.chorusLfoGain.gain.value = 0.0035;
+    this.chorusLfoGainR = this.ctx.createGain();
+    this.chorusLfoGain.gain.value = 0.001;
+    this.chorusLfoGainR.gain.value = -0.001; // opposite direction on the right
     this.chorusLfo.connect(this.chorusLfoGain);
+    this.chorusLfo.connect(this.chorusLfoGainR);
     this.chorusLfoGain.connect(this.chorusDelayNode.delayTime);
+    this.chorusLfoGainR.connect(this.chorusDelayNodeR.delayTime);
     this.chorusLfo.start();
 
     this.chorusFilterNode = this.ctx.createBiquadFilter();
     this.chorusFilterNode.type = 'lowpass';
-    this.chorusFilterNode.frequency.value = 7500;
-    this.chorusFeedbackGain = this.ctx.createGain();
-    this.chorusFeedbackGain.gain.value = 0.22;
+    this.chorusFilterNode.frequency.value = 7000;
+    this.chorusFilterNodeR = this.ctx.createBiquadFilter();
+    this.chorusFilterNodeR.type = 'lowpass';
+    this.chorusFilterNodeR.frequency.value = 7000;
+    const chorusMerge = this.ctx.createChannelMerger(2);
 
     this.fxBusGain.connect(this.chorusSendGain);
     this.chorusSendGain.connect(this.chorusDelayNode);
+    this.chorusSendGain.connect(this.chorusDelayNodeR);
     this.chorusDelayNode.connect(this.chorusFilterNode);
-    this.chorusFilterNode.connect(this.chorusFeedbackGain);
-    this.chorusFeedbackGain.connect(this.chorusDelayNode);
-    this.chorusFilterNode.connect(this.fxReturnGain);
+    this.chorusDelayNodeR.connect(this.chorusFilterNodeR);
+    this.chorusFilterNode.connect(chorusMerge, 0, 0);
+    this.chorusFilterNodeR.connect(chorusMerge, 0, 1);
+    chorusMerge.connect(this.fxReturnGain);
   }
 
   private setupFeedbackSimulator() {
@@ -1113,21 +1127,18 @@ export class AudioEngine {
 
   public setChorusIntensity(intensity: number) {
     this.currentChorusIntensity = Math.max(0, Math.min(100, intensity));
-    if (!this.ctx || !this.chorusLfoGain || !this.chorusLfo || !this.chorusFeedbackGain) return;
+    if (!this.ctx || !this.chorusLfoGain || !this.chorusLfoGainR || !this.chorusLfo) return;
     const now = this.ctx.currentTime;
     const norm = this.currentChorusIntensity / 100;
 
-    // Depth: 0.0006s (0.6ms) to 0.0062s (6.2ms)
-    const depth = 0.0006 + norm * (0.0062 - 0.0006);
+    // Sweep depth: +/-0.8 ms (subtle shimmer) to +/-2.2 ms (full ensemble), around a 3.6 ms centre,
+    // roughly the range of the Juno's chorus. Kept small on purpose: bigger swings turn into vibrato.
+    const depth = 0.0008 + norm * (0.0022 - 0.0008);
     this.chorusLfoGain.gain.setTargetAtTime(depth, now, 0.03);
+    this.chorusLfoGainR.gain.setTargetAtTime(-depth, now, 0.03);
 
-    // Rate: 0.8 Hz (slow lush sweep) to 1.8 Hz (faster shimmer)
-    const rate = 0.8 + norm * 1.0;
-    this.chorusLfo.frequency.setTargetAtTime(rate, now, 0.03);
-
-    // Feedback: 0.05 to 0.35 (thickens the chorus body)
-    const fb = 0.05 + norm * 0.30;
-    this.chorusFeedbackGain.gain.setTargetAtTime(fb, now, 0.03);
+    // Rate: about 0.5 Hz (Juno "I") up to about 0.9 Hz (Juno "II")
+    this.chorusLfo.frequency.setTargetAtTime(0.5 + norm * 0.4, now, 0.03);
   }
 
   public setFxType(type: 'plate' | 'hall' | 'delay' | 'chorus', customDelay?: number) {

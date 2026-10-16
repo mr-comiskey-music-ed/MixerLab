@@ -7,6 +7,7 @@ interface CompKnobProps {
   gainReductionDb: number; // live gain reduction (positive dB)
   onChange: (val: number) => void;
   label?: string;
+  centerLabel?: boolean;  // draw the label centred over the whole knob + light row
 }
 
 const LIGHT_STYLES: Record<CompLightLevel, { lamp: string; text: string; word: string }> = {
@@ -43,14 +44,15 @@ export const LIGHT_DESCRIPTIONS: Record<CompLightLevel, string> = {
  * Orange one-knob compressor with a gain-reduction light beside it.
  * Same footprint as the GAIN knob + SIG/PEAK boxes, so it fits on small screens.
  */
-export const CompKnob: React.FC<CompKnobProps> = ({ value, gainReductionDb, onChange, label = 'COMP' }) => {
+export const CompKnob: React.FC<CompKnobProps> = ({ value, gainReductionDb, onChange, label = 'COMP', centerLabel = false }) => {
   const level = compLightLevel(gainReductionDb || 0);
   const style = LIGHT_STYLES[level];
 
-  return (
+  const row = (
     <div className="flex items-center gap-1 w-full justify-center">
       <Knob
         label={label}
+        hideLabel={centerLabel}
         value={value}
         min={0}
         max={100}
@@ -69,6 +71,13 @@ export const CompKnob: React.FC<CompKnobProps> = ({ value, gainReductionDb, onCh
         <div className={`w-3 h-3 rounded-full border transition-colors duration-75 ${style.lamp}`} />
         <span className={`text-[6.5px] font-mono font-bold leading-none ${style.text}`}>{style.word}</span>
       </div>
+    </div>
+  );
+  if (!centerLabel) return row;
+  return (
+    <div className="flex flex-col items-center w-full">
+      <span className="text-[10px] uppercase font-semibold text-zinc-400 tracking-wider text-center leading-none mb-0.5">{label}</span>
+      {row}
     </div>
   );
 };

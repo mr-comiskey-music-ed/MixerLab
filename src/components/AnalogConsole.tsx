@@ -122,9 +122,13 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
 
               {/* Preamp & Input Section */}
               <div className="flex flex-col items-center gap-1 bg-zinc-950/60 p-1 rounded border border-zinc-850">
+                <span className="text-[10px] uppercase font-semibold text-zinc-400 tracking-wider text-center leading-none">
+                  {isStereo ? 'TRIM' : 'GAIN'}
+                </span>
                 <div className="flex items-center gap-1 w-full justify-center">
                   <Knob
                     label={isStereo ? "TRIM" : "GAIN"}
+                    hideLabel
                     value={ch.gain}
                     min={-60}
                     max={20}
@@ -215,6 +219,7 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
 
                 {/* One-knob Compressor (sits below the +48V / Hi-Z / low-cut switches) */}
                 <CompKnob
+                  centerLabel
                   value={ch.comp ?? 0}
                   gainReductionDb={meter.compGr ?? 0}
                   onChange={(v) => handleChannelField(idx, 'comp', v)}
@@ -480,7 +485,7 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
               {master.fxType === 'plate' && 'LUSH EMT 140 STEEL PLATE (2.0s)'}
               {master.fxType === 'hall' && 'CONCERT HALL BLOOM (3.4s)'}
               {master.fxType === 'delay' && `${delayInfo.delayMs}ms · ${delayInfo.bpm} BPM`}
-              {master.fxType === 'chorus' && `DUAL LFO STEREO SHIMMER (${Math.round(master.chorusIntensity ?? 50)}%)`}
+              {master.fxType === 'chorus' && `JUNO-STYLE STEREO CHORUS (${Math.round(master.chorusIntensity ?? 50)}%)`}
             </div>
 
             {/* Chorus Intensity Control */}

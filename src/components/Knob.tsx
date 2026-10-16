@@ -15,11 +15,13 @@ interface KnobProps {
   defaultValue?: number;
   isGain?: boolean;
   zeroNorm?: number; // custom normalized position for 0 (e.g. 0.7222 for 2 o'clock, 0.5 for 12 o'clock)
+  hideLabel?: boolean; // the parent draws the label (e.g. centred over a whole row)
   centerValue?: number; // custom value pinned exactly to 12 o'clock (normalized = 0.5), e.g. 2500 for freq knob
 }
 
 export const Knob: React.FC<KnobProps> = ({
   label,
+  hideLabel = false,
   value,
   min,
   max,
@@ -342,12 +344,14 @@ export const Knob: React.FC<KnobProps> = ({
       onDoubleClick={handleDoubleClick}
       title="Double-click to reset to default"
     >
-      <span
-        onDoubleClick={handleDoubleClick}
-        className="text-[10px] uppercase font-semibold text-zinc-400 tracking-wider text-center leading-none mb-1.5 hover:text-zinc-200 transition-colors"
-      >
-        {label}
-      </span>
+      {!hideLabel && (
+        <span
+          onDoubleClick={handleDoubleClick}
+          className="text-[10px] uppercase font-semibold text-zinc-400 tracking-wider text-center leading-none mb-1.5 hover:text-zinc-200 transition-colors"
+        >
+          {label}
+        </span>
+      )}
 
       <div
         className="relative flex items-center justify-center p-1"
