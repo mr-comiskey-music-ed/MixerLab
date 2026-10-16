@@ -155,7 +155,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
             </h1>
             <span className="text-zinc-600 text-xs sm:text-sm hidden sm:inline select-none leading-none">|</span>
             <p className="text-[11px] sm:text-xs text-zinc-400 font-mono tracking-normal leading-none pb-0.5">
-              Mixing Console Simulator & Learning Lab
+              Mixing Console Simulator & Training Lab
             </p>
           </div>
         </div>

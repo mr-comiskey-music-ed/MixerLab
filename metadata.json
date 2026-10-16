@@ -1,6 +1,6 @@
 {
   "name": "MixerLab",
-  "description": "Mixing Console Simulator & Learning Lab featuring analog mixing consoles and modern digital touchscreen workflows, real-time DSP, troubleshooting scenarios, ear-training drills, and interactive audio engineering education.",
+  "description": "Mixing Console Simulator & Training Lab featuring analog mixing consoles and modern digital touchscreen workflows, real-time DSP, troubleshooting scenarios, ear-training drills, and interactive audio engineering education.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
