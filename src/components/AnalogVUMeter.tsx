@@ -264,7 +264,7 @@ export const AnalogVUMeter: React.FC<AnalogVUMeterProps> = ({
                   fill={isHundred ? '#dc2626' : isDark ? '#a1a1aa' : '#57534e'}
                   fontSize="5"
                   fontWeight={isHundred ? 'bold' : 'normal'}
-                  fontFamily="sans-serif"
+                  fontFamily="'Plus Jakarta Sans', sans-serif"
                   textAnchor="middle"
                   dominantBaseline="central"
                 >
@@ -283,7 +283,7 @@ export const AnalogVUMeter: React.FC<AnalogVUMeterProps> = ({
             fill={isDark ? '#f4f4f5' : '#292524'}
             fontSize="14"
             fontWeight="800"
-            fontFamily="'Plus Jakarta Sans', serif"
+            fontFamily="'Plus Jakarta Sans', sans-serif"
             letterSpacing="1.5"
           >
             VU

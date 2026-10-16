@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
 /* Display font for headings and tab labels (same family the logo is drawn from). */
+/*
+ * The app's three typefaces:
+ *  - Barlow Condensed: headings and tab labels (font-display; also the font the logo is drawn from)
+ *  - JetBrains Mono: body text and console lettering (font-mono)
+ *  - Plus Jakarta Sans: everything else, e.g. short description lines (font-sans, the page default)
+ */
 @theme {
   --font-display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 }
 
 /*
@@ -43,7 +51,7 @@
   body {
     background-color: #09090b;
     color: #f4f4f5;
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-sans);
   }
   h1, h2, h3, h4 {
     font-family: var(--font-display);

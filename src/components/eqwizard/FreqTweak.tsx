@@ -345,7 +345,7 @@ const DigitalEq: React.FC<{
         {gridHz.map((hz) => (
           <g key={hz}>
             <line x1={xFor(hz)} x2={xFor(hz)} y1={0} y2={H} stroke="#27272a" strokeWidth={1} />
-            <text x={xFor(hz) + 3} y={H - 4} fontSize={10} fill="#52525b" fontFamily="monospace">
+            <text x={xFor(hz) + 3} y={H - 4} fontSize={10} fill="#52525b" fontFamily="'JetBrains Mono', monospace">
               {hz >= 1000 ? `${hz / 1000}k` : hz}
             </text>
           </g>
