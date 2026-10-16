@@ -131,7 +131,7 @@ class EqWizardPlayer {
     });
   }
 
-  /** A test tone for Freq ID, with a gentle fade in and out. Low tones are louder so they can be heard at all. */
+  /** A test tone for Freq Tone ID, with a gentle fade in and out. Low tones are louder so they can be heard at all. */
   playTone(freq: number, seconds = 1.8) {
     this.stopAll();
     const ctx = this.ctx;

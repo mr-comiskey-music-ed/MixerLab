@@ -174,7 +174,6 @@ export const FreqTweak: React.FC<Props> = ({ levelIndex, best, onDone, onQuit })
             The <strong className="text-orange-300">{round.stem.stemName}</strong> ({round.stem.songTitle}) has had its EQ
             knocked out of shape. Turn the knobs until <strong className="text-orange-300">YOURS</strong> sounds like the{' '}
             <strong className="text-sky-300">TARGET</strong>, then submit.
-            {round.question.multi && <strong className="text-amber-300"> (More than one knob was changed.)</strong>}
           </p>
 
           <ABSwitch
@@ -185,6 +184,9 @@ export const FreqTweak: React.FC<Props> = ({ levelIndex, best, onDone, onQuit })
             onStop={() => eqWizardPlayer.stopAll()}
             onWhich={flip}
           />
+          {round.question.multi && (
+            <p className="text-xs font-bold text-amber-300 -mt-2 text-center">(More than one knob was changed.)</p>
+          )}
 
           {digital ? (
             <DigitalEq knobs={knobs} isOn={isOn} onKnob={setKnob} locked={submitted} fix={submitted ? round.question.fix : null} />
@@ -310,26 +312,26 @@ const DigitalEq: React.FC<{
   const gridHz = [50, 100, 200, 500, 1000, 2000, 5000, 10000];
   const xFor = (hz: number) => (Math.log(hz / 20) / Math.log(1000)) * W;
 
-  const ctrl = (k: TweakKnob, label: string, node: React.ReactNode) => (
-    <div className={`flex-1 min-w-[120px] flex flex-col gap-1.5 bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 ${!isOn(k) ? 'opacity-25 pointer-events-none' : locked ? 'pointer-events-none' : ''}`}>
-      <span className="text-[10px] font-mono font-bold text-cyan-300">{label}{!isOn(k) ? ' (LOCKED)' : ''}</span>
+  const ctrl = (k: TweakKnob, label: string, node: React.ReactNode, tone = 'text-cyan-300') => (
+    <div className={`flex-1 min-w-[120px] flex flex-col items-center gap-1 bg-zinc-950 border border-zinc-800 rounded-lg p-2 ${!isOn(k) ? 'opacity-25 pointer-events-none grayscale' : locked ? 'pointer-events-none' : ''}`}>
+      <span className={`text-[10px] font-mono font-bold ${tone}`}>{label}{!isOn(k) ? ' (LOCKED)' : ''}</span>
       {node}
     </div>
   );
-  const gainSlider = (k: 'low' | 'mid' | 'high') => (
-    <>
-      <span className="text-sm font-mono font-bold text-zinc-100">{fmt(knobs[k])}</span>
-      <input
-        type="range"
-        min={-15}
-        max={15}
-        step={0.5}
-        value={knobs[k]}
-        onChange={(e) => onKnob(k, parseFloat(e.target.value))}
-        onDoubleClick={() => onKnob(k, 0)}
-        className="w-full accent-cyan-400"
-      />
-    </>
+  const gainKnob = (k: 'low' | 'mid' | 'high', label: string, color: 'blue' | 'teal' | 'light-blue') => (
+    <Knob
+      label={label}
+      value={knobs[k]}
+      min={-15}
+      max={15}
+      step={0.5}
+      color={color}
+      size="sm"
+      centerDetent
+      defaultValue={0}
+      formatValue={fmt}
+      onChange={(v) => onKnob(k, v)}
+    />
   );
 
   return (
@@ -353,26 +355,27 @@ const DigitalEq: React.FC<{
         </span>
       )}
       <div className="flex flex-wrap gap-2">
-        {ctrl('low', 'LOW SHELF (80 Hz)', gainSlider('low'))}
-        {ctrl('mid', 'MID GAIN', gainSlider('mid'))}
+        {ctrl('low', '● LOW (80Hz)', gainKnob('low', 'LOW GAIN', 'blue'))}
+        {ctrl('mid', '● MID GAIN', gainKnob('mid', 'MID GAIN', 'teal'), 'text-amber-400')}
         {ctrl(
           'freq',
-          'MID FREQ',
-          <>
-            <span className="text-sm font-mono font-bold text-zinc-100">{fmtHz(midFreq)}</span>
-            <input
-              type="range"
-              min={0}
-              max={1000}
-              step={1}
-              value={Math.round((Math.log(midFreq / 100) / Math.log(80)) * 1000)}
-              onChange={(e) => onKnob('freq', Math.round((100 * Math.pow(80, parseFloat(e.target.value) / 1000)) / 25) * 25)}
-              onDoubleClick={() => onKnob('freq', 2500)}
-              className="w-full accent-cyan-400"
-            />
-          </>
+          '● MID SWEEP',
+          <Knob
+            label="FREQ SELECT"
+            value={midFreq}
+            min={100}
+            max={8000}
+            step={25}
+            color="indigo"
+            size="sm"
+            defaultValue={2500}
+            centerValue={2500}
+            formatValue={(v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)} Hz`)}
+            onChange={(v) => onKnob('freq', v)}
+          />,
+          'text-amber-400'
         )}
-        {ctrl('high', 'HIGH SHELF (10 kHz)', gainSlider('high'))}
+        {ctrl('high', '● HIGH (10kHz)', gainKnob('high', 'HIGH GAIN', 'light-blue'), 'text-sky-400')}
       </div>
     </div>
   );

@@ -110,7 +110,7 @@ export interface StudentSubmission {
 export type EqSectionId = 'freqid' | 'freqband' | 'freqtweak';
 export type EqWizardScores = Record<EqSectionId, number[]>;
 export const EQ_SECTIONS: { id: EqSectionId; label: string; blurb: string }[] = [
-  { id: 'freqid', label: 'FREQ ID', blurb: 'Name the frequency of a test tone' },
+  { id: 'freqid', label: 'FREQ TONE ID', blurb: 'Name the frequency of a test tone' },
   { id: 'freqband', label: 'FREQ BAND ID', blurb: 'Hear what was boosted or cut in real music' },
   { id: 'freqtweak', label: 'FREQ TWEAK', blurb: 'Turn the EQ knobs to fix a sound' }
 ];

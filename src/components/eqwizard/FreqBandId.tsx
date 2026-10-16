@@ -161,6 +161,11 @@ export const FreqBandId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }
         onPickOverlay={choose}
         disabled={picked !== null}
         height={rows === 2 ? 220 : 180}
+        reveal={(() => {
+          if (picked === null) return null;
+          const b = level.bands.find((x) => x.id === q.bandId)!;
+          return { from: b.from, to: b.to, db: q.dir === 'cut' ? -level.amount : level.amount };
+        })()}
       />
 
       {level.vocab && (

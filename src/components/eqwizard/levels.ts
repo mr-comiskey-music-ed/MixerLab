@@ -160,11 +160,11 @@ const THREE_BANDS: BandDef[] = [
 ];
 
 const FIVE_BANDS: BandDef[] = [
-  { id: 'low', label: 'Low', from: 0, to: 8, center: 80, q: 1.2, color: COLORS.low, vocab: 'Punch / Boom' },
+  { id: 'low', label: 'Low', from: 0, to: 8, center: 80, q: 1.2, color: COLORS.low, vocab: 'Punchy / Boomy' },
   { id: 'lowmid', label: 'Low-Mid', from: 9, to: 14, center: 300, q: 1.2, color: COLORS.lowmid, vocab: 'Warmth / Mud' },
   { id: 'mid', label: 'Mid', from: 15, to: 19, center: 1000, q: 1.2, color: COLORS.mid, vocab: 'Fullness / Boxiness' },
-  { id: 'himid', label: 'Hi-Mid', from: 20, to: 24, center: 3000, q: 1.2, color: COLORS.himid, vocab: 'Clarity / Harsh' },
-  { id: 'high', label: 'High', from: 25, to: 30, center: 10000, q: 1.2, color: COLORS.high, vocab: 'Air / Piercing' }
+  { id: 'himid', label: 'Hi-Mid', from: 20, to: 24, center: 3000, q: 1.2, color: COLORS.himid, vocab: 'Clarity / Harshness' },
+  { id: 'high', label: 'High', from: 25, to: 30, center: 10000, q: 1.2, color: COLORS.high, vocab: 'Airy / Piercing' }
 ];
 
 export interface FreqBandLevel {

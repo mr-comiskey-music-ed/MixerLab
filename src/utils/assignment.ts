@@ -10,7 +10,7 @@ import { MY_MIX_MIN_WORDS } from '../components/MyMix';
  * the link holds the teacher's choices, the submission code holds the student's work.
  *
  * Letters: s = Scenarios, w = What Changed?, m = Match the Mix, y = My Mix, l = Learn (Mixer Academy),
- *          f = EQ Wizard: Freq ID, b = EQ Wizard: Freq Band ID, t = EQ Wizard: Freq Tweak
+ *          f = EQ Wizard: Freq Tone ID, b = EQ Wizard: Freq Band ID, t = EQ Wizard: Freq Tweak
  * No ?a= in the link means everything is assigned.
  */
 export type AssignmentItem = ChallengeTabId | 'learn' | EqSectionId;
@@ -26,7 +26,7 @@ export const ASSIGNMENT_ITEMS: { id: AssignmentItem; letter: string; label: stri
   { id: 'whatchanged', letter: 'w', label: 'What Changed?' },
   { id: 'match', letter: 'm', label: 'Match the Mix' },
   { id: 'mymix', letter: 'y', label: 'My Mix' },
-  { id: 'freqid', letter: 'f', label: 'Freq ID' },
+  { id: 'freqid', letter: 'f', label: 'Freq Tone ID' },
   { id: 'freqband', letter: 'b', label: 'Freq Band ID' },
   { id: 'freqtweak', letter: 't', label: 'Freq Tweak' }
 ];

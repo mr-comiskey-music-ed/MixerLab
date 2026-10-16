@@ -24,6 +24,8 @@ interface GraphicEQProps {
   disabled?: boolean;                       // answers locked in
   dimOutside?: [number, number];            // grey out bands outside this index range
   height?: number;
+  /** Slide the faders in this band range to `db`, with a smooth move (used to show the answer). */
+  reveal?: { from: number; to: number; db: number } | null;
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -41,13 +43,15 @@ export const GraphicEQ: React.FC<GraphicEQProps> = ({
   onPickOverlay,
   disabled = false,
   dimOutside,
-  height = 200
+  height = 200,
+  reveal = null
 }) => {
   const areaRef = useRef<HTMLDivElement>(null);
   const dragging = useRef<number | null>(null);
   const n = bands.length;
   const colW = 100 / n;
-  const g = (i: number) => gains?.[i] ?? 0;
+  const inReveal = (i: number) => !!reveal && i >= reveal.from && i <= reveal.to;
+  const g = (i: number) => (inReveal(i) ? reveal!.db : gains?.[i] ?? 0);
 
   const valueFromPointer = (clientY: number) => {
     const rect = areaRef.current!.getBoundingClientRect();
@@ -110,18 +114,28 @@ export const GraphicEQ: React.FC<GraphicEQProps> = ({
               onDoubleClick={() => onChange?.(i, 0)}
               title={onChange ? `${formatHz(f)} Hz: ${g(i) > 0 ? '+' : ''}${g(i)} dB (double-click to reset)` : `${formatHz(f)} Hz`}
             >
-              <div className="relative my-2.5 w-1 rounded-full bg-zinc-700">
+              {/* Recessed fader slot with a black cap, like a real console fader */}
+              <div className="relative my-2.5 w-[5px] rounded-full bg-black border border-zinc-700 shadow-[inset_0_1px_2px_rgba(0,0,0,0.9)]">
                 <div
-                  className="absolute left-1/2 -translate-x-1/2 w-1 rounded-full bg-orange-400/80"
+                  className={`absolute left-1/2 -translate-x-1/2 w-px ${inReveal(i) ? 'bg-emerald-400/70' : 'bg-zinc-600'}`}
                   style={{
                     top: pos < 0.5 ? `${pos * 100}%` : '50%',
-                    height: `${Math.abs(pos - 0.5) * 100}%`
+                    height: `${Math.abs(pos - 0.5) * 100}%`,
+                    transition: reveal ? 'all 900ms cubic-bezier(.3,.8,.3,1)' : undefined
                   }}
                 />
                 <div
-                  className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-orange-400 border border-orange-200 shadow"
-                  style={{ top: `${pos * 100}%` }}
-                />
+                  className={`absolute left-1/2 -translate-x-1/2 -translate-y-1/2 h-[18px] rounded-[3px] border flex items-center justify-center bg-gradient-to-b from-zinc-700 via-zinc-900 to-black ${
+                    inReveal(i) ? 'border-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'border-zinc-500 shadow-[0_2px_3px_rgba(0,0,0,0.8)]'
+                  }`}
+                  style={{
+                    width: n > 20 ? 13 : 20,
+                    top: `${pos * 100}%`,
+                    transition: reveal ? 'top 900ms cubic-bezier(.3,.8,.3,1)' : undefined
+                  }}
+                >
+                  <div className={`w-full h-px ${inReveal(i) ? 'bg-emerald-300' : 'bg-zinc-200'}`} />
+                </div>
               </div>
             </div>
           );

@@ -102,7 +102,7 @@ export const FreqId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }) =>
   if (finished) {
     return (
       <LevelResults
-        section="Freq ID"
+        section="Freq Tone ID"
         title={level.title}
         score={levelScore}
         best={best}
@@ -114,11 +114,17 @@ export const FreqId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }) =>
   }
 
   const bands = level.kind === 'bands' ? level.bands! : GEQ_31;
+  // After answering, the faders for the right region / band slide up to show where the tone was
+  const revealFor = () => {
+    if (level.kind === 'bands') return { from: Number(q.answer), to: Number(q.answer), db: 9 };
+    const r = level.regions!.find((x) => x.id === q.answer)!;
+    return { from: r.from, to: r.to, db: 9 };
+  };
   const sc = results[qIndex];
 
   return (
     <div className="w-full max-w-5xl mx-auto bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 flex flex-col gap-4">
-      <QuizHeader section="Freq ID" title={level.title} qIndex={qIndex} results={results} onQuit={onQuit} />
+      <QuizHeader section="Freq Tone ID" title={level.title} qIndex={qIndex} results={results} onQuit={onQuit} />
       {level.headphones && <HeadphonesNote />}
       <div className="flex flex-wrap items-center gap-3">
         <button
@@ -136,6 +142,7 @@ export const FreqId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }) =>
         onPickOverlay={choose}
         disabled={picked !== null}
         dimOutside={level.focus}
+        reveal={picked !== null ? revealFor() : null}
         height={level.kind === 'bands' ? 170 : 200}
       />
 

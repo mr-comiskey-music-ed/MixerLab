@@ -421,7 +421,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                   {sortHeader('drill', 'What Changed')}
                   {sortHeader('match', 'Match')}
                   {sortHeader('mymix', 'My Mix')}
-                  <th className="p-3 whitespace-nowrap">Freq ID</th>
+                  <th className="p-3 whitespace-nowrap">Freq Tone ID</th>
                   <th className="p-3 whitespace-nowrap">Band ID</th>
                   <th className="p-3 whitespace-nowrap">Tweak</th>
                   <th className="p-3">Code</th>
