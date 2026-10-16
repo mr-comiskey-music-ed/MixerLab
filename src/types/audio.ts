@@ -53,6 +53,7 @@ export interface MasterSettings {
   phonesLevel: number; // 0 to 100%
   chorusIntensity?: number; // 0 to 100% (Modulation depth & rate)
   // Graphic EQ on the main mix (fold-out panel under the console)
+  fxDecay?: number; // plate & hall reverb length, 0-100 (50 = default)
   geqMode?: 'off' | '10' | '31';
   geq10?: number[]; // dB per band, 10 octave bands
   geq31?: number[]; // dB per band, 31 third-octave bands

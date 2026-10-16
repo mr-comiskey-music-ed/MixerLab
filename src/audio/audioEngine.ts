@@ -65,6 +65,11 @@ export const AUTO_MAKEUP_FRACTION = 1.0;
 
 /** Gain reduction (dB, positive number) -> indicator light color. */
 export type CompLightLevel = 'off' | 'green' | 'yellow' | 'red';
+/** Reverb length multiplier for the decay knob: 0 -> 0.42x, 50 -> 1x (original), 100 -> 2.4x. */
+export const reverbDecayScale = (percent: number) => Math.pow(2, ((percent - 50) / 50) * 1.25);
+export const PLATE_BASE_SECONDS = 2.0;
+export const HALL_BASE_SECONDS = 3.4;
+
 export function compLightLevel(grDb: number): CompLightLevel {
   if (grDb < 1) return 'off';
   if (grDb < 6) return 'green';
@@ -137,6 +142,8 @@ export class AudioEngine {
   public chorusLfoGainR: GainNode | null = null;
   public chorusFilterNodeR: BiquadFilterNode | null = null;
   public currentChorusIntensity: number = 50; // 0 to 100%
+  public currentReverbDecay: number = 50;     // 0 to 100%, 50 = original reverb length
+  private reverbRebuildTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Feedback simulator nodes
   public feedbackGain: GainNode | null = null;
@@ -932,6 +939,9 @@ export class AudioEngine {
     this.geq10Filters.forEach((f, i) => f.gain.setTargetAtTime(m.geq10?.[i] ?? 0, now, 0.02));
     this.geq31Filters.forEach((f, i) => f.gain.setTargetAtTime(m.geq31?.[i] ?? 0, now, 0.02));
 
+    // Reverb length (plate & hall decay knob)
+    this.setReverbDecay(m.fxDecay ?? 50);
+
     // FX Algorithm Emulation (Plate, Hall, Delay, Chorus)
     this.setFxType(m.fxType);
     if (m.chorusIntensity !== undefined) {
@@ -941,9 +951,9 @@ export class AudioEngine {
 
   // Procedural Reverb Impulse Response Synthesizers
   // EMT 140 Style Lush Studio Plate Reverb
-  private createPlateImpulseResponse(ctx: AudioContext): AudioBuffer {
+  private createPlateImpulseResponse(ctx: AudioContext, scale = 1): AudioBuffer {
     const sampleRate = ctx.sampleRate;
-    const duration = 2.4;
+    const duration = 2.4 * scale;
     const length = Math.floor(sampleRate * duration);
     const buffer = ctx.createBuffer(2, length, sampleRate);
     const left = buffer.getChannelData(0);
@@ -979,7 +989,7 @@ export class AudioEngine {
         : 1.0;
 
       // Silky exponential decay curve (~2.0s tail)
-      const decay = Math.exp(-t * 2.15);
+      const decay = Math.exp(-t * (2.15 / scale));
       const env = attack * decay;
 
       // High-density Gaussian random noise (4-sample central limit theorem)
@@ -1021,10 +1031,10 @@ export class AudioEngine {
     return buffer;
   }
 
-  private createHallImpulseResponse(ctx: AudioContext): AudioBuffer {
+  private createHallImpulseResponse(ctx: AudioContext, scale = 1): AudioBuffer {
     const sampleRate = ctx.sampleRate;
-    const duration = 3.6;
-    const decayTime = 3.4;
+    const duration = 3.6 * scale;
+    const decayTime = 3.4 * scale;
     const length = Math.floor(sampleRate * duration);
     const buffer = ctx.createBuffer(2, length, sampleRate);
     const left = buffer.getChannelData(0);
@@ -1123,6 +1133,21 @@ export class AudioEngine {
       delayMs: Math.round(this.currentDelayTime * 1000),
       bpm: Math.round(60 / this.currentDelayTime)
     };
+  }
+
+  /** Reverb length knob (0-100, 50 = the original plate/hall settings). Rebuilds the reverb tails shortly after the knob stops moving. */
+  public setReverbDecay(percent: number) {
+    const p = Math.max(0, Math.min(100, percent));
+    if (p === this.currentReverbDecay) return;
+    this.currentReverbDecay = p;
+    if (!this.ctx) return;
+    if (this.reverbRebuildTimer) clearTimeout(this.reverbRebuildTimer);
+    this.reverbRebuildTimer = setTimeout(() => {
+      if (!this.ctx) return;
+      const scale = reverbDecayScale(this.currentReverbDecay);
+      if (this.plateConvolver) this.plateConvolver.buffer = this.createPlateImpulseResponse(this.ctx, scale);
+      if (this.hallConvolver) this.hallConvolver.buffer = this.createHallImpulseResponse(this.ctx, scale);
+    }, 120);
   }
 
   public setChorusIntensity(intensity: number) {

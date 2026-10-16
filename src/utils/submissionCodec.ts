@@ -38,7 +38,7 @@ const CHANNEL_KEYS: Record<ChannelKey, string> = {
   pan: 'n', mute: 'u', soloPfl: 's', faderLevel: 'v'
 };
 const MASTER_KEYS: Record<keyof MasterSettings, string> = {
-  mainFader: 'm', aux1Master: 'a', fxReturn: 'r', fxMute: 'u', fxType: 't', phonesLevel: 'p', chorusIntensity: 'c',
+  mainFader: 'm', aux1Master: 'a', fxReturn: 'r', fxMute: 'u', fxType: 't', phonesLevel: 'p', chorusIntensity: 'c', fxDecay: 'd',
   geqMode: 'q', geq10: 'e', geq31: 'E'
 };
 const invert = (m: Record<string, string>) => Object.fromEntries(Object.entries(m).map(([k, v]) => [v, k]));
@@ -76,6 +76,7 @@ function packMaster(master: MasterSettings): Record<string, unknown> {
       continue;
     }
     if (k === 'geqMode' && v === 'off') continue;
+    if (k === 'fxDecay' && v === 50) continue;
     if (v !== MASTER_DEFAULTS[k]) out[MASTER_KEYS[k]] = packVal(v);
   }
   return out;

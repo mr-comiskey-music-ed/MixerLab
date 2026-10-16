@@ -4,6 +4,7 @@ import { audioEngine } from '../audio/audioEngine';
 import { MeterLadder } from './MeterLadder';
 import { FaderScale } from './FaderScale';
 import { Knob } from './Knob';
+import { FxPanel } from './FxPanel';
 import { CompKnob } from './CompKnob';
 import { sliderPosToDb, dbToSliderPos } from '../utils/faderCurves';
 
@@ -49,16 +50,6 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
       return;
     }
     lastTouchTime.current = now;
-  };
-
-  const [delayInfo, setDelayInfo] = useState(() => audioEngine.getDelayInfo());
-  const [tapFlash, setTapFlash] = useState(false);
-
-  const handleTap = () => {
-    const res = audioEngine.tapTempo();
-    setDelayInfo({ delayMs: Math.round(res.delaySec * 1000), bpm: res.bpm });
-    setTapFlash(true);
-    setTimeout(() => setTapFlash(false), 120);
   };
 
   const handleMasterField = (field: keyof MasterSettings, value: any) => {
@@ -1170,142 +1161,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
               </button>
             </div>
 
-            {/* FX Type Selector */}
-            <div className="grid grid-cols-4 gap-1">
-              {(['plate', 'hall', 'delay', 'chorus'] as const).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => handleMasterField('fxType', type)}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    handleMasterField('fxType', 'plate');
-                    if (type === 'chorus') {
-                      handleMasterField('chorusIntensity', 50);
-                      audioEngine.setChorusIntensity(50);
-                    } else if (type === 'delay') {
-                      audioEngine.setDelayTime(0.375);
-                      setDelayInfo({ delayMs: 375, bpm: 160 });
-                    }
-                  }}
-                  className={`text-[8px] font-mono uppercase py-1 rounded border transition-colors ${
-                    master.fxType === type
-                      ? 'bg-purple-600 text-white border-purple-400 font-bold shadow-sm'
-                      : 'bg-zinc-850 text-zinc-400 border-zinc-800 hover:bg-zinc-800'
-                  }`}
-                  title={`Select ${type} FX · Double-click to reset to default`}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-
-            {/* Effect Description Tag */}
-            <div
-              onDoubleClick={() => {
-                if (master.fxType === 'chorus') {
-                  handleMasterField('chorusIntensity', 50);
-                  audioEngine.setChorusIntensity(50);
-                } else if (master.fxType === 'delay') {
-                  audioEngine.setDelayTime(0.375);
-                  setDelayInfo({ delayMs: 375, bpm: 160 });
-                }
-              }}
-              className="text-[8px] font-mono text-center text-zinc-400 py-0.5 bg-zinc-900/90 rounded border border-zinc-850 cursor-pointer select-none"
-              title="Double-click to reset active effect to default settings"
-            >
-              {master.fxType === 'plate' && 'LUSH EMT 140 STEEL PLATE (2.0s)'}
-              {master.fxType === 'hall' && 'CONCERT HALL BLOOM (3.4s)'}
-              {master.fxType === 'delay' && `${delayInfo.delayMs}ms · ${delayInfo.bpm} BPM`}
-              {master.fxType === 'chorus' && `JUNO-STYLE STEREO CHORUS (${Math.round(master.chorusIntensity ?? 50)}%)`}
-            </div>
-
-            {/* Chorus Intensity Control */}
-            {master.fxType === 'chorus' && (
-              <div
-                onDoubleClick={() => {
-                  handleMasterField('chorusIntensity', 50);
-                  audioEngine.setChorusIntensity(50);
-                }}
-                className="flex flex-col items-center justify-center p-1.5 bg-zinc-900/60 rounded border border-zinc-850 gap-0.5 cursor-pointer"
-                title="Double-click to reset Chorus Intensity to 50% (Default)"
-              >
-                <Knob
-                  label="INTENSITY"
-                  value={master.chorusIntensity ?? 50}
-                  min={0}
-                  max={100}
-                  step={1}
-                  color="purple"
-                  size="sm"
-                  unit="%"
-                  defaultValue={50}
-                  formatValue={(v) => `${Math.round(v)}%`}
-                  onChange={(v) => {
-                    handleMasterField('chorusIntensity', v);
-                    audioEngine.setChorusIntensity(v);
-                  }}
-                />
-                <div className="flex items-center justify-between w-full px-1.5 text-[7px] font-mono text-zinc-400">
-                  <span>SUBTLE</span>
-                  <span className="text-purple-300 font-bold">{Math.round(master.chorusIntensity ?? 50)}%</span>
-                  <span>DEEP</span>
-                </div>
-              </div>
-            )}
-
-            {/* Interactive Tap Tempo & Fine Tuning for Delay */}
-            {master.fxType === 'delay' && (
-              <div className="flex flex-col gap-1 pt-0.5">
-                <button
-                  onClick={handleTap}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    audioEngine.setDelayTime(0.375);
-                    setDelayInfo({ delayMs: 375, bpm: 160 });
-                  }}
-                  className={`w-full text-[9px] font-mono py-1 rounded font-bold transition-all border ${
-                    tapFlash
-                      ? 'bg-purple-500 text-white border-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.8)] scale-[0.98]'
-                      : 'bg-purple-950 hover:bg-purple-900 text-purple-300 border-purple-700'
-                  }`}
-                  title="Click rhythmically to set delay tempo · Double-click to reset to default 375ms"
-                >
-                  TAP TEMPO · {delayInfo.delayMs}ms ({delayInfo.bpm} BPM)
-                </button>
-                <div
-                  onDoubleClick={() => {
-                    audioEngine.setDelayTime(0.375);
-                    setDelayInfo({ delayMs: 375, bpm: 160 });
-                  }}
-                  className="flex items-center justify-between text-[7px] font-mono text-zinc-400 px-0.5 cursor-pointer select-none"
-                  title="Double-click to reset to default 375ms (160 BPM)"
-                >
-                  <span>FAST (80ms)</span>
-                  <span className="text-purple-300 font-bold hover:underline">{delayInfo.delayMs}ms</span>
-                  <span>SLOW (1200ms)</span>
-                </div>
-                <input
-                  type="range"
-                  min={80}
-                  max={1200}
-                  step={10}
-                  value={delayInfo.delayMs}
-                  onChange={(e) => {
-                    const delayMs = parseInt(e.target.value, 10);
-                    const sec = delayMs / 1000;
-                    audioEngine.setDelayTime(sec);
-                    setDelayInfo({ delayMs, bpm: Math.round(60 / sec) });
-                  }}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    audioEngine.setDelayTime(0.375);
-                    setDelayInfo({ delayMs: 375, bpm: 160 });
-                  }}
-                  title="Double-click to reset to default 375ms (160 BPM)"
-                  className="w-full accent-purple-500 cursor-pointer h-1"
-                />
-              </div>
-            )}
+            <FxPanel master={master} onField={handleMasterField} />
           </div>
 
           {/* Aux Master & FX Return */}
