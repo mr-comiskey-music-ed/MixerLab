@@ -52,11 +52,12 @@ export const LevelResults: React.FC<{
   section: string;
   title: string;
   score: number;
+  accuracy: number;
   best: number;
   review: { text: string; pct: number }[];
   onRetry: () => void;
   onBack: () => void;
-}> = ({ section, title, score, best, review, onRetry, onBack }) => (
+}> = ({ section, title, score, accuracy, best, review, onRetry, onBack }) => (
   <div className="w-full max-w-xl mx-auto bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col items-center gap-4 text-center">
     <div className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl ${score >= 70 ? 'bg-emerald-500' : 'bg-zinc-700'}`}>
       {score >= 70 ? '🏆' : '🎧'}
@@ -66,6 +67,7 @@ export const LevelResults: React.FC<{
         {section} · {title}
       </span>
       <div className="text-5xl font-mono font-extrabold text-zinc-100 mt-2">{score}%</div>
+      <span className="block text-xs font-mono text-zinc-300 mt-1">50% for finishing + {Math.round(accuracy / 2)}% for accuracy ({accuracy}% right)</span>
       <span className="text-xs font-mono text-zinc-500">Best on this level: {Math.max(best, score)}% (goes on your grade report)</span>
     </div>
     <div className="w-full flex flex-col gap-1 text-left">

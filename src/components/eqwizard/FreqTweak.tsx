@@ -6,7 +6,7 @@ import { Clip, StemInfo, loadAllWizardStems, pickStemClip, goodStarts } from '..
 import { Knob } from '../Knob';
 import {
   FREQ_TWEAK_LEVELS, FreqTweakLevel, TweakBand, TweakKnob, TweakQuestion, TweakSettings, FLAT_TWEAK,
-  makeTweakQuestion, tweakScore
+  makeTweakQuestion, tweakScore, levelPct
 } from './levels';
 import { QuizHeader, LevelResults, ABSwitch } from './QuizParts';
 
@@ -122,7 +122,8 @@ export const FreqTweak: React.FC<Props> = ({ levelIndex, best, onDone, onQuit })
     setAnswers(a);
   };
 
-  const levelScore = Math.round(scores.reduce<number>((a, r) => a + (r ?? 0), 0) / EQ_QUESTIONS);
+  const accuracy = Math.round(scores.reduce<number>((a, r) => a + (r ?? 0), 0) / EQ_QUESTIONS);
+  const levelScore = levelPct(accuracy);
 
   const goNext = () => {
     eqWizardPlayer.stopAll();
@@ -152,6 +153,7 @@ export const FreqTweak: React.FC<Props> = ({ levelIndex, best, onDone, onQuit })
         section="Freq Tweak"
         title={level.title}
         score={levelScore}
+        accuracy={accuracy}
         best={best}
         review={rounds.map((r, i) => ({ text: `${r.stem.stemName}: fix was ${describeFix(r.question.fix, r.question.bands)}`, pct: scores[i] ?? 0 }))}
         onRetry={retry}

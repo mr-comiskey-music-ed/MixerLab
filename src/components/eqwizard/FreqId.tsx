@@ -3,7 +3,7 @@ import { EQ_QUESTIONS } from '../../types/audio';
 import { GEQ_31, formatHz } from '../../audio/eqBands';
 import { eqWizardPlayer } from '../../audio/eqWizardAudio';
 import { GraphicEQ, GeqOverlay } from '../GraphicEQ';
-import { FREQ_ID_LEVELS, makeFreqIdQuestions, bandScore, COLORS } from './levels';
+import { FREQ_ID_LEVELS, makeFreqIdQuestions, bandScore, levelPct, COLORS } from './levels';
 import { QuizHeader, HeadphonesNote, LevelResults } from './QuizParts';
 
 interface Props {
@@ -37,7 +37,8 @@ export const FreqId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }) =>
     return level.kind === 'bands' ? bandScore(Number(pick), Number(qq.answer)) : pick === qq.answer ? 100 : 0;
   };
   const results = picks.map((p, i) => scoreFor(i, p));
-  const levelScore = Math.round(results.reduce<number>((a, r) => a + (r ?? 0), 0) / EQ_QUESTIONS);
+  const accuracy = Math.round(results.reduce<number>((a, r) => a + (r ?? 0), 0) / EQ_QUESTIONS);
+  const levelScore = levelPct(accuracy);
 
   const play = () => eqWizardPlayer.playTone(q.freq);
 
@@ -105,6 +106,7 @@ export const FreqId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }) =>
         section="Freq Tone ID"
         title={level.title}
         score={levelScore}
+        accuracy={accuracy}
         best={best}
         review={questions.map((qq, i) => ({ text: `${qq.freq} Hz → ${answerLabel(qq.answer)}`, pct: results[i] ?? 0 }))}
         onRetry={retry}
@@ -117,8 +119,12 @@ export const FreqId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }) =>
   // After answering, the faders for the right region / band slide up to show where the tone was
   const revealFor = () => {
     if (level.kind === 'bands') return { from: Number(q.answer), to: Number(q.answer), db: 9 };
-    const r = level.regions!.find((x) => x.id === q.answer)!;
-    return { from: r.from, to: r.to, db: 9 };
+    // Region levels: lift only the one fader closest to the actual tone
+    let nearest = 0;
+    GEQ_31.forEach((f, i) => {
+      if (Math.abs(Math.log(f / q.freq)) < Math.abs(Math.log(GEQ_31[nearest] / q.freq))) nearest = i;
+    });
+    return { from: nearest, to: nearest, db: 9 };
   };
   const sc = results[qIndex];
 

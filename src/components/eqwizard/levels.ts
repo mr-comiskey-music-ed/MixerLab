@@ -310,3 +310,6 @@ export function tweakScore(level: FreqTweakLevel, answer: TweakSettings, fix: Tw
   const total = Math.round(avg(changedKeys) * (avg(untouchedKeys) / 100));
   return { total, parts };
 }
+
+/** Finishing a level earns 50%; the other 50% comes from accuracy (rawPct is the plain average of the 8 questions). */
+export const levelPct = (rawPct: number) => Math.round(50 + rawPct / 2);

@@ -4,7 +4,7 @@ import { GEQ_31 } from '../../audio/eqBands';
 import { eqWizardPlayer } from '../../audio/eqWizardAudio';
 import { Clip, EQ_WIZARD_SONGS, getSongStems, pickMixClip } from '../../audio/clipFinder';
 import { GraphicEQ, GeqOverlay } from '../GraphicEQ';
-import { FREQ_BAND_LEVELS, freqBandChange, makeFreqBandQuestions } from './levels';
+import { FREQ_BAND_LEVELS, freqBandChange, makeFreqBandQuestions, levelPct } from './levels';
 import { QuizHeader, LevelResults, ABSwitch } from './QuizParts';
 
 interface Props {
@@ -61,7 +61,8 @@ export const FreqBandId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }
   const picked = picks[qIndex];
   const answerId = `${q.bandId}:${q.dir}`;
   const results = picks.map((p, i) => (p === null ? null : p === `${questions[i].bandId}:${questions[i].dir}` ? 100 : 0));
-  const levelScore = Math.round(results.reduce<number>((a, r) => a + (r ?? 0), 0) / EQ_QUESTIONS);
+  const accuracy = Math.round(results.reduce<number>((a, r) => a + (r ?? 0), 0) / EQ_QUESTIONS);
+  const levelScore = levelPct(accuracy);
   const describe = (bandId: string, dir: string) =>
     `${level.bands.find((b) => b.id === bandId)?.label} ${level.cutsToo ? (dir === 'boost' ? 'boost' : 'cut') : 'boost'}`;
 
@@ -122,6 +123,7 @@ export const FreqBandId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }
         section="Freq Band ID"
         title={level.title}
         score={levelScore}
+        accuracy={accuracy}
         best={best}
         review={questions.map((qq, i) => ({
           text: `${EQ_WIZARD_SONGS.find((s) => s.id === qq.songId)?.title}: ${describe(qq.bandId, qq.dir)}`,
