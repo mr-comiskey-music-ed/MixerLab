@@ -317,7 +317,7 @@ const DigitalEq: React.FC<{
   const gridHz = [50, 100, 200, 500, 1000, 2000, 5000, 10000];
   const xFor = (hz: number) => (Math.log(hz / 20) / Math.log(1000)) * W;
 
-  const ctrl = (k: TweakKnob, label: string, node: React.ReactNode, tone = 'text-cyan-300') => (
+  const ctrl = (k: TweakKnob, label: string, node: React.ReactNode, tone = 'text-sky-400') => (
     <div className={`flex-1 min-w-[120px] flex flex-col items-center gap-1 bg-zinc-950 border border-zinc-800 rounded-lg p-2 ${!isOn(k) ? 'opacity-25 pointer-events-none grayscale' : locked ? 'pointer-events-none' : ''}`}>
       <span className={`text-[10px] font-mono font-bold ${tone}`}>{label}{!isOn(k) ? ' (LOCKED)' : ''}</span>
       {node}
@@ -340,7 +340,7 @@ const DigitalEq: React.FC<{
   );
 
   return (
-    <div className="flex flex-col gap-3 bg-zinc-950/60 border border-cyan-900/50 rounded-xl p-3">
+    <div className="flex flex-col gap-3 bg-zinc-950/60 border border-meter-900/50 rounded-xl p-3">
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full h-40 bg-zinc-950 rounded-lg border border-zinc-800">
         {gridHz.map((hz) => (
           <g key={hz}>
@@ -352,11 +352,11 @@ const DigitalEq: React.FC<{
         ))}
         <line x1={0} x2={W} y1={H / 2} y2={H / 2} stroke="#3f3f46" strokeWidth={1} />
         {fixCurve && <path d={toPath(fixCurve)} fill="none" stroke="#34d399" strokeWidth={2} strokeDasharray="5 4" />}
-        <path d={toPath(curve)} fill="none" stroke="#22d3ee" strokeWidth={2.5} />
+        <path d={toPath(curve)} fill="none" stroke="var(--acc-400)" strokeWidth={2.5} />
       </svg>
       {fix && (
         <span className="text-[11px] font-mono text-zinc-400 -mt-1">
-          <span className="text-cyan-300">━ your EQ</span> · <span className="text-emerald-300">┅ the exact fix</span>
+          <span className="text-meter-300">━ your EQ</span> · <span className="text-emerald-300">┅ the exact fix</span>
         </span>
       )}
       <div className="flex flex-wrap gap-2">

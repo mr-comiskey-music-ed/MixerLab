@@ -87,7 +87,7 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
               <div className="flex items-center justify-between border-b border-zinc-800 pb-1">
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-mono text-cyan-400 font-bold">
+                    <span className="text-[10px] font-mono text-meter-400 font-bold">
                       Ch {ch.id}
                     </span>
                     <div
@@ -106,7 +106,7 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
                     setLastInteractedChannelIdx(idx);
                     onOpenXRay(ch.id, ch.name);
                   }}
-                  className="px-1 py-0.5 rounded bg-zinc-800 hover:bg-cyan-950 hover:text-cyan-400 text-zinc-400 text-[8px] font-mono border border-zinc-700 transition-colors"
+                  className="px-1 py-0.5 rounded bg-zinc-800 hover:bg-meter-950 hover:text-meter-400 text-zinc-400 text-[8px] font-mono border border-zinc-700 transition-colors"
                   title="Signal Flow"
                 >
                   FLOW
@@ -348,7 +348,7 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
               </div>
 
               {/* Instrument Name Label */}
-              <div className="text-[10px] font-mono font-bold text-center text-cyan-400 bg-zinc-950/80 py-0.5 px-1 rounded border border-zinc-800 truncate" title={ch.name}>
+              <div className="text-[10px] font-mono font-bold text-center text-zinc-100 bg-zinc-950/80 py-0.5 px-1 rounded border border-zinc-800 truncate" title={ch.name}>
                 {ch.name}
               </div>
 
@@ -382,7 +382,7 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
                 title="Double-click or double-tap to reset fader to 0.0 dB"
               >
                 <span className="text-zinc-500">LEVEL</span>
-                <span className="font-bold text-zinc-200 hover:text-cyan-300 transition-colors">
+                <span className="font-bold text-zinc-200 hover:text-meter-300 transition-colors">
                   {ch.faderLevel <= -59 ? '-∞' : `${ch.faderLevel > 0 ? '+' : ''}${ch.faderLevel.toFixed(1)}`}
                 </span>
               </div>
@@ -512,20 +512,20 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
           {/* Main Mix Master Fader with Fully Expanded X-Ray Box Inside */}
           <div className="flex-1 flex flex-col justify-end bg-zinc-950 p-2 rounded border border-zinc-850 gap-2">
             {/* Fully Expanded Vertical Mini Signal Flow X-Ray Widget */}
-            <div className="bg-zinc-900 border border-cyan-500/50 rounded p-2 flex flex-col gap-1.5">
+            <div className="bg-zinc-900 border border-meter-500/50 rounded p-2 flex flex-col gap-1.5">
               <div className="flex items-center justify-between border-b border-zinc-800 pb-1">
-                <span className="text-[9px] font-mono font-bold text-cyan-400 uppercase truncate">
+                <span className="text-[9px] font-mono font-bold text-meter-400 uppercase truncate">
                   FLOW: CH {recentCh.id} ({recentCh.name})
                 </span>
                 <button
                   onClick={() => onOpenXRay(recentCh.id, recentCh.name)}
-                  className="px-1.5 py-0.5 rounded bg-cyan-600 hover:bg-cyan-500 text-zinc-950 text-[8px] font-mono font-bold transition-colors"
+                  className="px-1.5 py-0.5 rounded bg-meter-600 hover:bg-meter-500 text-zinc-950 text-[8px] font-mono font-bold transition-colors"
                   title="Open full Signal Flow chart"
                 >
                   MORE
                 </button>
               </div>
-              <div className="flex flex-col gap-1 pl-2 border-l border-cyan-500/30 my-0.5 max-h-60 overflow-y-auto pr-1">
+              <div className="flex flex-col gap-1 pl-2 border-l border-meter-500/30 my-0.5 max-h-60 overflow-y-auto pr-1">
                 <div className="flex items-center justify-between text-[8px] font-mono bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800">
                   <span className="text-zinc-400">1. Input</span>
                   <span className="text-emerald-400 font-bold">XLR / LINE</span>

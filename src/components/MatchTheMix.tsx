@@ -171,7 +171,7 @@ export const MatchTheMix: React.FC<MatchTheMixProps> = ({
             <span className="text-xs font-mono font-bold text-sky-400 uppercase">
               CRITICAL LISTENING LAB
             </span>
-            <h2 className="text-xl font-bold text-zinc-100 mt-0.5">
+            <h2 className="text-2xl font-bold text-zinc-100 mt-0.5">
               MATCH THE MIX (BLIND A/B)
             </h2>
           </div>
@@ -276,7 +276,7 @@ export const MatchTheMix: React.FC<MatchTheMixProps> = ({
         {evaluationResult && (
           <div className="bg-zinc-950 p-4 sm:p-5 rounded-lg border border-sky-500/60 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm sm:text-base font-bold text-sky-400 font-mono">HOW CLOSE ARE YOU?</span>
+              <span className="text-lg sm:text-xl font-display font-bold tracking-wider text-sky-400">HOW CLOSE ARE YOU?</span>
               <span className="text-2xl font-mono font-extrabold text-sky-400">{evaluationResult.overallScore}%</span>
             </div>
 

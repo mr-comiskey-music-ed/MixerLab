@@ -23,7 +23,7 @@ export const ChallengeTabs: React.FC<ChallengeTabsProps> = ({ tabs, assignmentTi
   <div className="w-full max-w-5xl mx-auto mb-4 flex flex-col gap-2">
   {assignmentTitle && (
     <span className="text-[11px] font-mono text-zinc-400">
-      ASSIGNMENT: <strong className="text-cyan-300">{assignmentTitle}</strong>
+      ASSIGNMENT: <strong className="text-meter-300">{assignmentTitle}</strong>
     </span>
   )}
   <nav className={`grid grid-cols-2 ${COLS[Math.min(4, tabs.length)] || 'sm:grid-cols-4'} gap-2`}>
@@ -36,12 +36,12 @@ export const ChallengeTabs: React.FC<ChallengeTabsProps> = ({ tabs, assignmentTi
           onClick={() => onSelect(tab.id)}
           className={`text-left px-3 py-2 rounded-lg border transition-all ${
             isActive
-              ? 'bg-cyan-500/15 border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.25)]'
+              ? 'bg-meter-500/15 border-meter-400 shadow-[0_0_10px_color-mix(in_srgb,var(--acc-500)_25%,transparent)]'
               : 'bg-zinc-900 border-zinc-800 hover:border-zinc-600'
           }`}
         >
           <div className="flex items-center justify-between gap-2">
-            <span className={`text-xs font-mono font-bold ${isActive ? 'text-cyan-300' : 'text-zinc-200'}`}>{tab.label}</span>
+            <span className={`font-display text-[15px] font-bold tracking-wider ${isActive ? 'text-meter-300' : 'text-zinc-200'}`}>{tab.label}</span>
             <span className={`text-[10px] font-mono font-bold whitespace-nowrap ${p.done ? 'text-emerald-400' : 'text-zinc-500'}`}>
               {p.text}
             </span>

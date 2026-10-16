@@ -51,7 +51,7 @@ export const QuizHeader: React.FC<{
         </button>
         <div>
           <span className="text-[10px] font-mono font-bold text-orange-400 uppercase">{section}</span>
-          <h2 className="text-lg font-bold text-zinc-100 leading-tight">{title}</h2>
+          <h2 className="text-xl font-bold text-zinc-100 leading-tight">{title}</h2>
         </div>
       </div>
       <span className="text-xs font-mono font-bold text-zinc-300">

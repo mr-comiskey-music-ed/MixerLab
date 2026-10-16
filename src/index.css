@@ -1,10 +1,53 @@
 @import "tailwindcss";
 
+/* Display font for headings and tab labels (same family the logo is drawn from). */
+@theme {
+  --font-display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+}
+
+/*
+ * Meter accent: the app's highlight colour follows the level-meter colours of the logo.
+ * Any element (or a parent) sets data-accent="green" | "yellow" | "orange" | "red";
+ * utilities like bg-meter-500 / text-meter-400 / border-meter-400/50 then use that colour.
+ */
+@theme inline {
+  --color-meter-300: var(--acc-300);
+  --color-meter-400: var(--acc-400);
+  --color-meter-500: var(--acc-500);
+  --color-meter-600: var(--acc-600);
+  --color-meter-700: var(--acc-700);
+  --color-meter-800: var(--acc-800);
+  --color-meter-900: var(--acc-900);
+  --color-meter-950: var(--acc-950);
+}
+
+:root,
+[data-accent="green"] {
+  --acc-300: #86efac; --acc-400: #4ade80; --acc-500: #22c55e; --acc-600: #16a34a;
+  --acc-700: #15803d; --acc-800: #166534; --acc-900: #14532d; --acc-950: #052e16;
+}
+[data-accent="yellow"] {
+  --acc-300: #fde047; --acc-400: #facc15; --acc-500: #eab308; --acc-600: #ca8a04;
+  --acc-700: #a16207; --acc-800: #854d0e; --acc-900: #713f12; --acc-950: #422006;
+}
+[data-accent="orange"] {
+  --acc-300: #fdba74; --acc-400: #fb923c; --acc-500: #f97316; --acc-600: #ea580c;
+  --acc-700: #c2410c; --acc-800: #9a3412; --acc-900: #7c2d12; --acc-950: #431407;
+}
+[data-accent="red"] {
+  --acc-300: #fca5a5; --acc-400: #f87171; --acc-500: #ef4444; --acc-600: #dc2626;
+  --acc-700: #b91c1c; --acc-800: #991b1b; --acc-900: #7f1d1d; --acc-950: #450a0a;
+}
+
 @layer base {
   body {
     background-color: #09090b;
     color: #f4f4f5;
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: 0.02em;
   }
 }
 

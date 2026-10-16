@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { ChannelSettings, MasterSettings, MyMix, ScenarioItem, TabId, ChallengeTabId, isChallengeTab, CHALLENGE_TABS, EqSectionId, EqWizardScores, emptyEqScores } from './types/audio';
+import { ChannelSettings, MasterSettings, MyMix, ScenarioItem, TabId, ChallengeTabId, isChallengeTab, CHALLENGE_TABS, tabAccent, EqSectionId, EqWizardScores, emptyEqScores } from './types/audio';
 import { EqWizard } from './components/eqwizard/EqWizard';
 import { GeqFoldout } from './components/GeqFoldout';
 import { readAssignmentFromUrl, isEverything, matchAverage } from './utils/assignment';
@@ -424,8 +424,8 @@ export default function App() {
       {title && (
         <div className="w-full max-w-6xl mb-3 flex flex-wrap items-center justify-between gap-1 px-2">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
-            <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wide">
+            <span className="w-2.5 h-2.5 rounded-full bg-meter-400 animate-pulse" />
+            <span className="text-sm font-display font-bold text-meter-400 uppercase tracking-wider">
               {title}
             </span>
           </div>
@@ -463,7 +463,7 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col selection:bg-cyan-500 selection:text-black">
+    <div data-accent={tabAccent(activeTab)} className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col selection:bg-meter-500 selection:text-black">
       <TransportHeader
         currentSongId={currentSongId}
         onSelectSong={handleSelectSong}

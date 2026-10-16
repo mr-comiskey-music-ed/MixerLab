@@ -135,3 +135,8 @@ export const CHALLENGE_TABS: { id: ChallengeTabId; label: string }[] = [
   { id: 'mymix', label: 'MY MIX' }
 ];
 export const isChallengeTab = (t: TabId): t is ChallengeTabId => CHALLENGE_TABS.some(c => c.id === t);
+
+/** Each top tab has a level-meter colour, running green → yellow → orange → red across the tab bar like a meter ladder. */
+export type MeterAccent = 'green' | 'yellow' | 'orange' | 'red';
+export const tabAccent = (t: TabId | 'challenges'): MeterAccent =>
+  t === 'learn' || t === 'console' ? 'green' : t === 'eqwizard' ? 'orange' : t === 'grades' ? 'red' : 'yellow';

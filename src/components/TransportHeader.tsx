@@ -1,7 +1,7 @@
 import { LogoIcon, LogoWordmark } from './BrandLogo';
 import React, { useRef } from 'react';
 import { BUILTIN_SONGS } from '../audio/stemSynthesizer';
-import { TabId, isChallengeTab } from '../types/audio';
+import { TabId, isChallengeTab, tabAccent } from '../types/audio';
 
 interface TransportHeaderProps {
   currentSongId: string;
@@ -105,7 +105,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
                 onClick={() => onToggleConsoleView('analog')}
                 className={`px-2.5 py-1 text-xs font-mono font-bold rounded transition-colors cursor-pointer ${
                   consoleView === 'analog'
-                    ? 'bg-zinc-750 text-cyan-400 shadow'
+                    ? 'bg-zinc-750 text-meter-400 shadow'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -115,7 +115,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
                 onClick={() => onToggleConsoleView('digital')}
                 className={`px-2.5 py-1 text-xs font-mono font-bold rounded transition-colors cursor-pointer ${
                   consoleView === 'digital'
-                    ? 'bg-zinc-750 text-cyan-400 shadow'
+                    ? 'bg-zinc-750 text-meter-400 shadow'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -138,19 +138,25 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
             { id: 'grades', label: 'GRADE REPORT' }
           ]
             .filter((tab) => (showChallenges || tab.id !== 'challenges') && (showEqWizard || tab.id !== 'eqwizard'))
-            .map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => onSelectTab(tab.id as TabId | 'challenges')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold whitespace-nowrap transition-all shrink-0 ${
-                activeTab === tab.id || (tab.id === 'challenges' && isChallengeTab(activeTab))
-                  ? 'bg-cyan-500 text-zinc-950 shadow-md font-extrabold'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+            .map((tab) => {
+              const isActive = activeTab === tab.id || (tab.id === 'challenges' && isChallengeTab(activeTab));
+              return (
+                <button
+                  key={tab.id}
+                  data-accent={tabAccent(tab.id as TabId | 'challenges')}
+                  onClick={() => onSelectTab(tab.id as TabId | 'challenges')}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-display text-[15px] font-bold tracking-wider whitespace-nowrap transition-all shrink-0 ${
+                    isActive
+                      ? 'bg-meter-500 text-zinc-950 shadow-md'
+                      : 'text-zinc-400 hover:text-meter-300 hover:bg-zinc-900'
+                  }`}
+                >
+                  {/* Meter LED in the tab's colour (dim when not selected) */}
+                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-zinc-950/60' : 'bg-meter-500/60'}`} />
+                  {tab.label}
+                </button>
+              );
+            })}
         </nav>
 
         {/* Synchronized Transport Controls (wrapping on mobile) */}
@@ -161,7 +167,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
             onChange={(e) => onSelectSong(e.target.value)}
             disabled={activeTab === 'match'}
             title={activeTab === 'match' ? 'In Match the Mix, the song is set by the reference you pick' : 'Choose a song'}
-            className="disabled:opacity-60 bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-xs font-mono text-zinc-200 focus:outline-none focus:border-cyan-500"
+            className="disabled:opacity-60 bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-xs font-mono text-zinc-200 focus:outline-none focus:border-meter-500"
           >
             {BUILTIN_SONGS.map((s) => (
               <option key={s.id} value={s.id}>
@@ -200,7 +206,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
           </div>
 
           {/* Timecode Readout */}
-          <div className="text-xs font-mono font-bold tabular-nums text-cyan-400 bg-zinc-950 px-2 py-1 rounded border border-zinc-850">
+          <div className="text-xs font-mono font-bold tabular-nums text-meter-400 bg-zinc-950 px-2 py-1 rounded border border-zinc-850">
             {formatTime(currentTime)} / {formatTime(duration)}
           </div>
 
@@ -212,7 +218,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
             step={0.1}
             value={currentTime}
             onChange={(e) => onSeek(parseFloat(e.target.value))}
-            className="w-28 sm:w-44 accent-cyan-400 cursor-pointer"
+            className="w-28 sm:w-44 accent-meter-400 cursor-pointer"
           />
         </div>
       </div>

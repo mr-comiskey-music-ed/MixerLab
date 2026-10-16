@@ -60,7 +60,7 @@ export const EqWizard: React.FC<EqWizardProps> = ({ sections, assignmentTitle, s
     <div className="w-full max-w-5xl mx-auto flex flex-col gap-4">
       {assignmentTitle && (
         <span className="text-[11px] font-mono text-zinc-400">
-          ASSIGNMENT: <strong className="text-cyan-300">{assignmentTitle}</strong>
+          ASSIGNMENT: <strong className="text-meter-300">{assignmentTitle}</strong>
         </span>
       )}
       <nav className={`grid grid-cols-1 ${['sm:grid-cols-1', 'sm:grid-cols-1', 'sm:grid-cols-2', 'sm:grid-cols-3'][visible.length] || 'sm:grid-cols-3'} gap-2`}>
@@ -73,7 +73,7 @@ export const EqWizard: React.FC<EqWizardProps> = ({ sections, assignmentTitle, s
             }`}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className={`text-xs font-mono font-bold ${section === s.id ? 'text-orange-300' : 'text-zinc-200'}`}>{s.label}</span>
+              <span className={`font-display text-[15px] font-bold tracking-wider ${section === s.id ? 'text-orange-300' : 'text-zinc-200'}`}>{s.label}</span>
               <span className={`text-[10px] font-mono font-bold ${tried(s.id) === EQ_LEVELS ? 'text-emerald-400' : 'text-zinc-500'}`}>
                 {tried(s.id) ? `${avg(s.id)}% · ${tried(s.id)}/${EQ_LEVELS}` : 'not tried'}
               </span>
@@ -86,7 +86,7 @@ export const EqWizard: React.FC<EqWizardProps> = ({ sections, assignmentTitle, s
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 flex flex-col gap-4">
         <div>
           <span className="text-xs font-mono font-bold text-orange-400 uppercase">EQ WIZARD</span>
-          <h2 className="text-xl font-bold text-zinc-100">{EQ_SECTIONS.find((s) => s.id === section)?.label}</h2>
+          <h2 className="text-2xl font-bold text-zinc-100">{EQ_SECTIONS.find((s) => s.id === section)?.label}</h2>
           <p className="text-sm text-zinc-400 mt-1">{INTRO[section]} 8 questions per level, no timer. Your best score on each level counts.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

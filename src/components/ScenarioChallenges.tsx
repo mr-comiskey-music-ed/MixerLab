@@ -361,14 +361,14 @@ export const ScenarioChallenges: React.FC<ScenarioChallengesProps> = ({
               onClick={() => handleLoadScenario(sc)}
               className={`p-2 rounded-lg border text-left flex flex-col justify-between transition-all ${
                 isCurrent
-                  ? 'bg-zinc-800 border-cyan-400 shadow-md ring-1 ring-cyan-400'
+                  ? 'bg-zinc-800 border-meter-400 shadow-md ring-1 ring-meter-400'
                   : isSolved
                   ? 'bg-emerald-950/20 border-emerald-800/40 hover:border-emerald-700'
                   : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
               }`}
             >
               <div className="flex items-center justify-between w-full">
-                <span className="text-[10px] font-mono font-bold text-cyan-400">
+                <span className="text-[10px] font-mono font-bold text-meter-400">
                   #{sc.id}
                 </span>
                 {isSolved && (
@@ -389,10 +389,10 @@ export const ScenarioChallenges: React.FC<ScenarioChallengesProps> = ({
       <div className="bg-zinc-900 border border-zinc-750 rounded-xl p-4 shadow-xl flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between border-b border-zinc-800 pb-2 gap-2">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-cyan-950 border border-cyan-600 text-cyan-400 text-xs font-mono font-bold">
+            <span className="px-2 py-0.5 rounded bg-meter-950 border border-meter-600 text-meter-400 text-xs font-mono font-bold">
               SCENARIO #{currentScenario.id}
             </span>
-            <h2 className="text-base sm:text-lg font-bold text-zinc-100">
+            <h2 className="text-lg sm:text-xl font-bold text-zinc-100">
               {currentScenario.title}
             </h2>
           </div>
@@ -400,7 +400,7 @@ export const ScenarioChallenges: React.FC<ScenarioChallengesProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleLoadScenario(currentScenario)}
-              className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-750 text-cyan-400 text-xs font-mono font-bold rounded border border-cyan-800/60 transition-colors"
+              className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-750 text-meter-400 text-xs font-mono font-bold rounded border border-meter-800/60 transition-colors"
               title="Reset console to this scenario's initial faulty state"
             >
               RESET SCENARIO

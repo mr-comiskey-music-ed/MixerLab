@@ -34,7 +34,7 @@ export const MyMix: React.FC<MyMixProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-3">
           <div className="flex flex-col">
             <span className="text-xs font-mono font-bold text-orange-400 uppercase">CREATIVE PROJECT</span>
-            <h2 className="text-xl font-bold text-zinc-100 mt-0.5">MY MIX</h2>
+            <h2 className="text-2xl font-bold text-zinc-100 mt-0.5">MY MIX</h2>
           </div>
           <div className="flex items-center gap-2">
             <button

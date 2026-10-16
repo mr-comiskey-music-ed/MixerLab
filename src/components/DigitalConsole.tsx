@@ -200,8 +200,8 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
           const norm = blended / 255;
           const barH = Math.min(height, Math.pow(norm, 1.1) * height * 0.88);
 
-          // Translucent cyan RTA bar
-          ctx.fillStyle = 'rgba(6, 182, 212, 0.24)';
+          // Translucent green RTA bar
+          ctx.fillStyle = 'rgba(34, 197, 94, 0.22)';
           ctx.fillRect(x1 + 0.75, height - barH, barW, barH);
 
           // Bright glowing peak cap on each bar
@@ -549,20 +549,20 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
         {/* LEFT COLUMN: PROCESSING BAY (TOP) + 6 CHANNEL FADER STRIPS (BOTTOM) */}
         <div className="flex-1 min-w-[620px] flex flex-col gap-3">
           {/* COMPACT DEDICATED PROCESSING BAY (DIGITAL CHANNEL STRIP) */}
-          <div className="bg-zinc-900 border-2 border-cyan-500/40 rounded-xl p-3 sm:p-3.5 shadow-xl flex flex-col gap-2.5">
+          <div className="bg-zinc-900 border-2 border-meter-500/40 rounded-xl p-3 sm:p-3.5 shadow-xl flex flex-col gap-2.5">
             {/* Digital Processing Bay Header */}
             <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm font-mono font-bold text-cyan-400">
+                <span className="text-xs sm:text-sm font-mono font-bold text-meter-400">
                   Channel {selectedCh.id} — {selectedCh.name}
                 </span>
                 {onOpenXRay && (
                   <button
                     onClick={() => onOpenXRay(selectedCh.id, selectedCh.name)}
-                    className="px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 hover:bg-cyan-900 transition-colors flex items-center gap-1.5"
+                    className="px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-meter-950/80 text-meter-300 border border-meter-700/60 hover:bg-meter-900 transition-colors flex items-center gap-1.5"
                     title="Open interactive Signal Flow diagram"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-meter-400 animate-pulse"></span>
                     SIGNAL FLOW
                   </button>
                 )}
@@ -646,7 +646,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                   <span className="text-[10px] font-mono font-bold text-zinc-300 uppercase tracking-wider">
                     PREAMP & SENDS
                   </span>
-                  <span className="text-[10px] font-mono text-cyan-400 font-bold">CH {selectedCh.id}</span>
+                  <span className="text-[10px] font-mono text-meter-400 font-bold">CH {selectedCh.id}</span>
                 </div>
 
                 <div className="w-full flex flex-col items-center justify-around flex-1 gap-2">
@@ -773,7 +773,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
               <div className="md:col-span-3 bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 flex flex-col gap-1.5">
                 <div className="flex items-center justify-between px-1 flex-wrap gap-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-mono font-bold text-cyan-400">
+                    <span className="text-[11px] font-mono font-bold text-meter-400">
                       INTERACTIVE PARAMETRIC EQ
                     </span>
                     <span className="text-[9px] text-zinc-400 font-mono hidden sm:inline">
@@ -982,7 +982,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                         updateSelectedField('eqHigh', 0);
                       }}
                       title="Double-click to reset High Gain to 0.0 dB"
-                      className="w-full accent-cyan-400 cursor-pointer mt-0.5"
+                      className="w-full accent-sky-400 cursor-pointer mt-0.5"
                     />
                   </div>
                 </div>
@@ -1002,13 +1002,13 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                   onClick={() => onSelectChannel(idx)}
                   className={`flex-1 min-w-[72px] max-w-[92px] flex flex-col items-center bg-zinc-900 p-1 rounded-lg border transition-all cursor-pointer ${
                     isSelected
-                      ? 'border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)] bg-zinc-850'
+                      ? 'border-meter-400 shadow-[0_0_15px_color-mix(in_srgb,var(--acc-500)_30%,transparent)] bg-zinc-850'
                       : 'border-zinc-800 hover:border-zinc-700'
                   }`}
                 >
                   <div className="w-full flex items-center justify-between gap-0.5 mb-1 bg-zinc-950 px-1 py-0.5 rounded border border-zinc-800">
                     <div className="flex items-center gap-1 whitespace-nowrap">
-                      <span className="text-[10px] font-mono text-cyan-400 font-bold whitespace-nowrap">Ch {ch.id}</span>
+                      <span className="text-[10px] font-mono text-meter-400 font-bold whitespace-nowrap">Ch {ch.id}</span>
                       <div
                         className={`w-2 h-2 rounded-full flex-shrink-0 ${
                           meter.clipped ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-ping' : 'bg-zinc-800'
@@ -1020,7 +1020,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                       onClick={() => onSelectChannel(idx)}
                       className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border transition-colors whitespace-nowrap ${
                         isSelected
-                          ? 'bg-cyan-500 text-zinc-950 border-cyan-300 font-extrabold shadow-md'
+                          ? 'bg-meter-500 text-zinc-950 border-meter-300 font-extrabold shadow-md'
                           : 'bg-zinc-850 text-zinc-300 border-zinc-750 hover:bg-zinc-800'
                       }`}
                     >
@@ -1060,7 +1060,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                   </div>
 
                   {/* Instrument Name Label */}
-                  <div className="w-full text-[9px] font-mono font-bold text-center text-cyan-400 bg-zinc-950 py-0.5 px-1 rounded border border-zinc-800 truncate mb-1" title={ch.name}>
+                  <div className="w-full text-[9px] font-mono font-bold text-center text-zinc-100 bg-zinc-950 py-0.5 px-1 rounded border border-zinc-800 truncate mb-1" title={ch.name}>
                     {ch.name}
                   </div>
 
@@ -1103,7 +1103,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                       const updated = { ...ch, faderLevel: v };
                       onUpdateChannel(idx, updated);
                     })}
-                    className="text-[9px] font-mono font-bold text-zinc-300 mt-1 cursor-pointer select-none hover:text-cyan-300 transition-colors"
+                    className="text-[9px] font-mono font-bold text-zinc-300 mt-1 cursor-pointer select-none hover:text-meter-300 transition-colors"
                     title="Double-click or double-tap to reset fader to 0.0 dB Unity"
                   >
                     {ch.faderLevel <= -59 ? '-∞' : `${ch.faderLevel > 0 ? '+' : ''}${ch.faderLevel.toFixed(1)} dB`}

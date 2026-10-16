@@ -297,7 +297,7 @@ export const WhatChanged: React.FC<WhatChangedProps> = ({
           <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
             <div>
               <span className="text-xs font-mono font-bold text-fuchsia-400 uppercase">EAR TRAINING DRILL</span>
-              <h2 className="text-xl font-bold text-zinc-100 mt-0.5">WHAT CHANGED? RESULTS</h2>
+              <h2 className="text-2xl font-bold text-zinc-100 mt-0.5">WHAT CHANGED? RESULTS</h2>
             </div>
             <span className="text-3xl font-mono font-extrabold text-fuchsia-400">
               {correctCount} / {WHAT_CHANGED_QUESTIONS}
@@ -348,7 +348,7 @@ export const WhatChanged: React.FC<WhatChangedProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-3">
           <div>
             <span className="text-xs font-mono font-bold text-fuchsia-400 uppercase">EAR TRAINING DRILL</span>
-            <h2 className="text-xl font-bold text-zinc-100 mt-0.5">WHAT CHANGED?</h2>
+            <h2 className="text-2xl font-bold text-zinc-100 mt-0.5">WHAT CHANGED?</h2>
           </div>
           <div className="flex flex-col items-end text-xs font-mono">
             <span className="text-zinc-300 font-bold">

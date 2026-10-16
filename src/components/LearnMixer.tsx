@@ -334,7 +334,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
         <div className="flex items-center justify-between border-b border-zinc-800 pb-1">
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-mono text-cyan-400 font-bold">
+              <span className="text-[10px] font-mono text-meter-400 font-bold">
                 Ch 1
               </span>
               <div
@@ -353,7 +353,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
               onOpenFlow(ch.id, ch.name);
               markStepComplete(11);
             }}
-            className="px-1 py-0.5 rounded bg-zinc-800 hover:bg-cyan-950 hover:text-cyan-400 text-zinc-400 text-[8px] font-mono border border-zinc-700 transition-colors"
+            className="px-1 py-0.5 rounded bg-zinc-800 hover:bg-meter-950 hover:text-meter-400 text-zinc-400 text-[8px] font-mono border border-zinc-700 transition-colors"
             title="Signal Flow"
           >
             FLOW
@@ -766,14 +766,14 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col gap-4 pb-12">
       {/* Top Learning Academy Header */}
-      <div className="bg-gradient-to-r from-zinc-900 via-zinc-900 to-cyan-950/40 p-4 rounded-xl border border-zinc-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+      <div className="bg-gradient-to-r from-zinc-900 via-zinc-900 to-meter-950/40 p-4 rounded-xl border border-zinc-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-cyan-400 font-mono font-bold text-lg shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+          <div className="w-10 h-10 rounded-xl bg-meter-500/20 border border-meter-400 flex items-center justify-center text-meter-400 font-mono font-bold text-lg shadow-[0_0_15px_color-mix(in_srgb,var(--acc-500)_40%,transparent)]">
             {currentStep}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/60">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-meter-400 font-bold bg-meter-950/60 px-2 py-0.5 rounded border border-meter-800/60">
                 MIXER LAB ACADEMY // STEP {currentStep} OF 11
               </span>
               {completedSteps[currentStep] && (
@@ -782,7 +782,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
                 </span>
               )}
             </div>
-            <h2 className="text-base sm:text-lg font-bold text-zinc-100 font-mono tracking-tight mt-0.5">
+            <h2 className="text-lg sm:text-xl font-bold text-zinc-100 mt-0.5">
               {currentStepData.title}
             </h2>
           </div>
@@ -797,7 +797,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
             onClick={() => setNoiseSource('white_noise')}
             className={`px-2 py-1 rounded text-[11px] font-bold transition-all ${
               activeAudioSource === 'white_noise'
-                ? 'bg-cyan-500 text-zinc-950 shadow-sm'
+                ? 'bg-meter-500 text-zinc-950 shadow-sm'
                 : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
             }`}
             title="White Noise: Flat spectrum across all audible frequencies, ideal for hearing filters and EQ"
@@ -852,7 +852,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
               onClick={() => setCurrentStep(s.step)}
               className={`p-1.5 rounded-lg border text-center font-mono text-[10px] transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
                 isCurrent
-                  ? 'bg-cyan-500 text-zinc-950 font-bold border-cyan-400 shadow-md ring-1 ring-cyan-400'
+                  ? 'bg-meter-500 text-zinc-950 font-bold border-meter-400 shadow-md ring-1 ring-meter-400'
                   : isDone
                   ? 'bg-emerald-950/30 text-emerald-300 border-emerald-800/60 hover:border-emerald-700'
                   : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-zinc-200'
@@ -885,7 +885,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
             {/* Step Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800 pb-3">
               <div>
-                <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
+                <span className="text-[15px] font-display font-bold text-meter-400 uppercase tracking-wider">
                   CHAPTER 10: {currentStepData.title}
                 </span>
                 <p className="text-xs text-zinc-400 mt-0.5">
@@ -905,7 +905,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
                   disabled={!isCurrentStepCompleted}
                   className={`px-3 py-1 rounded font-mono text-xs font-bold transition-all shadow-sm ${
                     isCurrentStepCompleted
-                      ? 'bg-cyan-500 hover:bg-cyan-400 text-zinc-950 cursor-pointer shadow-[0_0_10px_rgba(6,182,212,0.4)]'
+                      ? 'bg-meter-500 hover:bg-meter-400 text-zinc-950 cursor-pointer shadow-[0_0_10px_color-mix(in_srgb,var(--acc-500)_40%,transparent)]'
                       : 'bg-zinc-800 text-zinc-500 opacity-40 cursor-not-allowed'
                   }`}
                   title={isCurrentStepCompleted ? 'Proceed to next step' : 'Complete the Hands-On Lab Task to enable'}
@@ -918,15 +918,15 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
             {/* Core Explanation Box */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-zinc-300 text-xs leading-relaxed">
               <div className="bg-zinc-950/70 p-3 rounded-lg border border-zinc-850">
-                <h4 className="font-mono font-bold text-zinc-100 text-xs mb-1 uppercase tracking-wide flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                <h4 className="font-bold text-zinc-100 text-sm mb-1 uppercase tracking-wide flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-meter-400"></span>
                   Why The Console Layout Transforms:
                 </h4>
                 <p>{currentStepData.summary}</p>
               </div>
 
               <div className="bg-zinc-950/70 p-3 rounded-lg border border-zinc-850 whitespace-pre-line">
-                <h4 className="font-mono font-bold text-zinc-100 text-xs mb-1 uppercase tracking-wide flex items-center gap-1.5">
+                <h4 className="font-bold text-zinc-100 text-sm mb-1 uppercase tracking-wide flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-amber-400"></span>
                   Tactile Knobs vs. Digital Processing Bays:
                 </h4>
@@ -935,14 +935,14 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
             </div>
 
             {/* Hands-On Lab Task */}
-            <div className="bg-cyan-950/30 border border-cyan-800/60 p-3.5 rounded-lg flex flex-col gap-2">
+            <div className="bg-meter-950/30 border border-meter-800/60 p-3.5 rounded-lg flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
                   isCurrentStepCompleted ? 'bg-emerald-500 text-zinc-950' : 'bg-amber-500 text-zinc-950 animate-pulse'
                 }`}>
                   {isCurrentStepCompleted ? '✓ LAB TASK COMPLETE' : 'ACTION REQUIRED'}
                 </span>
-                <span className="text-xs font-bold text-cyan-300 font-mono">
+                <span className="text-xs font-bold text-meter-300 font-mono">
                   {isCurrentStepCompleted ? 'Digital EQ adjusted! Ready to continue to Step 11.' : 'Manipulate the EQ on the digital screen below to unlock Next:'}
                 </span>
               </div>
@@ -964,7 +964,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
                   }}
                   className={`px-3 py-1.5 rounded font-mono text-xs font-bold transition-all cursor-pointer ${
                     step9View === 'digital'
-                      ? 'bg-cyan-500 text-zinc-950 shadow-md ring-1 ring-cyan-400'
+                      ? 'bg-meter-500 text-zinc-950 shadow-md ring-1 ring-meter-400'
                       : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-750'
                   }`}
                 >
@@ -1031,7 +1031,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
                 disabled={!isCurrentStepCompleted}
                 className={`font-bold transition-colors cursor-pointer ${
                   isCurrentStepCompleted
-                    ? 'text-cyan-400 hover:text-cyan-300'
+                    ? 'text-meter-400 hover:text-meter-300'
                     : 'text-zinc-600 cursor-not-allowed'
                 }`}
               >
@@ -1049,7 +1049,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
               <span className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-wide">
                 {currentStep === 9 ? 'MASTER CONSOLE SECTION' : 'CHANNEL STRIP 1 (LABORATORY)'}
               </span>
-              <span className="text-[10px] font-mono text-cyan-400">
+              <span className="text-[10px] font-mono text-meter-400">
                 Live Audio Engine Active
               </span>
             </div>
@@ -1064,7 +1064,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
               {/* Step Header & Navigation */}
               <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
                 <div>
-                  <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
+                  <span className="text-[15px] font-display font-bold text-meter-400 uppercase tracking-wider">
                     CHAPTER {currentStep}: {currentStepData.title}
                   </span>
                   <p className="text-xs text-zinc-400 mt-0.5">
@@ -1085,7 +1085,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
                     disabled={!isCurrentStepCompleted}
                     className={`px-3 py-1 rounded font-mono text-xs font-bold transition-all shadow-sm ${
                       isCurrentStepCompleted
-                        ? 'bg-cyan-500 hover:bg-cyan-400 text-zinc-950 cursor-pointer shadow-[0_0_10px_rgba(6,182,212,0.4)]'
+                        ? 'bg-meter-500 hover:bg-meter-400 text-zinc-950 cursor-pointer shadow-[0_0_10px_color-mix(in_srgb,var(--acc-500)_40%,transparent)]'
                         : 'bg-zinc-800 text-zinc-500 opacity-40 cursor-not-allowed'
                     }`}
                     title={
@@ -1104,15 +1104,15 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
               {/* Core Explanation Box */}
               <div className="flex flex-col gap-2.5 text-zinc-300 text-xs leading-relaxed">
                 <div className="bg-zinc-950/70 p-3 rounded-lg border border-zinc-850">
-                  <h4 className="font-mono font-bold text-zinc-100 text-xs mb-1 uppercase tracking-wide flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                  <h4 className="font-bold text-zinc-100 text-sm mb-1 uppercase tracking-wide flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-meter-400"></span>
                     What It Is & Why It Matters:
                   </h4>
                   <p>{currentStepData.summary}</p>
                 </div>
 
                 <div className="bg-zinc-950/70 p-3 rounded-lg border border-zinc-850 whitespace-pre-line">
-                  <h4 className="font-mono font-bold text-zinc-100 text-xs mb-1 uppercase tracking-wide flex items-center gap-1.5">
+                  <h4 className="font-bold text-zinc-100 text-sm mb-1 uppercase tracking-wide flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-amber-400"></span>
                     How It Operates Internally:
                   </h4>
@@ -1121,14 +1121,14 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
               </div>
 
               {/* Action Task (Hands-on Exploration with unlock requirement) */}
-              <div className="bg-cyan-950/30 border border-cyan-800/60 p-3.5 rounded-lg flex flex-col gap-2">
+              <div className="bg-meter-950/30 border border-meter-800/60 p-3.5 rounded-lg flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
                     isCurrentStepCompleted ? 'bg-emerald-500 text-zinc-950' : 'bg-amber-500 text-zinc-950 animate-pulse'
                   }`}>
                     {isCurrentStepCompleted ? '✓ LAB TASK COMPLETE' : 'ACTION REQUIRED'}
                   </span>
-                  <span className="text-xs font-bold text-cyan-300 font-mono">
+                  <span className="text-xs font-bold text-meter-300 font-mono">
                     {isCurrentStepCompleted ? 'Requirement met! You can now proceed.' : 'Perform this action on the mixer to unlock Next:'}
                   </span>
                 </div>
@@ -1202,8 +1202,8 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
 
               {/* STEP 11: SIGNAL FLOW HUD LAUNCHER */}
               {currentStep === 11 && (
-                <div className="bg-zinc-950 p-4 rounded-lg border border-cyan-400 flex flex-col gap-2.5">
-                  <span className="text-xs font-mono font-bold text-cyan-400">
+                <div className="bg-zinc-950 p-4 rounded-lg border border-meter-400 flex flex-col gap-2.5">
+                  <span className="text-xs font-mono font-bold text-meter-400">
                     INTERACTIVE SIGNAL FLOW HUD:
                   </span>
                   <p className="text-xs text-zinc-300">
@@ -1215,7 +1215,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
                       markStepComplete(11);
                       if (onCompleteLearn) onCompleteLearn();
                     }}
-                    className="px-4 py-2.5 rounded bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-mono font-extrabold text-xs shadow-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                    className="px-4 py-2.5 rounded bg-meter-500 hover:bg-meter-400 text-zinc-950 font-mono font-extrabold text-xs shadow-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span className="w-2 h-2 rounded-full bg-zinc-950 animate-ping"></span>
                     OPEN SIGNAL FLOW DIAGRAM
@@ -1231,7 +1231,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
                   disabled={!isCurrentStepCompleted}
                   className={`font-bold transition-colors cursor-pointer ${
                     isCurrentStepCompleted
-                      ? 'text-cyan-400 hover:text-cyan-300'
+                      ? 'text-meter-400 hover:text-meter-300'
                       : 'text-zinc-600 cursor-not-allowed'
                   }`}
                 >

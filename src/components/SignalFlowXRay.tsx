@@ -41,7 +41,7 @@ export const SignalFlowXRay: React.FC<SignalFlowXRayProps> = ({
         <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
           <div className="flex items-center gap-3">
             <span className="w-3 h-3 rounded-full bg-cyan-400 animate-pulse" />
-            <h2 className="text-lg font-bold tracking-tight text-cyan-400 font-mono">
+            <h2 className="text-xl font-bold text-cyan-400">
               SIGNAL FLOW // CH {channelId}: {channelName}
             </h2>
           </div>

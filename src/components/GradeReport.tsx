@@ -224,7 +224,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
             <span className="text-xs font-mono font-bold text-emerald-400 uppercase">
               {isEverything(assignment) && !assignment.title ? 'STUDENT SUBMISSION' : `ASSIGNMENT: ${assignmentName(assignment)}`}
             </span>
-            <h2 className="text-xl font-bold text-zinc-100 mt-0.5">MY GRADE REPORT</h2>
+            <h2 className="text-2xl font-bold text-zinc-100 mt-0.5">MY GRADE REPORT</h2>
           </div>
           <span className="text-2xl font-mono font-extrabold text-emerald-400">{compositeGrade}%</span>
         </div>
@@ -237,7 +237,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
               placeholder="e.g. Alex R."
               value={studentName}
               onChange={(e) => setStudentName(e.target.value)}
-              className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-cyan-500 font-mono select-text"
+              className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-zinc-400 font-mono select-text"
             />
           </div>
         </div>
@@ -261,13 +261,13 @@ export const GradeReport: React.FC<GradeReportProps> = ({
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={handleGenerateCode}
-            className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono font-bold text-xs rounded-lg shadow-lg border border-emerald-400/50 transition-all"
+            className="px-6 py-2.5 bg-green-600 hover:bg-green-500 text-white font-mono font-bold text-xs rounded-lg shadow-lg border border-green-400/50 transition-all"
           >
             GENERATE SUBMISSION CODE
           </button>
           <button
             onClick={() => setPreviewSubmission(buildMySubmission())}
-            className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-750 text-cyan-400 font-mono font-bold text-xs rounded-lg border border-cyan-800/60 transition-all"
+            className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-750 text-zinc-200 font-mono font-bold text-xs rounded-lg border border-zinc-600 transition-all"
           >
             PREVIEW WHAT MY TEACHER SEES
           </button>
@@ -314,7 +314,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-3">
           <div className="flex flex-col">
             <span className="text-xs font-mono font-bold text-purple-400 uppercase">TEACHER GRADING DESK</span>
-            <h2 className="text-xl font-bold text-zinc-100 mt-0.5">ASSIGN & GRADE</h2>
+            <h2 className="text-2xl font-bold text-zinc-100 mt-0.5">ASSIGN & GRADE</h2>
           </div>
           {readableRows.length > 0 && (
             <button
@@ -572,7 +572,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-800 text-zinc-400 border border-zinc-700">OLDER CODE FORMAT</span>
                   )}
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold font-mono text-zinc-100 mt-1">{report.student.name || 'Student'}</h3>
+                <h3 className="text-2xl sm:text-3xl font-bold text-zinc-100 mt-1">{report.student.name || 'Student'}</h3>
                 <span className="text-xs font-mono text-zinc-400">
                   Submitted {new Date(report.timestamp).toLocaleString()}
                 </span>
@@ -601,7 +601,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                 {reportGrade!.parts.map((part) => (
                   <div key={part.id} className="bg-zinc-950 p-3 rounded-lg border border-zinc-800">
                     <span className="text-[10px] font-mono text-zinc-400 uppercase font-semibold">{part.label}</span>
-                    <div className="text-lg font-mono font-bold text-cyan-300 mt-1">{part.percent}%</div>
+                    <div className="text-lg font-mono font-bold text-zinc-100 mt-1">{part.percent}%</div>
                     <span className="text-[11px] font-mono text-zinc-500">{part.detail}</span>
                   </div>
                 ))}
@@ -611,7 +611,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
             {/* Scenario list */}
             {assignmentOf(report).items.includes('scenarios') && (
             <div className="flex flex-col gap-2">
-              <h4 className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wide">Scenarios</h4>
+              <h4 className="text-sm font-bold text-yellow-400 uppercase tracking-wider">Scenarios</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
                 {SCENARIOS.map((sc) => {
                   const pts = report.scores.scenarios[sc.id];
@@ -642,7 +642,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
             {/* My Mix */}
             {(assignmentOf(report).items.includes('mymix') || report.myMix) && (
             <div className="flex flex-col gap-2">
-              <h4 className="text-xs font-mono font-bold text-orange-400 uppercase tracking-wide">My Mix</h4>
+              <h4 className="text-sm font-bold text-orange-400 uppercase tracking-wider">My Mix</h4>
               {report.myMix ? (
                 <>
                   <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800 flex flex-col gap-2">
