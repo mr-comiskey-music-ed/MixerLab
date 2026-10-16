@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChannelSettings, MasterSettings, MyMix, StudentSubmission } from '../types/audio';
+import { ChannelSettings, MasterSettings, MyMix, StudentSubmission, EqWizardScores } from '../types/audio';
 import { SCENARIOS } from './ScenarioChallenges';
 import { BUILTIN_SONGS } from '../audio/stemSynthesizer';
 import { encodeSubmission, decodeSubmission } from '../utils/submissionCodec';
@@ -14,6 +14,7 @@ interface GradeReportProps {
   matchScores: Record<string, number>;
   learnCompleted: boolean;
   myMix: MyMix | null;
+  eqScores: EqWizardScores;
   assignment: Assignment;
   onListenToMix: (mix: MyMix) => void;
 }
@@ -41,6 +42,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
   matchScores,
   learnCompleted,
   myMix,
+  eqScores,
   assignment,
   onListenToMix
 }) => {
@@ -61,7 +63,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
   const [previewSubmission, setPreviewSubmission] = useState<StudentSubmission | null>(null);
   const [copiedReportText, setCopiedReportText] = useState<boolean>(false);
 
-  const myScores = { scenarios: scenariosCompleted, whatChanged: whatChangedBest, matchScores, learnCompleted, totalPercentage: 0 };
+  const myScores = { scenarios: scenariosCompleted, whatChanged: whatChangedBest, matchScores, learnCompleted, totalPercentage: 0, eqWizard: eqScores };
   const myGrade = computeGrade(myScores, myMix, assignment);
   const compositeGrade = myGrade.total;
   const assigned = (item: AssignmentItem) => assignment.items.includes(item);
@@ -82,7 +84,8 @@ export const GradeReport: React.FC<GradeReportProps> = ({
       whatChanged: whatChangedBest,
       matchScores,
       learnCompleted,
-      totalPercentage: compositeGrade
+      totalPercentage: compositeGrade,
+      eqWizard: eqScores
     },
     myMix: (assigned('mymix') && myMix) || undefined,
     assignment: { letters: itemsToLetters(assignment.items), title: assignment.title }
@@ -418,6 +421,9 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                   {sortHeader('drill', 'What Changed')}
                   {sortHeader('match', 'Match')}
                   {sortHeader('mymix', 'My Mix')}
+                  <th className="p-3 whitespace-nowrap">Freq ID</th>
+                  <th className="p-3 whitespace-nowrap">Band ID</th>
+                  <th className="p-3 whitespace-nowrap">Tweak</th>
                   <th className="p-3">Code</th>
                   <th className="p-3">Review</th>
                 </tr>
@@ -428,7 +434,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                   if (!s) {
                     return (
                       <tr key={idx} className="bg-rose-950/10">
-                        <td className="p-3 text-rose-300" colSpan={10}>
+                        <td className="p-3 text-rose-300" colSpan={13}>
                           Couldn't read this code: <span className="text-zinc-500">{r.rawCode.slice(0, 40)}…</span> (it may be
                           cut off. Ask the student to copy it again.)
                         </td>
@@ -481,6 +487,9 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                           cell('mymix')
                         )}
                       </td>
+                      <td className="p-3">{cell('freqid')}</td>
+                      <td className="p-3">{cell('freqband')}</td>
+                      <td className="p-3">{cell('freqtweak')}</td>
                       <td className="p-3">
                         {r.isValid ? (
                           <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800">OK</span>

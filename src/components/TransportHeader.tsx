@@ -19,6 +19,7 @@ interface TransportHeaderProps {
   activeTab: TabId;
   onSelectTab: (tab: TabId | 'challenges') => void;
   showChallenges?: boolean;
+  showEqWizard?: boolean;
   onLoadCustomMultitrack: (files: FileList) => void;
 }
 
@@ -39,6 +40,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
   activeTab,
   onSelectTab,
   showChallenges = true,
+  showEqWizard = true,
   onLoadCustomMultitrack
 }) => {
   const multiFileInputRef = useRef<HTMLInputElement>(null);
@@ -220,8 +222,11 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
             { id: 'learn', label: 'LEARN' },
             { id: 'console', label: 'MIX CONSOLE' },
             { id: 'challenges', label: 'CHALLENGES' },
+            { id: 'eqwizard', label: 'EQ WIZARD' },
             { id: 'grades', label: 'GRADE REPORT' }
-          ].filter((tab) => showChallenges || tab.id !== 'challenges').map((tab) => (
+          ]
+            .filter((tab) => (showChallenges || tab.id !== 'challenges') && (showEqWizard || tab.id !== 'eqwizard'))
+            .map((tab) => (
             <button
               key={tab.id}
               onClick={() => onSelectTab(tab.id as TabId | 'challenges')}

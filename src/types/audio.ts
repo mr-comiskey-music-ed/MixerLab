@@ -52,6 +52,10 @@ export interface MasterSettings {
   fxType: 'plate' | 'hall' | 'delay' | 'chorus';
   phonesLevel: number; // 0 to 100%
   chorusIntensity?: number; // 0 to 100% (Modulation depth & rate)
+  // Graphic EQ on the main mix (fold-out panel under the console)
+  geqMode?: 'off' | '10' | '31';
+  geq10?: number[]; // dB per band, 10 octave bands
+  geq31?: number[]; // dB per band, 31 third-octave bands
 }
 
 export interface ScenarioItem {
@@ -95,14 +99,31 @@ export interface StudentSubmission {
     matchScores: Record<string, number>; // reference id -> best % match
     learnCompleted: boolean;
     totalPercentage: number;
+    eqWizard?: EqWizardScores;
   };
   myMix?: MyMix;
   assignment?: { letters: string; title: string }; // which challenges this code was graded against
   legacy?: boolean; // decoded from an older (pre-compression) code
 }
 
+/** EQ Wizard: best % on each of the 6 levels per section (-1 = not tried yet). */
+export type EqSectionId = 'freqid' | 'freqband' | 'freqtweak';
+export type EqWizardScores = Record<EqSectionId, number[]>;
+export const EQ_SECTIONS: { id: EqSectionId; label: string; blurb: string }[] = [
+  { id: 'freqid', label: 'FREQ ID', blurb: 'Name the frequency of a test tone' },
+  { id: 'freqband', label: 'FREQ BAND ID', blurb: 'Hear what was boosted or cut in real music' },
+  { id: 'freqtweak', label: 'FREQ TWEAK', blurb: 'Turn the EQ knobs to fix a sound' }
+];
+export const EQ_LEVELS = 6;
+export const EQ_QUESTIONS = 8;
+export const emptyEqScores = (): EqWizardScores => ({
+  freqid: Array(EQ_LEVELS).fill(-1),
+  freqband: Array(EQ_LEVELS).fill(-1),
+  freqtweak: Array(EQ_LEVELS).fill(-1)
+});
+
 /** The app's main tabs, in the order they appear. */
-export type TabId = 'learn' | 'console' | 'scenarios' | 'whatchanged' | 'match' | 'mymix' | 'grades';
+export type TabId = 'learn' | 'console' | 'scenarios' | 'whatchanged' | 'match' | 'mymix' | 'eqwizard' | 'grades';
 
 /** The tabs grouped under CHALLENGES (shown as sub-tabs). */
 export type ChallengeTabId = 'scenarios' | 'whatchanged' | 'match' | 'mymix';

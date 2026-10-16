@@ -1,4 +1,4 @@
-import { ChallengeTabId, MyMix, StudentSubmission } from '../types/audio';
+import { ChallengeTabId, EqSectionId, EQ_LEVELS, MyMix, StudentSubmission } from '../types/audio';
 import { SCENARIOS } from '../components/ScenarioChallenges';
 import { REFERENCE_PROFILES } from '../components/MatchTheMix';
 import { WHAT_CHANGED_QUESTIONS } from '../components/WhatChanged';
@@ -9,10 +9,11 @@ import { MY_MIX_MIN_WORDS } from '../components/MyMix';
  * e.g. mrkamiski.com/mixerlab?a=swy&t=Unit+3. Nothing is stored anywhere:
  * the link holds the teacher's choices, the submission code holds the student's work.
  *
- * Letters: s = Scenarios, w = What Changed?, m = Match the Mix, y = My Mix, l = Learn (Mixer Academy)
+ * Letters: s = Scenarios, w = What Changed?, m = Match the Mix, y = My Mix, l = Learn (Mixer Academy),
+ *          f = EQ Wizard: Freq ID, b = EQ Wizard: Freq Band ID, t = EQ Wizard: Freq Tweak
  * No ?a= in the link means everything is assigned.
  */
-export type AssignmentItem = ChallengeTabId | 'learn';
+export type AssignmentItem = ChallengeTabId | 'learn' | EqSectionId;
 
 export interface Assignment {
   items: AssignmentItem[];
@@ -24,7 +25,10 @@ export const ASSIGNMENT_ITEMS: { id: AssignmentItem; letter: string; label: stri
   { id: 'scenarios', letter: 's', label: 'Scenarios' },
   { id: 'whatchanged', letter: 'w', label: 'What Changed?' },
   { id: 'match', letter: 'm', label: 'Match the Mix' },
-  { id: 'mymix', letter: 'y', label: 'My Mix' }
+  { id: 'mymix', letter: 'y', label: 'My Mix' },
+  { id: 'freqid', letter: 'f', label: 'Freq ID' },
+  { id: 'freqband', letter: 'b', label: 'Freq Band ID' },
+  { id: 'freqtweak', letter: 't', label: 'Freq Tweak' }
 ];
 
 export const EVERYTHING: Assignment = { items: ASSIGNMENT_ITEMS.map((i) => i.id), title: '' };
@@ -105,6 +109,15 @@ export function computeGrade(
       case 'match':
         parts.push({ id: 'match', label: item.label, percent: matchAverage(scores.matchScores), detail: `${matchAverage(scores.matchScores)}% average` });
         break;
+      case 'freqid':
+      case 'freqband':
+      case 'freqtweak': {
+        const levels = scores.eqWizard?.[item.id] ?? Array(EQ_LEVELS).fill(-1);
+        const tried = levels.filter((x) => x >= 0).length;
+        const avg = levels.reduce((a, x) => a + Math.max(0, x), 0) / EQ_LEVELS;
+        parts.push({ id: item.id, label: item.label, percent: Math.round(avg), detail: `${tried}/${EQ_LEVELS} levels tried` });
+        break;
+      }
       case 'mymix': {
         // Auto-scored on completion: a mix plus a written explanation of at least MY_MIX_MIN_WORDS words.
         // The teacher still listens and can adjust.

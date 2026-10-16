@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { ChannelSettings, MasterSettings, MyMix, ScenarioItem, TabId, ChallengeTabId, isChallengeTab, CHALLENGE_TABS } from './types/audio';
+import { ChannelSettings, MasterSettings, MyMix, ScenarioItem, TabId, ChallengeTabId, isChallengeTab, CHALLENGE_TABS, EqSectionId, EqWizardScores, emptyEqScores } from './types/audio';
+import { EqWizard } from './components/eqwizard/EqWizard';
+import { GeqFoldout } from './components/GeqFoldout';
 import { readAssignmentFromUrl, isEverything, matchAverage } from './utils/assignment';
 import { audioEngine } from './audio/audioEngine';
 import { BUILTIN_SONGS } from './audio/stemSynthesizer';
@@ -31,6 +33,7 @@ export default function App() {
   // Unassigned challenges are hidden.
   const assignment = useMemo(() => readAssignmentFromUrl(), []);
   const visibleChallenges = CHALLENGE_TABS.filter(t => assignment.items.includes(t.id));
+  const visibleEqSections = (['freqid', 'freqband', 'freqtweak'] as EqSectionId[]).filter(s => assignment.items.includes(s));
 
   // Which challenge the CHALLENGES tab returns to
   const [lastChallengeTab, setLastChallengeTab] = useState<ChallengeTabId>(visibleChallenges[0]?.id ?? 'scenarios');
@@ -49,6 +52,7 @@ export default function App() {
   const [whatChangedFinished, setWhatChangedFinished] = useState<boolean>(false);
   const [matchScores, setMatchScores] = useState<Record<string, number>>({});
   const [learnCompleted, setLearnCompleted] = useState<boolean>(false);
+  const [eqScores, setEqScores] = useState<EqWizardScores>(() => emptyEqScores());
   const [activeScenarioId, setActiveScenarioId] = useState<number>(1);
 
   // Mixer state
@@ -336,6 +340,7 @@ export default function App() {
     const tab: TabId = requested === 'challenges' ? lastChallengeTab : requested;
     if (tab === activeTab) return;
     if (isChallengeTab(tab) && !assignment.items.includes(tab)) return; // not part of this assignment
+    if (tab === 'eqwizard' && visibleEqSections.length === 0) return;
     if (isChallengeTab(tab)) setLastChallengeTab(tab);
     if (isPlaying) {
       handlePause();
@@ -371,8 +376,9 @@ export default function App() {
 
   // An assignment link opens straight onto the first assigned challenge
   useEffect(() => {
-    if (!isEverything(assignment) && visibleChallenges.length) {
-      handleSelectTab(visibleChallenges[0].id);
+    if (!isEverything(assignment)) {
+      if (visibleChallenges.length) handleSelectTab(visibleChallenges[0].id);
+      else if (visibleEqSections.length) handleSelectTab('eqwizard');
     }
   }, []);
 
@@ -390,6 +396,7 @@ export default function App() {
         return;
       }
       if (e.code === 'Space') {
+        if (activeTab === 'eqwizard') return; // EQ Wizard has its own play buttons
         e.preventDefault();
         if (isPlaying) {
           handlePause();
@@ -400,7 +407,7 @@ export default function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, currentTime]);
+  }, [isPlaying, currentTime, activeTab]);
 
   // Helper to render the interactive audio console bay
   const renderConsoleBay = (title?: string) => (
@@ -440,6 +447,7 @@ export default function App() {
           onOpenXRay={(channelId, channelName) => setXrayState({ isOpen: true, channelId, channelName })}
         />
       )}
+      <GeqFoldout master={master} onUpdateMaster={handleUpdateMaster} />
     </div>
   );
 
@@ -462,6 +470,7 @@ export default function App() {
         activeTab={activeTab}
         onSelectTab={handleSelectTab}
         showChallenges={visibleChallenges.length > 0}
+        showEqWizard={visibleEqSections.length > 0}
         onLoadCustomMultitrack={handleLoadCustomMultitrack}
       />
 
@@ -593,6 +602,22 @@ export default function App() {
           </div>
         )}
 
+        {/* EQ WIZARD (frequency ear training) */}
+        {activeTab === 'eqwizard' && (
+          <EqWizard
+            sections={visibleEqSections}
+            assignmentTitle={isEverything(assignment) && !assignment.title ? '' : assignment.title || 'Your assignment'}
+            scores={eqScores}
+            onRecord={(section, level, pct) =>
+              setEqScores(prev => {
+                const next = { ...prev, [section]: [...prev[section]] };
+                next[section][level] = Math.max(prev[section][level], pct);
+                return next;
+              })
+            }
+          />
+        )}
+
         {/* GRADE REPORT & TEACHER BATCH GRADING */}
         {activeTab === 'grades' && (
           <GradeReport
@@ -601,6 +626,7 @@ export default function App() {
             matchScores={matchScores}
             learnCompleted={learnCompleted}
             myMix={myMix}
+            eqScores={eqScores}
             assignment={assignment}
             onListenToMix={handleListenToStudentMix}
           />

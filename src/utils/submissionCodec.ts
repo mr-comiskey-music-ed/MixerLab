@@ -1,4 +1,4 @@
-import { ChannelSettings, MasterSettings, MyMix, StudentSubmission } from '../types/audio';
+import { ChannelSettings, MasterSettings, MyMix, StudentSubmission, EqWizardScores, EQ_LEVELS, emptyEqScores } from '../types/audio';
 import { CHANNEL_DEFAULTS, MASTER_DEFAULTS, makeDefaultChannels } from './mixDefaults';
 
 /**
@@ -38,7 +38,8 @@ const CHANNEL_KEYS: Record<ChannelKey, string> = {
   pan: 'n', mute: 'u', soloPfl: 's', faderLevel: 'v'
 };
 const MASTER_KEYS: Record<keyof MasterSettings, string> = {
-  mainFader: 'm', aux1Master: 'a', fxReturn: 'r', fxMute: 'u', fxType: 't', phonesLevel: 'p', chorusIntensity: 'c'
+  mainFader: 'm', aux1Master: 'a', fxReturn: 'r', fxMute: 'u', fxType: 't', phonesLevel: 'p', chorusIntensity: 'c',
+  geqMode: 'q', geq10: 'e', geq31: 'E'
 };
 const invert = (m: Record<string, string>) => Object.fromEntries(Object.entries(m).map(([k, v]) => [v, k]));
 const CHANNEL_LONG = invert(CHANNEL_KEYS);
@@ -69,6 +70,12 @@ function packMaster(master: MasterSettings): Record<string, unknown> {
   for (const k of Object.keys(MASTER_KEYS) as (keyof MasterSettings)[]) {
     const v = master[k];
     if (v === undefined) continue;
+    if (Array.isArray(v)) {
+      // Graphic EQ bands: only worth sending if a band has moved
+      if (v.some((x) => x !== 0)) out[MASTER_KEYS[k]] = v.map(round2);
+      continue;
+    }
+    if (k === 'geqMode' && v === 'off') continue;
     if (v !== MASTER_DEFAULTS[k]) out[MASTER_KEYS[k]] = packVal(v);
   }
   return out;
@@ -84,6 +91,15 @@ export function packSubmission(sub: StudentSubmission): Record<string, unknown> 
   if (sub.scores.whatChanged) out.w = sub.scores.whatChanged;
   if (Object.keys(sub.scores.matchScores).length) out.m = sub.scores.matchScores;
   if (sub.scores.learnCompleted) out.l = 1;
+  const eq = sub.scores.eqWizard;
+  if (eq) {
+    // EQ Wizard best scores per level; -1 (not tried) travels as -1
+    const q: Record<string, number[]> = {};
+    if (eq.freqid.some((x) => x >= 0)) q.i = eq.freqid;
+    if (eq.freqband.some((x) => x >= 0)) q.b = eq.freqband;
+    if (eq.freqtweak.some((x) => x >= 0)) q.k = eq.freqtweak;
+    if (Object.keys(q).length) out.q = q;
+  }
   if (sub.assignment) {
     out.a = sub.assignment.letters;
     if (sub.assignment.title) out.T = sub.assignment.title;
@@ -121,6 +137,18 @@ function unpackMyMix(mm: Record<string, any>): MyMix {
   return { songId, channels, master, explanation: typeof mm.e === 'string' ? mm.e : '' };
 }
 
+function unpackEq(q: any): EqWizardScores {
+  const out = emptyEqScores();
+  if (!q || typeof q !== 'object') return out;
+  const take = (arr: any, into: number[]) => {
+    if (Array.isArray(arr)) arr.slice(0, EQ_LEVELS).forEach((v, i) => (into[i] = Number(v)));
+  };
+  take(q.i, out.freqid);
+  take(q.b, out.freqband);
+  take(q.k, out.freqtweak);
+  return out;
+}
+
 export function unpackSubmission(packed: Record<string, any>): StudentSubmission {
   return {
     timestamp: new Date((Number(packed.t) || 0) * 1000).toISOString(),
@@ -130,7 +158,8 @@ export function unpackSubmission(packed: Record<string, any>): StudentSubmission
       whatChanged: Number(packed.w) || 0,
       matchScores: packed.m || {},
       learnCompleted: packed.l === 1,
-      totalPercentage: Number(packed.g) || 0
+      totalPercentage: Number(packed.g) || 0,
+      eqWizard: unpackEq(packed.q)
     },
     myMix: packed.x ? unpackMyMix(packed.x) : undefined,
     assignment: typeof packed.a === 'string' ? { letters: packed.a, title: typeof packed.T === 'string' ? packed.T : '' } : undefined

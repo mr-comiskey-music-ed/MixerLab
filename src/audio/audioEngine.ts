@@ -1,5 +1,6 @@
 import { ChannelSettings, MasterSettings } from '../types/audio';
 import { generateSyntheticSongStems, BUILTIN_SONGS } from './stemSynthesizer';
+import { GEQ_10, GEQ_31, GEQ_10_Q, GEQ_31_Q } from './eqBands';
 
 export interface ChannelNodes {
   preampGain: GainNode;
@@ -95,6 +96,13 @@ export class AudioEngine {
   public aux1Analyser: AnalyserNode | null = null;
   public phonesGain: GainNode | null = null;
 
+  // Graphic EQ on the main mix: OFF / 10-band / 31-band paths, only one open at a time
+  private geq10Filters: BiquadFilterNode[] = [];
+  private geq31Filters: BiquadFilterNode[] = [];
+  private geqOffGain: GainNode | null = null;
+  private geq10Gain: GainNode | null = null;
+  private geq31Gain: GainNode | null = null;
+
   // DSP FX Multi-Processor
   public fxBusGain: GainNode | null = null;
   public fxReturnGain: GainNode | null = null;
@@ -187,14 +195,43 @@ export class AudioEngine {
     this.masterAnalyserR.fftSize = 128;
     this.masterAnalyserR.smoothingTimeConstant = 0.0;
 
-    this.masterFader.connect(this.masterSplitter);
+    // Main mix -> graphic EQ (off / 10 / 31 band) -> meters & speakers
+    const geqIn = this.ctx.createGain();
+    const geqOut = this.ctx.createGain();
+    this.masterFader.connect(geqIn);
+    const buildChain = (freqs: number[], q: number) => {
+      const filters = freqs.map((f) => {
+        const bf = this.ctx!.createBiquadFilter();
+        bf.type = 'peaking';
+        bf.frequency.value = f;
+        bf.Q.value = q;
+        bf.gain.value = 0;
+        return bf;
+      });
+      filters.reduce<AudioNode>((prev, f) => { prev.connect(f); return f; }, geqIn);
+      return filters;
+    };
+    this.geq10Filters = buildChain(GEQ_10, GEQ_10_Q);
+    this.geq31Filters = buildChain(GEQ_31, GEQ_31_Q);
+    this.geqOffGain = this.ctx.createGain();
+    this.geq10Gain = this.ctx.createGain();
+    this.geq31Gain = this.ctx.createGain();
+    this.geqOffGain.gain.value = 1;
+    this.geq10Gain.gain.value = 0;
+    this.geq31Gain.gain.value = 0;
+    geqIn.connect(this.geqOffGain);
+    this.geq10Filters[this.geq10Filters.length - 1].connect(this.geq10Gain);
+    this.geq31Filters[this.geq31Filters.length - 1].connect(this.geq31Gain);
+    [this.geqOffGain, this.geq10Gain, this.geq31Gain].forEach((g) => g.connect(geqOut));
+
+    geqOut.connect(this.masterSplitter);
     this.masterSplitter.connect(this.masterAnalyserL, 0);
     this.masterSplitter.connect(this.masterAnalyserR, 1);
 
     // Phones / Control Room
     this.phonesGain = this.ctx.createGain();
     this.phonesGain.gain.value = 0.8;
-    this.masterFader.connect(this.phonesGain);
+    geqOut.connect(this.phonesGain);
     this.phonesGain.connect(this.ctx.destination);
 
     // Aux 1 Master Bus
@@ -872,6 +909,14 @@ export class AudioEngine {
     // Phones
     const phonesLinear = (m.phonesLevel / 100) * 1.2;
     this.phonesGain?.gain.setTargetAtTime(phonesLinear, now, 0.02);
+
+    // Graphic EQ on the main mix
+    const mode = m.geqMode || 'off';
+    this.geqOffGain?.gain.setTargetAtTime(mode === 'off' ? 1 : 0, now, 0.02);
+    this.geq10Gain?.gain.setTargetAtTime(mode === '10' ? 1 : 0, now, 0.02);
+    this.geq31Gain?.gain.setTargetAtTime(mode === '31' ? 1 : 0, now, 0.02);
+    this.geq10Filters.forEach((f, i) => f.gain.setTargetAtTime(m.geq10?.[i] ?? 0, now, 0.02));
+    this.geq31Filters.forEach((f, i) => f.gain.setTargetAtTime(m.geq31?.[i] ?? 0, now, 0.02));
 
     // FX Algorithm Emulation (Plate, Hall, Delay, Chorus)
     this.setFxType(m.fxType);
