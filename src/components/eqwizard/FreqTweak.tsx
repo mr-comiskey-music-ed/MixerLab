@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { EQ_QUESTIONS } from '../../types/audio';
 import { audioEngine } from '../../audio/audioEngine';
 import { eqWizardPlayer, channelEqSpecs, FilterSpec } from '../../audio/eqWizardAudio';
-import { Clip, StemInfo, loadAllWizardStems, pickStemClip, goodStarts } from '../../audio/clipFinder';
+import { StemClip, loadClipLibrary, getClipBuffer } from '../../audio/clipLibrary';
 import { Knob } from '../Knob';
 import {
   FREQ_TWEAK_LEVELS, FreqTweakLevel, TweakBand, TweakKnob, TweakQuestion, TweakSettings, FLAT_TWEAK,
@@ -17,34 +17,34 @@ interface Props {
   onQuit: () => void;
 }
 
-const CLIP_SECONDS = 8;
 const FIXED_MID_FREQ = 2500;
 
 // Which bands an instrument has enough sound in for a change to be heard
-const canUseFor = (stem: StemInfo) => (b: TweakBand) =>
+const canUseFor = (stem: StemClip) => (b: TweakBand) =>
   b === 'low' ? stem.lowShare >= 0.12 : b === 'high' ? stem.highShare >= 0.003 : true;
-const freqRangeFor = (stem: StemInfo): [number, number] =>
+const freqRangeFor = (stem: StemClip): [number, number] =>
   stem.highShare < 0.001 ? [200, 800] : stem.lowShare < 0.05 ? [1500, 5000] : [250, 4000];
 
 interface Round {
-  stem: StemInfo;
-  clip: Clip;
+  stem: StemClip; // the clip itself (one instrument)
   question: TweakQuestion;
 }
 
-function makeRound(level: FreqTweakLevel, qIndex: number, stems: StemInfo[], lastStem?: StemInfo): Round | null {
+const samePart = (a?: StemClip, b?: StemClip) => !!a && !!b && a.songId === b.songId && a.stemIndex === b.stemIndex;
+
+function makeRound(level: FreqTweakLevel, qIndex: number, stems: StemClip[], recent: StemClip[]): Round | null {
   const levelBands = (['low', 'mid', 'high'] as TweakBand[]).filter((b) => level.active.includes(b));
   const needMulti = qIndex >= 6 && levelBands.length > 1;
   const shuffled = [...stems].sort(() => Math.random() - 0.5);
-  const ordered = [...shuffled.filter((s) => s !== lastStem), ...shuffled.filter((s) => s === lastStem)];
+  // Prefer instruments not heard in the last few questions, and never the exact same clip twice in a row
+  const isRecent = (s: StemClip) => recent.some((r) => samePart(r, s));
+  const ordered = [...shuffled.filter((s) => !isRecent(s)), ...shuffled.filter((s) => isRecent(s) && s.file !== recent[recent.length - 1]?.file)];
   for (const stem of ordered) {
     const usable = levelBands.filter(canUseFor(stem));
     if (usable.length === 0 || (needMulti && usable.length < 2)) continue;
-    const clip = pickStemClip(stem, CLIP_SECONDS);
-    if (!clip) continue;
     const question = makeTweakQuestion(level, qIndex, canUseFor(stem), freqRangeFor(stem));
     if (!level.active.includes('freq')) question.fix.freq = FIXED_MID_FREQ;
-    return { stem, clip, question };
+    return { stem, question };
   }
   return null;
 }
@@ -57,7 +57,7 @@ const fmtHz = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(2)} kHz` : `${Ma
 
 export const FreqTweak: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }) => {
   const level = FREQ_TWEAK_LEVELS[levelIndex];
-  const [stems, setStems] = useState<StemInfo[] | null>(null);
+  const [stems, setStems] = useState<StemClip[] | null>(null);
   const [qIndex, setQIndex] = useState(0);
   const [round, setRound] = useState<Round | null>(null);
   const [rounds, setRounds] = useState<Round[]>([]);
@@ -70,7 +70,7 @@ export const FreqTweak: React.FC<Props> = ({ levelIndex, best, onDone, onQuit })
 
   useEffect(() => {
     eqWizardPlayer.onChange = () => force((n) => n + 1);
-    loadAllWizardStems().then((all) => setStems(all.filter((s) => goodStarts(s.blocksDb, CLIP_SECONDS).length > 0)));
+    loadClipLibrary().then((lib) => setStems(lib.stems)).catch(() => setStems([]));
     return () => {
       eqWizardPlayer.stopAll();
       eqWizardPlayer.onChange = undefined;
@@ -81,7 +81,8 @@ export const FreqTweak: React.FC<Props> = ({ levelIndex, best, onDone, onQuit })
   useEffect(() => {
     if (!stems || finished) return;
     eqWizardPlayer.stopAll();
-    const r = makeRound(level, qIndex, stems, rounds[qIndex - 1]?.stem);
+    const r = makeRound(level, qIndex, stems, rounds.slice(Math.max(0, qIndex - 3), qIndex).map((x) => x.stem));
+    if (r) getClipBuffer(r.stem.file).catch(() => {}); // start downloading right away
     setRound(r);
     setRounds((prev) => {
       const next = [...prev];
@@ -102,7 +103,7 @@ export const FreqTweak: React.FC<Props> = ({ levelIndex, best, onDone, onQuit })
     eqWizardPlayer.updateStudent(studentSpecs(next));
   };
 
-  const play = () => round && eqWizardPlayer.playClip(round.clip, changeSpecs(round.question.fix), studentSpecs(knobs));
+  const play = () => round && eqWizardPlayer.playClip(round.stem, changeSpecs(round.question.fix), studentSpecs(knobs));
   const flip = (w: 'A' | 'B') => {
     setWhich(w);
     eqWizardPlayer.setWhich(w);
@@ -175,7 +176,7 @@ export const FreqTweak: React.FC<Props> = ({ levelIndex, best, onDone, onQuit })
       ) : (
         <>
           <p className="text-sm text-zinc-300">
-            The <strong className="text-orange-300">{round.stem.stemName}</strong> ({round.stem.songTitle}) has had its EQ
+            The <strong className="text-orange-300">{round.stem.stemName}</strong> part from {round.stem.songTitle} has had its EQ
             knocked out of shape. Turn the knobs until <strong className="text-orange-300">YOURS</strong> sounds like the{' '}
             <strong className="text-sky-300">TARGET</strong>, then submit.
           </p>

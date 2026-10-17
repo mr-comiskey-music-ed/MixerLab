@@ -650,6 +650,8 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                 </div>
 
                 <div className="w-full flex flex-col items-center justify-around flex-1 gap-2">
+                  {/* GAIN + COMPRESSOR side by side */}
+                  <div className="w-full grid grid-cols-2 gap-1.5">
                   {/* DIGITAL PREAMP GAIN */}
                   <div
                     onDoubleClick={() => updateSelectedField('gain', 0)}
@@ -658,7 +660,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                   >
                     <div className="flex items-center gap-1 justify-center w-full">
                       <Knob
-                        label="PREAMP GAIN"
+                        label="GAIN"
                         value={selectedCh.gain}
                         min={-60}
                         max={20}
@@ -696,23 +698,26 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                     </div>
                   </div>
 
-                  {/* ONE-KNOB COMPRESSOR (directly under Preamp Gain) */}
+                  {/* ONE-KNOB COMPRESSOR (next to the gain knob) */}
                   <div
                     onDoubleClick={() => updateSelectedField('comp', 0)}
                     className={`w-full flex flex-col items-center bg-zinc-900/50 p-1.5 rounded border border-zinc-850 cursor-pointer${matchMode ? ' opacity-25 grayscale pointer-events-none' : ''}`}
                     title="Double-click to turn the compressor off"
                   >
                     <CompKnob
-                      label="COMPRESSOR"
+                      label="COMP"
                       value={selectedCh.comp ?? 0}
                       gainReductionDb={meterLevels.channels[selectedChannelIndex]?.compGr ?? 0}
                       onChange={(v) => updateSelectedField('comp', v)}
                     />
                   </div>
+                  </div>
 
+                  {/* AUX & FX + PAN side by side */}
+                  <div className="w-full grid grid-cols-3 gap-1.5">
                   {/* AUX & FX SENDS */}
                   <div
-                    className={`w-full flex flex-col items-center bg-zinc-900/50 p-1.5 rounded border border-zinc-850 gap-1${matchMode ? ' opacity-25 grayscale pointer-events-none' : ''}`}
+                    className={`col-span-2 flex flex-col items-center bg-zinc-900/50 p-1.5 rounded border border-zinc-850 gap-1${matchMode ? ' opacity-25 grayscale pointer-events-none' : ''}`}
                     title="Aux & FX Sends"
                   >
                     <span className="text-[9px] font-mono text-zinc-400 font-bold">AUX & FX</span>
@@ -749,7 +754,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                   {/* PAN */}
                   <div
                     onDoubleClick={() => updateSelectedField('pan', 0)}
-                    className="w-full flex flex-col items-center bg-zinc-900/50 p-1.5 rounded border border-zinc-850 cursor-pointer"
+                    className="flex flex-col items-center justify-center bg-zinc-900/50 p-1.5 rounded border border-zinc-850 cursor-pointer"
                     title="Double-click to reset Pan to Center (Default)"
                   >
                     <Knob
@@ -765,6 +770,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                       formatValue={(v) => (Math.abs(v) < 0.5 ? 'C' : v < 0 ? `L${Math.abs(Math.round(v))}` : `R${Math.round(v)}`)}
                       onChange={(v) => updateSelectedField('pan', v / 64)}
                     />
+                  </div>
                   </div>
                 </div>
               </div>
@@ -843,20 +849,6 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                       formatValue={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB`}
                       onChange={(v) => updateSelectedField('eqLow', v)}
                     />
-                    <input
-                      type="range"
-                      min={-15}
-                      max={15}
-                      step={0.5}
-                      value={selectedCh.eqLow}
-                      onChange={(e) => updateSelectedField('eqLow', parseFloat(e.target.value))}
-                      onDoubleClick={(e) => {
-                        e.stopPropagation();
-                        updateSelectedField('eqLow', 0);
-                      }}
-                      title="Double-click to reset Low Gain to 0.0 dB"
-                      className="w-full accent-cyan-500 cursor-pointer mt-0.5"
-                    />
                   </div>
 
                   {/* MID (Parametric Sweepable Center & Gain) */}
@@ -911,37 +903,6 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                       />
                     </div>
 
-                    {/* Sliders for Mid Gain and Frequency Selector */}
-                    <div className="w-full flex flex-col gap-0.5">
-                      <input
-                        type="range"
-                        min={-15}
-                        max={15}
-                        step={0.5}
-                        value={selectedCh.eqMid}
-                        onChange={(e) => updateSelectedField('eqMid', parseFloat(e.target.value))}
-                        onDoubleClick={(e) => {
-                          e.stopPropagation();
-                          updateSelectedField('eqMid', 0);
-                        }}
-                        title="Double-click to reset Mid Gain to 0.0 dB"
-                        className="w-full accent-teal-500 cursor-pointer h-1.5"
-                      />
-                      <input
-                        type="range"
-                        min={100}
-                        max={8000}
-                        step={25}
-                        value={selectedCh.eqMidFreq || 2500}
-                        onChange={(e) => updateSelectedField('eqMidFreq', parseFloat(e.target.value))}
-                        onDoubleClick={(e) => {
-                          e.stopPropagation();
-                          updateSelectedField('eqMidFreq', 2500);
-                        }}
-                        title="Double-click to reset Mid Freq to 2.50 kHz default"
-                        className="w-full accent-indigo-500 cursor-pointer h-1.5"
-                      />
-                    </div>
                   </div>
 
                   {/* HIGH (12kHz Shelf) */}
@@ -969,20 +930,6 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                       defaultValue={0}
                       formatValue={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB`}
                       onChange={(v) => updateSelectedField('eqHigh', v)}
-                    />
-                    <input
-                      type="range"
-                      min={-15}
-                      max={15}
-                      step={0.5}
-                      value={selectedCh.eqHigh}
-                      onChange={(e) => updateSelectedField('eqHigh', parseFloat(e.target.value))}
-                      onDoubleClick={(e) => {
-                        e.stopPropagation();
-                        updateSelectedField('eqHigh', 0);
-                      }}
-                      title="Double-click to reset High Gain to 0.0 dB"
-                      className="w-full accent-sky-400 cursor-pointer mt-0.5"
                     />
                   </div>
                 </div>

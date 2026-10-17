@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChannelSettings, MasterSettings, MyMix, StudentSubmission, EqWizardScores } from '../types/audio';
 import { SCENARIOS } from './ScenarioChallenges';
-import { BUILTIN_SONGS } from '../audio/stemSynthesizer';
+import { BUILTIN_SONGS } from '../audio/songs';
 import { summarizeMixChanges } from '../utils/mixChanges';
 import { encodeSubmission, decodeSubmission } from '../utils/submissionCodec';
 import {

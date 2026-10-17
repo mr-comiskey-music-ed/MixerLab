@@ -75,7 +75,6 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
       <div className="inline-flex bg-zinc-950 p-2 rounded-2xl border border-zinc-800 shadow-2xl gap-1">
         {/* CHANNELS 1 to 6 (Scaled to horizontally fit tablet landscape) */}
         {channels.map((ch, idx) => {
-          const isStereo = idx >= 4;
           const meter = meterLevels.channels[idx] || { level: 0, clipped: false };
 
           return (
@@ -116,11 +115,11 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
               {/* Preamp & Input Section */}
               <div className={`flex flex-col items-center gap-1 bg-zinc-950/60 p-1 rounded border border-zinc-850${matchMode ? ' opacity-25 grayscale pointer-events-none' : ''}`}>
                 <span className="text-[10px] uppercase font-semibold text-zinc-400 tracking-wider text-center leading-none">
-                  {isStereo ? 'TRIM' : 'GAIN'}
+                  GAIN
                 </span>
                 <div className="flex items-center gap-1 w-full justify-center">
                   <Knob
-                    label={isStereo ? "TRIM" : "GAIN"}
+                    label="GAIN"
                     hideLabel
                     value={ch.gain}
                     min={-60}
@@ -159,8 +158,7 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
 
                 {/* Input Switches */}
                 <div className="grid grid-cols-2 gap-1 w-full mt-0.5">
-                  {!isStereo ? (
-                    <button
+                  <button
                       onClick={() => handleChannelField(idx, 'phantom48V', !ch.phantom48V)}
                       className={`text-[8px] font-mono font-bold py-1 px-0.5 rounded border transition-all ${
                         ch.phantom48V
@@ -170,9 +168,6 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
                     >
                       +48V
                     </button>
-                  ) : (
-                    <div className="text-[8px] font-mono text-center text-zinc-600 py-1">LINE</div>
-                  )}
 
                   {idx < 2 ? (
                     <button
@@ -308,7 +303,7 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
               {/* Pan (-64 to +64 DAW coding) */}
               <div className="flex flex-col items-center bg-zinc-950/40 p-1 rounded border border-zinc-850">
                 <Knob
-                  label={isStereo ? "BAL" : "PAN"}
+                  label="PAN"
                   value={Math.round(ch.pan * 64)}
                   min={-64}
                   max={64}

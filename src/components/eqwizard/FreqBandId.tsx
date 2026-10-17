@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { EQ_QUESTIONS } from '../../types/audio';
 import { GEQ_31 } from '../../audio/eqBands';
 import { eqWizardPlayer } from '../../audio/eqWizardAudio';
-import { Clip, EQ_WIZARD_SONGS, getSongStems, pickMixClip } from '../../audio/clipFinder';
+import { Clip, loadClipLibrary, pickMixClip, getClipBuffer, songTitle } from '../../audio/clipLibrary';
+import { BUILTIN_SONGS } from '../../audio/songs';
 import { GraphicEQ, GeqOverlay } from '../GraphicEQ';
 import { FREQ_BAND_LEVELS, freqBandChange, makeFreqBandQuestions, levelPct } from './levels';
 import { QuizHeader, LevelResults, ABSwitch, useHotkeys, KeyHint } from './QuizParts';
@@ -14,13 +15,13 @@ interface Props {
   onQuit: () => void;
 }
 
-const CLIP_SECONDS = 9;
 const LOOP_FADE_SECONDS = 1.2; // fade in and out on every pass of the loop
 
 export const FreqBandId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }) => {
   const level = FREQ_BAND_LEVELS[levelIndex];
-  const songIds = EQ_WIZARD_SONGS.map((s) => s.id);
-  const [questions, setQuestions] = useState(() => makeFreqBandQuestions(level, EQ_QUESTIONS, songIds));
+  // Every song, in a fresh random order each time, so each level hears a mix of songs
+  const shuffledSongs = () => [...BUILTIN_SONGS.map((s) => s.id)].sort(() => Math.random() - 0.5);
+  const [questions, setQuestions] = useState(() => makeFreqBandQuestions(level, EQ_QUESTIONS, shuffledSongs()));
   const [qIndex, setQIndex] = useState(0);
   const [picks, setPicks] = useState<(string | null)[]>(() => Array(EQ_QUESTIONS).fill(null));
   const [finished, setFinished] = useState(false);
@@ -45,15 +46,21 @@ export const FreqBandId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }
     let cancelled = false;
     setLoading(true);
     eqWizardPlayer.stopAll();
-    getSongStems(q.songId).then((stems) => {
-      if (cancelled) return;
-      const c = pickMixClip(stems, CLIP_SECONDS, usedClips.current);
-      if (c) usedClips.current = [...usedClips.current.slice(-6), c];
-      setClip(c);
-      setWhich('A');
-      eqWizardPlayer.which = 'A';
-      setLoading(false);
-    });
+    loadClipLibrary()
+      .then(async (lib) => {
+        if (cancelled) return;
+        const c = pickMixClip(lib, q.songId, usedClips.current);
+        if (c) {
+          usedClips.current = [...usedClips.current.slice(-12), c];
+          await getClipBuffer(c.file); // download now so PLAY starts right away
+        }
+        if (cancelled) return;
+        setClip(c);
+        setWhich('A');
+        eqWizardPlayer.which = 'A';
+        setLoading(false);
+      })
+      .catch(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
@@ -125,7 +132,7 @@ export const FreqBandId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }
   };
 
   const retry = () => {
-    setQuestions(makeFreqBandQuestions(level, EQ_QUESTIONS, songIds));
+    setQuestions(makeFreqBandQuestions(level, EQ_QUESTIONS, shuffledSongs()));
     setPicks(Array(EQ_QUESTIONS).fill(null));
     setQIndex(0);
     setFinished(false);
@@ -140,7 +147,7 @@ export const FreqBandId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }
         accuracy={accuracy}
         best={best}
         review={questions.map((qq, i) => ({
-          text: `${EQ_WIZARD_SONGS.find((s) => s.id === qq.songId)?.title}: ${describe(qq.bandId, qq.dir)}`,
+          text: `${songTitle(qq.songId)}: ${describe(qq.bandId, qq.dir)}`,
           pct: results[i] ?? 0
         }))}
         onRetry={retry}
@@ -149,7 +156,7 @@ export const FreqBandId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }
     );
   }
 
-  const song = EQ_WIZARD_SONGS.find((s) => s.id === q.songId);
+  const song = BUILTIN_SONGS.find((s) => s.id === q.songId);
 
   return (
     <div className="w-full max-w-5xl mx-auto bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 flex flex-col gap-4">

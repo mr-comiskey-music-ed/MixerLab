@@ -1,5 +1,5 @@
 import { ChannelSettings, MasterSettings } from '../types/audio';
-import { generateSyntheticSongStems, BUILTIN_SONGS } from './stemSynthesizer';
+import { BUILTIN_SONGS, DEFAULT_SONG_ID } from './songs';
 import { GEQ_10, GEQ_31, GEQ_10_Q, GEQ_31_Q } from './eqBands';
 
 export interface ChannelNodes {
@@ -81,7 +81,7 @@ export class AudioEngine {
   public ctx: AudioContext | null = null;
   public channels: ChannelNodes[] = [];
   public channelSettings: ChannelSettings[] = [];
-  public currentSongId: string = 'song1';
+  public currentSongId: string = DEFAULT_SONG_ID;
   public stemBuffers: AudioBuffer[] = [];
   public isPlaying: boolean = false;
   public isLooping: boolean = true;
@@ -184,9 +184,8 @@ export class AudioEngine {
     this.setupMasterNodes();
     this.setupFeedbackSimulator();
     this.setupChannels();
+    // Only the current song is loaded; other songs load when a student switches to them.
     this.loadSong(this.currentSongId);
-    this.preloadSong('song2').catch(() => {});
-    this.preloadSong('song3').catch(() => {});
   }
 
   private setupMasterNodes() {
@@ -611,6 +610,28 @@ export class AudioEngine {
     return audioBuffer;
   }
 
+  /** Decoded songs kept in memory (most recent last). Older ones are dropped to save memory on Chromebooks. */
+  private static readonly MAX_CACHED_SONGS = 2;
+
+  private touchCache(songId: string) {
+    const bufs = this.cachedSongBuffers.get(songId);
+    if (!bufs) return;
+    this.cachedSongBuffers.delete(songId);
+    this.cachedSongBuffers.set(songId, bufs);
+    while (this.cachedSongBuffers.size > AudioEngine.MAX_CACHED_SONGS) {
+      const oldest = this.cachedSongBuffers.keys().next().value as string;
+      if (oldest === this.currentSongId) break;
+      this.cachedSongBuffers.delete(oldest);
+    }
+  }
+
+  /** Six silent stereo buffers, used while a song is still downloading. */
+  private silentStems(seconds: number): AudioBuffer[] {
+    const sr = this.ctx!.sampleRate || 44100;
+    return Array.from({ length: 6 }, () => this.ctx!.createBuffer(2, Math.max(1, Math.floor(sr * seconds)), sr));
+  }
+
+  /** Downloads and decodes a song's six stems (with their level trims). */
   public async preloadSong(songId: string): Promise<AudioBuffer[]> {
     if (this.cachedSongBuffers.has(songId)) {
       return this.cachedSongBuffers.get(songId)!;
@@ -618,34 +639,21 @@ export class AudioEngine {
     if (this.pendingSongLoads.has(songId)) {
       return this.pendingSongLoads.get(songId)!;
     }
-
     const song = BUILTIN_SONGS.find(s => s.id === songId);
     if (!song) return [];
-
-    const hasUrls = song.stems.some(s => !!s.url);
-    if (!hasUrls) {
-      if (!this.ctx) this.init();
-      const bufs = generateSyntheticSongStems(this.ctx!, songId);
-      this.cachedSongBuffers.set(songId, bufs);
-      return bufs;
-    }
-
-    const defaultGainFactor = song.stemGainDb !== undefined ? Math.pow(10, song.stemGainDb / 20) : 1.0;
+    if (!this.ctx) this.init();
 
     const loadPromise = (async () => {
-      if (!this.ctx) this.init();
-      const buffers = await Promise.all(
-        song.stems.map(async (stem) => {
-          if (stem.url) {
-            const factor = stem.gainFactor ?? defaultGainFactor;
-            return await this.fetchAndDecodeAudio(stem.url, factor);
-          }
-          return this.ctx!.createBuffer(2, Math.floor((this.ctx!.sampleRate || 44100) * 8), this.ctx!.sampleRate || 44100);
-        })
-      );
-      this.cachedSongBuffers.set(songId, buffers);
-      this.pendingSongLoads.delete(songId);
-      return buffers;
+      try {
+        const buffers = await Promise.all(
+          song.stems.map((stem) => (stem.url ? this.fetchAndDecodeAudio(stem.url, stem.gainFactor ?? 1) : Promise.resolve(this.silentStems(8)[0])))
+        );
+        this.cachedSongBuffers.set(songId, buffers);
+        this.touchCache(songId);
+        return buffers;
+      } finally {
+        this.pendingSongLoads.delete(songId);
+      }
     })();
 
     this.pendingSongLoads.set(songId, loadPromise);
@@ -662,11 +670,11 @@ export class AudioEngine {
     this.pauseOffset = 0;
 
     const song = BUILTIN_SONGS.find(s => s.id === songId);
-    const hasUrls = song?.stems.some(s => !!s.url);
 
-    // If already cached, switch instantly
+    // Already in memory: switch instantly
     if (this.cachedSongBuffers.has(songId)) {
       this.stemBuffers = this.cachedSongBuffers.get(songId)!;
+      this.touchCache(songId);
       this.loopDuration = this.stemBuffers[0]?.duration || 8.0;
       if (this.onDurationChange) {
         this.onDurationChange(this.loopDuration);
@@ -677,23 +685,12 @@ export class AudioEngine {
       return this.stemBuffers;
     }
 
-    // If song has no audio file URLs, generate synthetic stems synchronously
-    if (!hasUrls) {
-      this.stemBuffers = generateSyntheticSongStems(this.ctx!, songId);
-      this.loopDuration = this.stemBuffers[0]?.duration || 8.0;
-      this.cachedSongBuffers.set(songId, this.stemBuffers);
-      if (this.onDurationChange) {
-        this.onDurationChange(this.loopDuration);
-      }
-      if (wasPlaying) {
-        this.play(0);
-      }
-      return this.stemBuffers;
+    // Silence while the song downloads
+    this.loopDuration = song?.durationSec ?? 30;
+    this.stemBuffers = this.silentStems(this.loopDuration);
+    if (this.onDurationChange) {
+      this.onDurationChange(this.loopDuration);
     }
-
-    // Fallback temporary buffers while loading
-    this.stemBuffers = generateSyntheticSongStems(this.ctx!, songId);
-    this.loopDuration = song?.durationSec ?? (songId === 'song3' ? 28.68 : 65.856);
 
     try {
       const buffers = await this.preloadSong(songId);

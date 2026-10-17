@@ -1,6 +1,6 @@
 import { LogoIcon, LogoWordmark } from './BrandLogo';
 import React, { useRef } from 'react';
-import { BUILTIN_SONGS } from '../audio/stemSynthesizer';
+import { BUILTIN_SONGS } from '../audio/songs';
 import { TabId, isChallengeTab, tabAccent } from '../types/audio';
 
 interface TransportHeaderProps {

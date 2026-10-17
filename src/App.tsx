@@ -4,7 +4,7 @@ import { EqWizard } from './components/eqwizard/EqWizard';
 import { GeqFoldout } from './components/GeqFoldout';
 import { readAssignmentFromUrl, isEverything, matchAverage } from './utils/assignment';
 import { audioEngine } from './audio/audioEngine';
-import { BUILTIN_SONGS } from './audio/stemSynthesizer';
+import { BUILTIN_SONGS, DEFAULT_SONG_ID } from './audio/songs';
 import { TransportHeader } from './components/TransportHeader';
 import { AnalogConsole } from './components/AnalogConsole';
 import { DigitalConsole } from './components/DigitalConsole';
@@ -21,7 +21,7 @@ import { makeDefaultChannels, makeDefaultMaster } from './utils/mixDefaults';
 type MixState = { channels: ChannelSettings[]; master: MasterSettings };
 
 export default function App() {
-  const [currentSongId, setCurrentSongId] = useState<string>('song1');
+  const [currentSongId, setCurrentSongId] = useState<string>(DEFAULT_SONG_ID);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isLooping, setIsLooping] = useState<boolean>(true);
   const [currentTime, setCurrentTime] = useState<number>(0);
@@ -56,7 +56,7 @@ export default function App() {
   const [activeScenarioId, setActiveScenarioId] = useState<number>(1);
 
   // Mixer state
-  const [channels, setChannels] = useState<ChannelSettings[]>(() => makeDefaultChannels('song1'));
+  const [channels, setChannels] = useState<ChannelSettings[]>(() => makeDefaultChannels(DEFAULT_SONG_ID));
   const [master, setMaster] = useState<MasterSettings>(() => makeDefaultMaster());
 
   // Match the Mix: which reference is open, A/B state, and each reference's in-progress mix
@@ -269,7 +269,7 @@ export default function App() {
   // Apply scenario state (resets mixer to clean defaults first, then applies scenario overrides).
   // Scenarios are written for the funk song's channel layout (Lead Vocal on Ch 3, etc.).
   const handleApplyScenarioState = (setup: ScenarioItem['setupState']) => {
-    const songId = setup.songId || 'song1';
+    const songId = setup.songId || DEFAULT_SONG_ID;
     if (songId !== currentSongId) {
       handleSelectSong(songId);
     }

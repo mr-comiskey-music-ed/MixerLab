@@ -1,5 +1,5 @@
 import { ChannelSettings, MasterSettings } from '../types/audio';
-import { BUILTIN_SONGS } from '../audio/stemSynthesizer';
+import { BUILTIN_SONGS, DEFAULT_SONG_ID } from '../audio/songs';
 
 /** Starting settings for one channel strip (a "zeroed" console). */
 export const CHANNEL_DEFAULTS: Omit<ChannelSettings, 'id' | 'name' | 'type'> = {
@@ -31,7 +31,7 @@ export const MASTER_DEFAULTS: MasterSettings = {
 };
 
 /** Six zeroed channels, named after the stems of the given song. */
-export function makeDefaultChannels(songId: string = 'song1'): ChannelSettings[] {
+export function makeDefaultChannels(songId: string = DEFAULT_SONG_ID): ChannelSettings[] {
   const song = BUILTIN_SONGS.find(s => s.id === songId) || BUILTIN_SONGS[0];
   return song.stems.map((stem, idx) => ({
     id: idx + 1,

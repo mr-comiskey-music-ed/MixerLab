@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BUILTIN_SONGS } from '../audio/stemSynthesizer';
+import { BUILTIN_SONGS } from '../audio/songs';
 
 interface MyMixProps {
   songId: string;

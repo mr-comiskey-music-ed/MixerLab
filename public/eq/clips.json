@@ -1,0 +1,1114 @@
+{
+ "mix": [
+  {
+   "songId": "song1",
+   "file": "/eq/mix_song1_1.mp3",
+   "start": 0,
+   "duration": 9
+  },
+  {
+   "songId": "song1",
+   "file": "/eq/mix_song1_2.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song1",
+   "file": "/eq/mix_song1_3.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song1",
+   "file": "/eq/mix_song1_4.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song1",
+   "file": "/eq/mix_song1_5.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song1",
+   "file": "/eq/mix_song1_6.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song6",
+   "file": "/eq/mix_song6_1.mp3",
+   "start": 0,
+   "duration": 9
+  },
+  {
+   "songId": "song6",
+   "file": "/eq/mix_song6_2.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song6",
+   "file": "/eq/mix_song6_3.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song6",
+   "file": "/eq/mix_song6_4.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song6",
+   "file": "/eq/mix_song6_5.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song6",
+   "file": "/eq/mix_song6_6.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song6",
+   "file": "/eq/mix_song6_7.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song6",
+   "file": "/eq/mix_song6_8.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song2",
+   "file": "/eq/mix_song2_1.mp3",
+   "start": 0,
+   "duration": 9
+  },
+  {
+   "songId": "song2",
+   "file": "/eq/mix_song2_2.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song2",
+   "file": "/eq/mix_song2_3.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song2",
+   "file": "/eq/mix_song2_4.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song2",
+   "file": "/eq/mix_song2_5.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song2",
+   "file": "/eq/mix_song2_6.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song2",
+   "file": "/eq/mix_song2_7.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song2",
+   "file": "/eq/mix_song2_8.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song3",
+   "file": "/eq/mix_song3_1.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song3",
+   "file": "/eq/mix_song3_2.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song3",
+   "file": "/eq/mix_song3_3.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song3",
+   "file": "/eq/mix_song3_4.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song4",
+   "file": "/eq/mix_song4_1.mp3",
+   "start": 0,
+   "duration": 9
+  },
+  {
+   "songId": "song4",
+   "file": "/eq/mix_song4_2.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song4",
+   "file": "/eq/mix_song4_3.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song4",
+   "file": "/eq/mix_song4_4.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song5",
+   "file": "/eq/mix_song5_1.mp3",
+   "start": 0,
+   "duration": 9
+  },
+  {
+   "songId": "song5",
+   "file": "/eq/mix_song5_2.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song5",
+   "file": "/eq/mix_song5_3.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song5",
+   "file": "/eq/mix_song5_4.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song5",
+   "file": "/eq/mix_song5_5.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song5",
+   "file": "/eq/mix_song5_6.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song5",
+   "file": "/eq/mix_song5_7.mp3",
+   "start": 0.3,
+   "duration": 9
+  },
+  {
+   "songId": "song5",
+   "file": "/eq/mix_song5_8.mp3",
+   "start": 0.3,
+   "duration": 9
+  }
+ ],
+ "stems": [
+  {
+   "songId": "song1",
+   "stemIndex": 0,
+   "stemName": "Drums",
+   "lowShare": 0.842,
+   "highShare": 0.00714,
+   "file": "/eq/stem_song1_1_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 0,
+   "stemName": "Drums",
+   "lowShare": 0.799,
+   "highShare": 0.00827,
+   "file": "/eq/stem_song1_1_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 0,
+   "stemName": "Drums",
+   "lowShare": 0.836,
+   "highShare": 0.00869,
+   "file": "/eq/stem_song1_1_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 1,
+   "stemName": "Bass",
+   "lowShare": 0.664,
+   "highShare": 0.0003,
+   "file": "/eq/stem_song1_2_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 1,
+   "stemName": "Bass",
+   "lowShare": 0.696,
+   "highShare": 0.00026,
+   "file": "/eq/stem_song1_2_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 1,
+   "stemName": "Bass",
+   "lowShare": 0.684,
+   "highShare": 0.00026,
+   "file": "/eq/stem_song1_2_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 2,
+   "stemName": "E Guits",
+   "lowShare": 0.174,
+   "highShare": 0.01026,
+   "file": "/eq/stem_song1_3_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 2,
+   "stemName": "E Guits",
+   "lowShare": 0.184,
+   "highShare": 0.01041,
+   "file": "/eq/stem_song1_3_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 2,
+   "stemName": "E Guits",
+   "lowShare": 0.211,
+   "highShare": 0.00757,
+   "file": "/eq/stem_song1_3_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 3,
+   "stemName": "A Guit",
+   "lowShare": 0.276,
+   "highShare": 0.01024,
+   "file": "/eq/stem_song1_4_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 3,
+   "stemName": "A Guit",
+   "lowShare": 0.277,
+   "highShare": 0.01135,
+   "file": "/eq/stem_song1_4_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 3,
+   "stemName": "A Guit",
+   "lowShare": 0.278,
+   "highShare": 0.01996,
+   "file": "/eq/stem_song1_4_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 4,
+   "stemName": "Piano & Organ",
+   "lowShare": 0.213,
+   "highShare": 0.01049,
+   "file": "/eq/stem_song1_5_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 4,
+   "stemName": "Piano & Organ",
+   "lowShare": 0.227,
+   "highShare": 0.00902,
+   "file": "/eq/stem_song1_5_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 4,
+   "stemName": "Piano & Organ",
+   "lowShare": 0.248,
+   "highShare": 0.01152,
+   "file": "/eq/stem_song1_5_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 5,
+   "stemName": "Vocals",
+   "lowShare": 0.105,
+   "highShare": 0.02291,
+   "file": "/eq/stem_song1_6_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 5,
+   "stemName": "Vocals",
+   "lowShare": 0.109,
+   "highShare": 0.02542,
+   "file": "/eq/stem_song1_6_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song1",
+   "stemIndex": 5,
+   "stemName": "Vocals",
+   "lowShare": 0.116,
+   "highShare": 0.02302,
+   "file": "/eq/stem_song1_6_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 0,
+   "stemName": "Drums",
+   "lowShare": 0.017,
+   "highShare": 0.21802,
+   "file": "/eq/stem_song6_1_1.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 0,
+   "stemName": "Drums",
+   "lowShare": 0.018,
+   "highShare": 0.22002,
+   "file": "/eq/stem_song6_1_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 0,
+   "stemName": "Drums",
+   "lowShare": 0.019,
+   "highShare": 0.21721,
+   "file": "/eq/stem_song6_1_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 1,
+   "stemName": "808",
+   "lowShare": 0.813,
+   "highShare": 0.00018,
+   "file": "/eq/stem_song6_2_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 1,
+   "stemName": "808",
+   "lowShare": 0.805,
+   "highShare": 0.00017,
+   "file": "/eq/stem_song6_2_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 1,
+   "stemName": "808",
+   "lowShare": 0.84,
+   "highShare": 0.00015,
+   "file": "/eq/stem_song6_2_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 2,
+   "stemName": "Hums",
+   "lowShare": 0.224,
+   "highShare": 0.00167,
+   "file": "/eq/stem_song6_3_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 2,
+   "stemName": "Hums",
+   "lowShare": 0.22,
+   "highShare": 0.0017,
+   "file": "/eq/stem_song6_3_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 2,
+   "stemName": "Hums",
+   "lowShare": 0.216,
+   "highShare": 0.00174,
+   "file": "/eq/stem_song6_3_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 3,
+   "stemName": "Other",
+   "lowShare": 0.198,
+   "highShare": 0.00299,
+   "file": "/eq/stem_song6_4_1.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 3,
+   "stemName": "Other",
+   "lowShare": 0.195,
+   "highShare": 0.00474,
+   "file": "/eq/stem_song6_4_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 3,
+   "stemName": "Other",
+   "lowShare": 0.209,
+   "highShare": 0.006,
+   "file": "/eq/stem_song6_4_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 4,
+   "stemName": "Vox Dbl/AdLib",
+   "lowShare": 0.051,
+   "highShare": 0.0467,
+   "file": "/eq/stem_song6_5_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 4,
+   "stemName": "Vox Dbl/AdLib",
+   "lowShare": 0.046,
+   "highShare": 0.04772,
+   "file": "/eq/stem_song6_5_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 4,
+   "stemName": "Vox Dbl/AdLib",
+   "lowShare": 0.042,
+   "highShare": 0.04602,
+   "file": "/eq/stem_song6_5_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 5,
+   "stemName": "Lead Vocal",
+   "lowShare": 0.09,
+   "highShare": 0.04724,
+   "file": "/eq/stem_song6_6_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 5,
+   "stemName": "Lead Vocal",
+   "lowShare": 0.06,
+   "highShare": 0.05445,
+   "file": "/eq/stem_song6_6_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song6",
+   "stemIndex": 5,
+   "stemName": "Lead Vocal",
+   "lowShare": 0.048,
+   "highShare": 0.0681,
+   "file": "/eq/stem_song6_6_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 0,
+   "stemName": "Drums",
+   "lowShare": 0.706,
+   "highShare": 0.00959,
+   "file": "/eq/stem_song2_1_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 0,
+   "stemName": "Drums",
+   "lowShare": 0.685,
+   "highShare": 0.01037,
+   "file": "/eq/stem_song2_1_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 0,
+   "stemName": "Drums",
+   "lowShare": 0.675,
+   "highShare": 0.01001,
+   "file": "/eq/stem_song2_1_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 1,
+   "stemName": "Bass",
+   "lowShare": 0.704,
+   "highShare": 0.00022,
+   "file": "/eq/stem_song2_2_1.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 1,
+   "stemName": "Bass",
+   "lowShare": 0.694,
+   "highShare": 0.00023,
+   "file": "/eq/stem_song2_2_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 1,
+   "stemName": "Bass",
+   "lowShare": 0.738,
+   "highShare": 0.00018,
+   "file": "/eq/stem_song2_2_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 2,
+   "stemName": "Dist E Guit",
+   "lowShare": 0.36,
+   "highShare": 0.00414,
+   "file": "/eq/stem_song2_3_1.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 2,
+   "stemName": "Dist E Guit",
+   "lowShare": 0.335,
+   "highShare": 0.00366,
+   "file": "/eq/stem_song2_3_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 2,
+   "stemName": "Dist E Guit",
+   "lowShare": 0.536,
+   "highShare": 0.0005,
+   "file": "/eq/stem_song2_3_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 3,
+   "stemName": "Clean E Guit",
+   "lowShare": 0.165,
+   "highShare": 0.00691,
+   "file": "/eq/stem_song2_4_1.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 3,
+   "stemName": "Clean E Guit",
+   "lowShare": 0.204,
+   "highShare": 0.00385,
+   "file": "/eq/stem_song2_4_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 3,
+   "stemName": "Clean E Guit",
+   "lowShare": 0.213,
+   "highShare": 0.00311,
+   "file": "/eq/stem_song2_4_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 4,
+   "stemName": "A Guit",
+   "lowShare": 0.293,
+   "highShare": 0.00541,
+   "file": "/eq/stem_song2_5_1.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 4,
+   "stemName": "A Guit",
+   "lowShare": 0.329,
+   "highShare": 0.00463,
+   "file": "/eq/stem_song2_5_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 4,
+   "stemName": "A Guit",
+   "lowShare": 0.275,
+   "highShare": 0.00248,
+   "file": "/eq/stem_song2_5_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 5,
+   "stemName": "Vocals",
+   "lowShare": 0.147,
+   "highShare": 0.0122,
+   "file": "/eq/stem_song2_6_1.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 5,
+   "stemName": "Vocals",
+   "lowShare": 0.089,
+   "highShare": 0.01926,
+   "file": "/eq/stem_song2_6_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song2",
+   "stemIndex": 5,
+   "stemName": "Vocals",
+   "lowShare": 0.312,
+   "highShare": 0.00131,
+   "file": "/eq/stem_song2_6_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song3",
+   "stemIndex": 0,
+   "stemName": "808 & Kick",
+   "lowShare": 0.832,
+   "highShare": 0.00019,
+   "file": "/eq/stem_song3_1_1.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song3",
+   "stemIndex": 0,
+   "stemName": "808 & Kick",
+   "lowShare": 0.831,
+   "highShare": 0.00019,
+   "file": "/eq/stem_song3_1_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song3",
+   "stemIndex": 2,
+   "stemName": "Hi-Hats",
+   "lowShare": 0.002,
+   "highShare": 0.28017,
+   "file": "/eq/stem_song3_3_1.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song3",
+   "stemIndex": 2,
+   "stemName": "Hi-Hats",
+   "lowShare": 0.002,
+   "highShare": 0.2791,
+   "file": "/eq/stem_song3_3_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song3",
+   "stemIndex": 4,
+   "stemName": "Synths & Strings",
+   "lowShare": 0.448,
+   "highShare": 0.00273,
+   "file": "/eq/stem_song3_5_1.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song3",
+   "stemIndex": 4,
+   "stemName": "Synths & Strings",
+   "lowShare": 0.369,
+   "highShare": 0.0019,
+   "file": "/eq/stem_song3_5_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song3",
+   "stemIndex": 5,
+   "stemName": "Piano",
+   "lowShare": 0.028,
+   "highShare": 0.02156,
+   "file": "/eq/stem_song3_6_1.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song4",
+   "stemIndex": 0,
+   "stemName": "Drums",
+   "lowShare": 0.805,
+   "highShare": 0.00763,
+   "file": "/eq/stem_song4_1_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song4",
+   "stemIndex": 0,
+   "stemName": "Drums",
+   "lowShare": 0.802,
+   "highShare": 0.00819,
+   "file": "/eq/stem_song4_1_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song4",
+   "stemIndex": 0,
+   "stemName": "Drums",
+   "lowShare": 0.814,
+   "highShare": 0.00614,
+   "file": "/eq/stem_song4_1_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song4",
+   "stemIndex": 1,
+   "stemName": "Perc",
+   "lowShare": 0.089,
+   "highShare": 0.05291,
+   "file": "/eq/stem_song4_2_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song4",
+   "stemIndex": 1,
+   "stemName": "Perc",
+   "lowShare": 0.093,
+   "highShare": 0.05331,
+   "file": "/eq/stem_song4_2_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song4",
+   "stemIndex": 1,
+   "stemName": "Perc",
+   "lowShare": 0.094,
+   "highShare": 0.05148,
+   "file": "/eq/stem_song4_2_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song4",
+   "stemIndex": 2,
+   "stemName": "Bass",
+   "lowShare": 0.693,
+   "highShare": 0.00049,
+   "file": "/eq/stem_song4_3_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song4",
+   "stemIndex": 2,
+   "stemName": "Bass",
+   "lowShare": 0.687,
+   "highShare": 0.0005,
+   "file": "/eq/stem_song4_3_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song4",
+   "stemIndex": 2,
+   "stemName": "Bass",
+   "lowShare": 0.717,
+   "highShare": 0.00043,
+   "file": "/eq/stem_song4_3_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song4",
+   "stemIndex": 3,
+   "stemName": "Synths",
+   "lowShare": 0.189,
+   "highShare": 0.00756,
+   "file": "/eq/stem_song4_4_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song4",
+   "stemIndex": 3,
+   "stemName": "Synths",
+   "lowShare": 0.171,
+   "highShare": 0.00799,
+   "file": "/eq/stem_song4_4_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song4",
+   "stemIndex": 3,
+   "stemName": "Synths",
+   "lowShare": 0.178,
+   "highShare": 0.00768,
+   "file": "/eq/stem_song4_4_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song4",
+   "stemIndex": 5,
+   "stemName": "Vocals",
+   "lowShare": 0.078,
+   "highShare": 0.05895,
+   "file": "/eq/stem_song4_6_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song4",
+   "stemIndex": 5,
+   "stemName": "Vocals",
+   "lowShare": 0.076,
+   "highShare": 0.04567,
+   "file": "/eq/stem_song4_6_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song4",
+   "stemIndex": 5,
+   "stemName": "Vocals",
+   "lowShare": 0.08,
+   "highShare": 0.04021,
+   "file": "/eq/stem_song4_6_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song5",
+   "stemIndex": 0,
+   "stemName": "Drums",
+   "lowShare": 0.417,
+   "highShare": 0.03822,
+   "file": "/eq/stem_song5_1_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song5",
+   "stemIndex": 0,
+   "stemName": "Drums",
+   "lowShare": 0.41,
+   "highShare": 0.04021,
+   "file": "/eq/stem_song5_1_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song5",
+   "stemIndex": 0,
+   "stemName": "Drums",
+   "lowShare": 0.404,
+   "highShare": 0.04327,
+   "file": "/eq/stem_song5_1_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song5",
+   "stemIndex": 2,
+   "stemName": "Synth Swells",
+   "lowShare": 0.18,
+   "highShare": 0.00241,
+   "file": "/eq/stem_song5_3_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song5",
+   "stemIndex": 2,
+   "stemName": "Synth Swells",
+   "lowShare": 0.19,
+   "highShare": 0.00244,
+   "file": "/eq/stem_song5_3_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song5",
+   "stemIndex": 2,
+   "stemName": "Synth Swells",
+   "lowShare": 0.198,
+   "highShare": 0.00217,
+   "file": "/eq/stem_song5_3_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song5",
+   "stemIndex": 3,
+   "stemName": "Synth Wobbles",
+   "lowShare": 0.115,
+   "highShare": 0.00642,
+   "file": "/eq/stem_song5_4_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song5",
+   "stemIndex": 3,
+   "stemName": "Synth Wobbles",
+   "lowShare": 0.118,
+   "highShare": 0.00628,
+   "file": "/eq/stem_song5_4_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song5",
+   "stemIndex": 3,
+   "stemName": "Synth Wobbles",
+   "lowShare": 0.113,
+   "highShare": 0.00654,
+   "file": "/eq/stem_song5_4_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song5",
+   "stemIndex": 4,
+   "stemName": "E Guit",
+   "lowShare": 0.181,
+   "highShare": 0.00483,
+   "file": "/eq/stem_song5_5_1.mp3",
+   "start": 0,
+   "duration": 8
+  },
+  {
+   "songId": "song5",
+   "stemIndex": 4,
+   "stemName": "E Guit",
+   "lowShare": 0.201,
+   "highShare": 0.00361,
+   "file": "/eq/stem_song5_5_2.mp3",
+   "start": 0.3,
+   "duration": 8
+  },
+  {
+   "songId": "song5",
+   "stemIndex": 4,
+   "stemName": "E Guit",
+   "lowShare": 0.159,
+   "highShare": 0.00486,
+   "file": "/eq/stem_song5_5_3.mp3",
+   "start": 0.3,
+   "duration": 8
+  }
+ ]
+}

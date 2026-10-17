@@ -1,5 +1,5 @@
 import { audioEngine } from './audioEngine';
-import { Clip, getSongStems } from './clipFinder';
+import { Clip, getClipBuffer } from './clipLibrary';
 
 /** One EQ filter: the same shapes the console uses (low shelf, peaking mid, high shelf). */
 export interface FilterSpec {
@@ -59,9 +59,9 @@ class EqWizardPlayer {
     this.stopAll();
     const myToken = this.token;
     const ctx = this.ctx;
-    const stems = await getSongStems(clip.songId);
+    const buffer = await getClipBuffer(clip.file);
     if (myToken !== this.token) return;
-    const buffers = clip.stemIndex !== undefined ? [stems[clip.stemIndex].buffer] : stems.map((s) => s.buffer);
+    const buffers = [buffer];
 
     this.out = ctx.createGain();
     this.out.gain.value = 0;

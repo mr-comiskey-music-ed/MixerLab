@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChannelSettings, MasterSettings } from '../types/audio';
-import { BUILTIN_SONGS } from '../audio/stemSynthesizer';
+import { BUILTIN_SONGS } from '../audio/songs';
 import { makeDefaultChannels, makeDefaultMaster } from '../utils/mixDefaults';
 
 export interface ReferenceTarget {

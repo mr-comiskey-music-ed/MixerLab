@@ -1,5 +1,6 @@
 import { ChannelSettings, MasterSettings, MyMix, StudentSubmission, EqWizardScores, EQ_LEVELS, emptyEqScores } from '../types/audio';
 import { CHANNEL_DEFAULTS, MASTER_DEFAULTS, makeDefaultChannels } from './mixDefaults';
+import { DEFAULT_SONG_ID } from '../audio/songs';
 
 /**
  * Compact submission codes.
@@ -119,7 +120,7 @@ export function packSubmission(sub: StudentSubmission): Record<string, unknown> 
 
 // ---------- Unpack ----------
 function unpackMyMix(mm: Record<string, any>): MyMix {
-  const songId = typeof mm.s === 'string' ? mm.s : 'song1';
+  const songId = typeof mm.s === 'string' ? mm.s : DEFAULT_SONG_ID;
   const channels = makeDefaultChannels(songId);
   for (const [idx, diff] of (mm.c || []) as [number, Record<string, any>][]) {
     const ch: any = channels[idx];
