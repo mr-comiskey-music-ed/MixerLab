@@ -693,7 +693,7 @@ export class AudioEngine {
 
     // Fallback temporary buffers while loading
     this.stemBuffers = generateSyntheticSongStems(this.ctx!, songId);
-    this.loopDuration = songId === 'song3' ? 28.68 : 65.856;
+    this.loopDuration = song?.durationSec ?? (songId === 'song3' ? 28.68 : 65.856);
 
     try {
       const buffers = await this.preloadSong(songId);
