@@ -219,105 +219,135 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
-  const stepsInfo = [
+  /*
+   * The 11 Learn steps. Channel 1 (Card Game's drums, or a noise test signal) is the practice channel.
+   * Keep text short and plain: what it is, the few facts that matter, one thing to try, one tip.
+   */
+  const stepsInfo: { step: number; chip: string; title: string; what: string; details?: string[]; task: string; tip: string }[] = [
     {
       step: 1,
-      title: "Gain & Peak Indicator (Input Trim & Headroom)",
-      subtitle: "The most critical step in live sound: setting proper input voltage without clipping.",
-      summary: "Every channel strip starts with the Preamp Gain (Trim). Microphones and instruments output very weak electrical voltages (millivolts). The preamp amplifies this weak signal up to nominal line level (+4 dBu).",
-      mechanics: "The Gain knob adjusts the pre-fader amplification factor. If you turn it too low, you'll have to crank the fader later, amplifying background noise/hiss. If you turn it too high, the signal exceeds preamp headroom (0 dBFS), triggering the red PEAK indicator box and causing harsh analog saturation and digital clipping distortion.",
-      actionTask: "Drag the red GAIN knob between -20dB and +20dB while audio is playing. Notice how turning it all the way up triggers the glowing red PEAK box to warn of preamp overload!",
-      proTip: "Set gain during sound check so the loudest transient hits peak around 0 to +6 on the meter, leaving plenty of headroom without ever lighting the red PEAK box."
+      chip: 'Gain',
+      title: 'Gain & the PEAK Light',
+      what: 'Mics and instruments put out a very weak signal. The GAIN knob at the top of each channel boosts it to a healthy working level before anything else happens to it.',
+      details: [
+        "Too little gain: you'll have to push the fader way up, and hiss and noise come up with it.",
+        'Too much gain: the signal overloads the channel, the red PEAK light comes on, and the sound distorts.',
+        "The fader can't fix distortion. It happens before the sound ever reaches the fader."
+      ],
+      task: 'Press PLAY. Turn GAIN up until the PEAK light comes on and listen to the distortion, then bring it back down until the light stays off.',
+      tip: 'Set gain at soundcheck while the musician plays their loudest: a strong signal, with the PEAK light never coming on.'
     },
     {
       step: 2,
-      title: "Utility Buttons",
-      subtitle: "Conditioning the raw electrical signal before it reaches any equalization.",
-      summary: "Directly below the input jack are essential hardware switches that configure electrical power, input impedance, and low-frequency filtering.",
-      mechanics: "• +48V Phantom Power: Delivers 48V DC through the XLR cable to polarize active condenser microphone capsules and power active DI boxes. Dynamic mics (like Shure SM58) don't need it.\n• Hi-Z (High Impedance): Shifts input impedance to ~1MΩ so passive electric guitar and bass pickups aren't loaded down ('tone suck').\n• 100Hz Low Cut (HPF): An 18dB/octave high-pass filter that cleans out stage footstep thumps, AC hum, and microphone handling rumble.",
-      actionTask: "Toggle the 100Hz LOW CUT button while listening to White Noise or Drums. Notice how the bottom-end weight immediately tightens up!",
-      proTip: "Engage the 100Hz Low Cut on every single channel except Kick Drum and Bass Guitar to prevent muddy low-end buildup in your subwoofer system."
+      chip: 'Buttons',
+      title: 'Input Buttons',
+      what: 'Under the gain knob are switches that get the signal ready before it gets shaped.',
+      details: [
+        "+48V (phantom power) sends power up the mic cable. Condenser mics need it to work; dynamic mics like the SM58 don't.",
+        'Hi-Z (channels 1-2) is for an electric guitar or bass plugged straight in.',
+        'Ø INV (phase invert) flips the signal. It fixes two mics on one instrument canceling each other out.',
+        '100Hz LOW CUT removes rumble and boom below about 100 Hz: stage thumps, handling noise, hum.'
+      ],
+      task: 'With WHITE NOISE or the drums playing, switch the 100Hz LOW CUT on and off. Listen to the bottom end.',
+      tip: "Use the low cut on parts that don't need deep bass, like vocals, guitars and keys. Leave it off for kick drum and bass."
     },
     {
       step: 3,
-      title: "Compressor (One-Knob Dynamics)",
-      subtitle: "Evening out the loud and quiet moments of a sound.",
-      summary: "Real performances are uneven: a singer belts one line and almost whispers the next, a bass player digs in harder on some notes. A compressor automatically turns DOWN the loudest moments so the whole performance sits at a steadier level, then turns the channel back up (make-up gain) so it doesn't just get quieter. The result sounds more controlled, consistent and up-front.",
-      mechanics: "A full studio compressor has many knobs (threshold, ratio, attack, release, make-up gain). Compact mixers like the Mackie ProFX and Yamaha MG combine them into ONE knob:\n• Turning COMP up lowers the THRESHOLD (the level where squashing starts) and raises the RATIO (how hard loud parts get pushed down) at the same time.\n• Make-up gain is added automatically, so turning it up doesn't just make the channel quieter.\n• The light shows GAIN REDUCTION, meaning how much the compressor is turning the signal down right now:\n   OFF = no compression\n   GREEN = LIGHT compression (about 1–6 dB)\n   YELLOW = MED (medium) compression (about 6–15 dB)\n   RED = HEAVY compression (15 dB or more)\n• On this mixer it sits right after the preamp and low cut, and before the EQ.",
-      actionTask: "Press PLAY (the DRUM STEM is the easiest to hear) and slowly turn the orange COMP knob up until the light turns YELLOW. Then switch it back and forth between OFF and your setting. Listen to the hits and the space between them: what changes?",
-      proTip: "Use your ears AND the light. Green to yellow is the normal working zone for vocals and bass. Living in the red squashes the life out of a sound, which can be a cool effect (think crushed, pumping drums), but it should be a choice, not an accident."
+      chip: 'Comp',
+      title: 'Compressor',
+      what: "A compressor automatically turns down the loudest moments so a performance sits at a steadier level, then turns the channel back up. The result sounds more even and up-front instead of just quieter.",
+      details: [
+        'Turning COMP up makes it start sooner and push harder.',
+        "The light shows how much it's turning the sound down right now: GREEN light (1-6 dB), YELLOW medium (6-15 dB), RED heavy (15 dB or more)."
+      ],
+      task: 'Choose DRUMS, press PLAY, and turn COMP up until the light turns yellow. Flip between OFF and your setting: what happens to the hits and the space between them?',
+      tip: 'Green to yellow is the normal range for vocals and bass. Red squashes the life out of a sound. That can be a cool effect, but make it a choice.'
     },
     {
       step: 4,
-      title: "Equalization",
-      subtitle: "Sculpting the tonal balance of each sound source to sit harmoniously in the mix.",
-      summary: "The 3-band EQ gives you frequency-shaping power: a Low shelf at 80Hz, a sweepable semi-parametric Mid peaking filter (100Hz to 8kHz, center frequency 2.5kHz default), and a High shelf at 10kHz.",
-      mechanics: "• LOW (80Hz Shelf): Boosts deep thump or cleans bottom-end mud.\n• MID FREQ (100Hz - 8kHz): Sweeps the center target frequency across the critical midrange audio spectrum.\n• MID GAIN (-15dB to +15dB): Boosts or cuts the selected mid frequency. Ideal for carving out boxiness (300Hz-600Hz) or boosting vocal clarity (2.5kHz-4kHz).\n• HIGH (10kHz Shelf): Adds silky air and cymbal sheen, or tames harsh sibilance.",
-      actionTask: "Listen to the White Noise or Drum stem while sweeping the MID FREQ knob with MID GAIN boosted. Hear how the resonant frequency glides across the spectrum!",
-      proTip: "Cut before you boost. Instead of boosting highs and lows to make a track louder, cut muddy midrange frequencies to create space in your mix."
+      chip: 'EQ',
+      title: 'EQ',
+      what: "EQ turns specific frequency ranges up or down to shape a sound's tone.",
+      details: [
+        'LOW (80 Hz): weight and boom.',
+        'MID with MID FREQ: boost or cut one range you choose, from 100 Hz to 8 kHz. Low mids (300-600 Hz) sound boxy or muddy; upper mids (2-4 kHz) add presence and bite.',
+        'HIGH (10 kHz): air, sparkle and cymbal shimmer.'
+      ],
+      task: 'With WHITE NOISE playing, turn MID up, then sweep MID FREQ from left to right. Hear the boosted range move from low to high.',
+      tip: "Cut before you boost. Taking out what's muddy or harsh often helps more than turning up what you like."
     },
     {
       step: 5,
-      title: "Aux / Monitor Send & Master FX Processor",
-      subtitle: "Creating independent stage monitor mixes and feeding reverb/delay effects.",
-      summary: "Aux (Auxiliary) and FX sends allow you to branch copies of the audio off the channel strip to different destinations.",
-      mechanics: "• Aux 1 (MON) is Pre-Fader: This means the monitor send is tapped BEFORE the channel fader. When you move the main channel fader to adjust the Front of House (FOH) volume for the audience, the musician's stage wedge or in-ear monitor (IEM) mix NEVER changes!\n• FX Send is Post-Fader: This is tapped AFTER the channel fader. When you pull the fader down, the reverb/delay send fades down with it, avoiding awkward lingering 'ghost' reverb from silenced channels.\n• Master FX Section: Receives all channel FX sends into professional Plate Reverb, Concert Hall, Tap Tempo Delay, or Stereo Chorus, returned via the FX Return control.",
-      actionTask: "Turn up the FX SEND knob to 0 dB, then adjust the Master FX Return in the master section to hear rich studio plate reverb bloom!",
-      proTip: "Never use post-fader sends for performer stage monitors, and never use pre-fader sends for reverbs."
+      chip: 'Aux & FX',
+      title: 'Aux & FX Sends',
+      what: 'Sends make a copy of the channel and send it somewhere besides the main speakers.',
+      details: [
+        "AUX (MON) feeds the stage monitors. It's pre-fader: moving the channel fader doesn't change what the musician hears.",
+        "FX feeds the console's built-in effect (reverb, delay or chorus). It's post-fader: pull the fader down and the effect goes with it.",
+        'FX RETURN, in the master section, sets how much of the effect comes back into the mix.'
+      ],
+      task: "Turn up this channel's FX send, then turn up FX RETURN below. Try PLATE, HALL, DELAY and CHORUS.",
+      tip: 'AUX (pre-fader) for monitors, FX (post-fader) for effects.'
     },
     {
       step: 6,
-      title: "Stereo Panning (Pan Law & Spatial Placement)",
-      subtitle: "Placing instruments across the stereo soundstage from Left to Right.",
-      summary: "The PAN (Panoramic Potentiometer) control divides the channel's signal between the Left and Right master summing buses.",
-      mechanics: "The mixer uses an industry-standard constant-power pan law: in the center position, both speakers receive equal power. Turning the knob left attenuates the right speaker, smoothly panning the perceived acoustic image.",
-      actionTask: "Rotate the yellow PAN knob from Hard Left to Hard Right. Listen to how white noise or music glides cleanly between your headphones/monitors!",
-      proTip: "Keep Kick Drum, Bass Guitar, Snare, and Lead Vocals dead center for punch and subwoofer efficiency. Pan guitars, synths, and backing vocals wide for stereo dimension."
+      chip: 'Pan',
+      title: 'Pan',
+      what: 'PAN places a sound anywhere from the left speaker to the right.',
+      details: ['In the center, it plays equally in both speakers.', 'Two similar parts are easier to hear apart when they sit on opposite sides.'],
+      task: 'With headphones on, turn PAN from all the way left to all the way right.',
+      tip: 'Keep kick, snare, bass and lead vocal in the center. Spread guitars, keys and backing vocals to the sides.'
     },
     {
       step: 7,
-      title: "Mute & Solo Isolation",
-      subtitle: "Instantly cutting channels or isolating tracks for focused troubleshooting.",
-      summary: "The MUTE and SOLO buttons are your primary diagnostic switches during rehearsal and live performance.",
-      mechanics: "• MUTE: Silences the channel immediately from the Main Mix bus, preventing unwanted microphone bleed or feedback when an instrument is not being played.\n• SOLO: Isolates only the selected channel(s) in playback, muting all non-soloed channels. You can solo multiple channels together (e.g. Kick + Bass) to inspect their rhythm groove in complete isolation.",
-      actionTask: "Click the SOLO button on Channel 1. Notice how the amber SOLO LED lights up, isolating Channel 1 so no other channels interfere!",
-      proTip: "Always mute open microphones when musicians leave the stage to prevent sudden feedback screech."
+      chip: 'Mute/Solo',
+      title: 'Mute & Solo',
+      what: 'Two buttons for quick checks.',
+      details: ['MUTE silences the channel.', 'SOLO plays only the soloed channels. Solo two or more to hear how they fit together.'],
+      task: 'Press SOLO on Channel 1, then try MUTE.',
+      tip: "Mute mics that aren't being used so they don't pick up noise or start feeding back."
     },
     {
       step: 8,
-      title: "Channel Fader",
-      subtitle: "The primary volume control balancing this channel in the overall mix.",
-      summary: "The channel fader is a long-throw linear potentiometer (60mm on compact consoles, 100mm on touring consoles) that determines how much signal feeds the stereo master bus.",
-      mechanics: "Audio faders use a logarithmic taper matching human hearing: the fader provides high resolution around the 0 dB 'Unity' mark (a 1cm physical movement changes volume by only ~2dB), while at the bottom of the track a small movement drops volume rapidly to -infinity.",
-      actionTask: "Move the channel fader up and down. Double-click the slider handle to immediately snap it back to 0.0 dB Unity!",
-      proTip: "If your channel fader has to sit at -30 dB or +10 dB to get a balanced volume, your initial input Preamp Gain was set incorrectly. Re-adjust Gain so your faders can ride comfortably near 0 dB."
+      chip: 'Fader',
+      title: 'Channel Fader',
+      what: 'The fader sets how loud this channel is in the mix compared to the others.',
+      details: ['0 dB (unity) is the home position.', 'The fader is most precise near 0 dB. Near the bottom, small moves make big changes.'],
+      task: 'Move the fader up and down. Double-click it to snap back to 0 dB.',
+      tip: 'If a fader has to sit way down or way up to sound right, fix the gain instead so the fader can stay near 0 dB.'
     },
     {
       step: 9,
-      title: "Main Mix Master Section & FOH Summing Bus",
-      subtitle: "Summing all channels together into the final stereo mix for the audience.",
-      summary: "The Master section is where all individual channels, Aux returns, and FX returns combine into a single stereo signal feeding the PA system.",
-      mechanics: "The Main Fader sets the overall volume sent to the main speakers. The Master VU Meters display Left and Right peak and RMS audio levels. If both meters flash RED continuously, the master summing bus is clipping and the master fader must be pulled down.",
-      actionTask: "Inspect the Master Section on the left. Move the red Main Mix Master Fader up and down to observe how the stereo summing bus and master VU meters respond to master output volume!",
-      proTip: "Always leave your master fader at 0 dB (Unity) and balance individual channel faders against it for optimal dynamic range and signal-to-noise ratio."
+      chip: 'Master',
+      title: 'Master Section',
+      what: 'Every channel, plus the effect return, adds up in the master section and goes out to the main speakers.',
+      details: [
+        'The MAIN MIX fader turns the whole mix up or down without changing the balance.',
+        'The meters show the level of the whole mix. If they reach the top and the PEAK light flashes, the mix is too hot.'
+      ],
+      task: 'Move the MAIN MIX fader and watch the meters respond.',
+      tip: 'Build your mix with the channel faders while the master sits at 0 dB. Use the master to turn the whole show up or down.'
     },
     {
       step: 10,
-      title: "Analog vs. Digital Consoles (Why the Workflow Changes)",
-      subtitle: "Comparing 'One-Knob-Per-Function' hardware with modern digital touch screens.",
-      summary: "Understanding why digital mixers look and feel different from classic analog mixing boards.",
-      mechanics: "• Analog Consoles: Feature physical knobs and switches for every single control on every channel. What you see is what you get—fast, tactile, but physically huge and limited to fixed routing.\n• Digital Consoles: Use motorized faders and assignable layers. Selecting a channel displays its expanded digital processing bay on a central touchscreen with full visual parametric EQ curves, real-time spectrum analyzers (RTA), digital dynamics (compressor/gate), and instant scene recall.",
-      actionTask: "Click and drag the circular EQ nodes (LOW, MID, HIGH) directly on the digital touchscreen graph to sculpt the frequency curve and observe how the live RTA spectrum adapts!",
-      proTip: "In modern touring, digital consoles allow engineers to save entire concert mixes onto a USB drive and recall 100+ channels on any board in seconds."
+      chip: 'Digital',
+      title: 'Analog vs. Digital',
+      what: "Both consoles do the same jobs. They're just laid out differently.",
+      details: [
+        'Analog: a knob for every job on every channel. Quick to grab, but big.',
+        "Digital: select a channel and all of its controls appear on one screen, with an EQ graph you can drag and a live display of the sound's frequencies."
+      ],
+      task: 'On the digital console below, drag the LOW, MID and HIGH dots on the EQ graph.',
+      tip: "Digital consoles can save a whole show's settings and bring them back in seconds."
     },
     {
       step: 11,
-      title: "Signal Flow (The Audio Journey from Input to PA)",
-      subtitle: "The master blueprint: tracing how sound moves through every circuit.",
-      summary: "Signal Flow is the single most important concept in audio engineering. It is the exact sequence audio follows through the mixer.",
-      mechanics: "Input Jack ➔ Preamp Gain ➔ Phantom Power / Hi-Z ➔ 100Hz Low Cut ➔ Compressor ➔ 3-Band EQ ➔ [Pre-Fade Tap for Aux/Mon] ➔ Mute Switch ➔ Solo Bus ➔ Pan Pot ➔ Channel Fader ➔ [Post-Fade Tap for FX] ➔ Master Bus ➔ Main Fader ➔ PA Speakers.\nWhen an issue occurs (e.g. distortion, missing vocal, feedback), tracing this flow step-by-step pinpoints the problem in seconds.",
-      actionTask: "Click 'OPEN SIGNAL FLOW' to launch the interactive Signal Flow HUD and inspect the live route of your audio!",
-      proTip: "Whenever there's no sound, check Signal Flow from the beginning: 1) Cable, 2) Gain & 48V, 3) EQ cuts, 4) Mute & Solo, 5) Channel Fader, 6) Master Fader."
+      chip: 'Flow',
+      title: 'Signal Flow',
+      what: 'Signal flow is the path sound takes through the console, in order. When something goes wrong, following the path step by step finds the problem fast.',
+      details: ['Input → Gain → +48V / Hi-Z → Low Cut → Compressor → EQ → AUX send → Mute → Pan → Fader → FX send → Main Mix → speakers'],
+      task: 'Open the signal flow diagram and follow the path for Channel 1.',
+      tip: 'No sound? Work down the path: cable, gain and +48V, mute and solo, channel fader, master fader.'
     }
   ];
 
@@ -395,19 +425,6 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
             </div>
           </div>
 
-          {/* One-knob Compressor (Spotlighted on Step 3) */}
-          <div
-            className={`w-full rounded p-0.5 transition-all ${
-              currentStep === 3 ? 'ring-2 ring-orange-500/70 bg-orange-950/20 shadow-[0_0_12px_rgba(249,115,22,0.4)]' : ''
-            }`}
-          >
-            <CompKnob
-              value={ch.comp ?? 0}
-              gainReductionDb={compGr}
-              onChange={(v) => handleChannelField('comp', v)}
-            />
-          </div>
-
           {/* Input Switches (Spotlighted on Step 2) */}
           <div
             className={`grid grid-cols-2 gap-1 w-full mt-0.5 p-0.5 rounded transition-all ${
@@ -446,6 +463,19 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
             >
               100Hz LOW CUT
             </button>
+          </div>
+
+          {/* One-knob Compressor (Spotlighted on Step 3) */}
+          <div
+            className={`w-full rounded p-0.5 transition-all ${
+              currentStep === 3 ? 'ring-2 ring-orange-500/70 bg-orange-950/20 shadow-[0_0_12px_rgba(249,115,22,0.4)]' : ''
+            }`}
+          >
+            <CompKnob
+              value={ch.comp ?? 0}
+              gainReductionDb={compGr}
+              onChange={(v) => handleChannelField('comp', v)}
+            />
           </div>
         </div>
 
@@ -763,85 +793,89 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
     );
   };
 
-  return (
-    <div className="w-full max-w-6xl mx-auto flex flex-col gap-4 pb-12">
-      {/* Top Learning Academy Header */}
-      <div className="bg-gradient-to-r from-zinc-900 via-zinc-900 to-meter-950/40 p-4 rounded-xl border border-zinc-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-meter-500/20 border border-meter-400 flex items-center justify-center text-meter-400 font-mono font-bold text-lg shadow-[0_0_15px_color-mix(in_srgb,var(--acc-500)_40%,transparent)]">
-            {currentStep}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-meter-400 font-bold bg-meter-950/60 px-2 py-0.5 rounded border border-meter-800/60">
-                MIXER LAB ACADEMY // STEP {currentStep} OF 11
-              </span>
-              {completedSteps[currentStep] && (
-                <span className="text-[10px] font-mono text-emerald-400 font-bold flex items-center gap-1">
-                  ✓ COMPLETED
-                </span>
-              )}
-            </div>
-            <h2 className="text-lg sm:text-xl font-bold text-zinc-100 mt-0.5">
-              {currentStepData.title}
-            </h2>
-          </div>
-        </div>
+  const done = isCurrentStepCompleted;
 
-        {/* Audio Test Source Controller */}
-        <div className="flex items-center gap-2 bg-zinc-950 p-1.5 rounded-lg border border-zinc-850 text-xs font-mono">
-          <span className="text-zinc-400 text-[10px] uppercase font-bold pl-1 hidden sm:inline">
-            TEST AUDIO:
-          </span>
-          <button
-            onClick={() => setNoiseSource('white_noise')}
-            className={`px-2 py-1 rounded text-[11px] font-bold transition-all ${
-              activeAudioSource === 'white_noise'
-                ? 'bg-meter-500 text-zinc-950 shadow-sm'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
-            }`}
-            title="White Noise: Flat spectrum across all audible frequencies, ideal for hearing filters and EQ"
-          >
-            WHITE NOISE
-          </button>
-          <button
-            onClick={() => setNoiseSource('pink_noise')}
-            className={`px-2 py-1 rounded text-[11px] font-bold transition-all ${
-              activeAudioSource === 'pink_noise'
-                ? 'bg-pink-500 text-zinc-950 shadow-sm'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
-            }`}
-            title="Pink Noise: Balanced acoustic energy per octave"
-          >
-            PINK NOISE
-          </button>
-          <button
-            onClick={() => setNoiseSource('song')}
-            className={`px-2 py-1 rounded text-[11px] font-bold transition-all ${
-              activeAudioSource === 'song'
-                ? 'bg-emerald-500 text-zinc-950 shadow-sm'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
-            }`}
-            title="Channel 1 Multitrack Stem"
-          >
-            DRUM STEM
-          </button>
+  /** What Channel 1 plays: a test noise or Card Game's drums. */
+  const sourcePicker = (
+    <div className="w-full flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
+      <span className="text-zinc-400 font-bold mr-0.5">CH 1 PLAYS:</span>
+      {([
+        ['white_noise', 'White noise'],
+        ['pink_noise', 'Pink noise'],
+        ['song', 'Drums']
+      ] as const).map(([id, label]) => (
+        <button
+          key={id}
+          onClick={() => setNoiseSource(id)}
+          className={`px-2 py-1 rounded border font-bold transition-colors ${
+            activeAudioSource === id ? 'bg-meter-500 text-zinc-950 border-meter-400' : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+      <button
+        onClick={isPlaying ? onPause : onPlay}
+        className={`ml-auto px-3 py-1 rounded font-bold text-white transition-colors ${isPlaying ? 'bg-amber-600 hover:bg-amber-500' : 'bg-emerald-600 hover:bg-emerald-500'}`}
+      >
+        {isPlaying ? '❚❚ PAUSE' : '▶ PLAY'}
+      </button>
+    </div>
+  );
 
-          {/* Quick Play/Pause */}
-          <button
-            onClick={isPlaying ? onPause : onPlay}
-            className={`px-2.5 py-1 rounded font-bold text-xs flex items-center gap-1 transition-all ${
-              isPlaying
-                ? 'bg-amber-600 hover:bg-amber-500 text-white'
-                : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-            }`}
-          >
-            {isPlaying ? '❚❚ PAUSE' : '▶ PLAY'}
-          </button>
-        </div>
+  const lesson = (
+    <div className="flex flex-col gap-3">
+      <div>
+        <span className="font-mono text-[11px] font-bold text-meter-400">STEP {currentStep} OF {stepsInfo.length}</span>
+        <h2 className="text-2xl font-bold text-zinc-100 leading-tight">{currentStepData.title}</h2>
       </div>
+      <p className="font-mono text-sm leading-relaxed text-zinc-200">{currentStepData.what}</p>
+      {currentStepData.details && (
+        <ul className="flex flex-col gap-1.5 font-mono text-[13px] leading-relaxed text-zinc-300">
+          {currentStepData.details.map((d) => (
+            <li key={d} className="relative pl-4">
+              <span className="absolute left-0 text-meter-400">•</span>
+              {d}
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className={`rounded-r-lg border-l-2 px-3 py-2.5 ${done ? 'border-emerald-500 bg-emerald-950/30' : 'border-meter-400 bg-meter-500/10'}`}>
+        <span className={`font-mono text-[11px] font-bold ${done ? 'text-emerald-300' : 'text-meter-300'}`}>{done ? '✓ DONE' : 'TRY IT'}</span>
+        <p className="font-mono text-[13px] leading-relaxed text-zinc-100 mt-0.5">{currentStepData.task}</p>
+      </div>
+      <p className="font-mono text-xs leading-relaxed text-zinc-400">
+        <span className="font-bold text-zinc-300">Tip: </span>
+        {currentStepData.tip}
+      </p>
+    </div>
+  );
 
-      {/* Progress Chips Step Bar (Always navigable by clicking) */}
+  const nav = (
+    <div className="flex items-center justify-between border-t border-zinc-800 pt-3">
+      <button
+        onClick={handlePrev}
+        disabled={currentStep === 1}
+        className="px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-750 disabled:opacity-30 text-zinc-300 font-mono text-xs font-bold transition-colors"
+      >
+        ← BACK
+      </button>
+      <button
+        onClick={handleNext}
+        disabled={!done}
+        title={done ? undefined : 'Do the TRY IT task to continue'}
+        className={`px-4 py-1.5 rounded font-mono text-xs font-bold transition-colors ${
+          done ? 'bg-meter-500 hover:bg-meter-400 text-zinc-950' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+        }`}
+      >
+        {currentStep === stepsInfo.length ? 'GO TO MIX CONSOLE →' : 'NEXT →'}
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="w-full max-w-6xl mx-auto flex flex-col gap-3 pb-12">
+      {/* Steps */}
       <div className="grid grid-cols-6 sm:grid-cols-11 gap-1.5">
         {stepsInfo.map((s) => {
           const isCurrent = s.step === currentStep;
@@ -850,148 +884,47 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
             <button
               key={s.step}
               onClick={() => setCurrentStep(s.step)}
-              className={`p-1.5 rounded-lg border text-center font-mono text-[10px] transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
-                isCurrent
-                  ? 'bg-meter-500 text-zinc-950 font-bold border-meter-400 shadow-md ring-1 ring-meter-400'
-                  : isDone
-                  ? 'bg-emerald-950/30 text-emerald-300 border-emerald-800/60 hover:border-emerald-700'
-                  : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-zinc-200'
+              className={`px-1 py-1.5 rounded-lg border text-center transition-colors ${
+                isCurrent ? 'bg-meter-500/15 border-meter-400' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-600'
               }`}
             >
-              <span className="text-[9px] opacity-75">STEP {s.step}</span>
-              <span className="truncate w-full font-bold">
-                {s.step === 1 && "Gain"}
-                {s.step === 2 && "Buttons"}
-                {s.step === 3 && "Comp"}
-                {s.step === 4 && "EQ"}
-                {s.step === 5 && "Aux & FX"}
-                {s.step === 6 && "Pan"}
-                {s.step === 7 && "Mute/Solo"}
-                {s.step === 8 && "Fader"}
-                {s.step === 9 && "Master"}
-                {s.step === 10 && "Digital"}
-                {s.step === 11 && "Flow"}
+              <span className={`block font-mono text-[10px] ${isCurrent ? 'text-meter-300' : 'text-zinc-500'}`}>
+                {isDone ? '✓' : s.step}
+              </span>
+              <span className={`block truncate font-display text-[14px] font-semibold tracking-wide ${isCurrent ? 'text-meter-300' : 'text-zinc-300'}`}>
+                {s.chip}
               </span>
             </button>
           );
         })}
       </div>
 
-      {/* MAIN INTERACTIVE STAGE */}
       {currentStep === 10 ? (
-        /* STEP 10: RE-ORIENTED FULL-WIDTH DIGITAL VS ANALOG CONSOLE COMPARISON */
-        <div className="flex flex-col gap-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 shadow-xl flex flex-col gap-4">
-            {/* Step Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800 pb-3">
-              <div>
-                <span className="text-[15px] font-display font-bold text-meter-400 uppercase tracking-wider">
-                  CHAPTER 10: {currentStepData.title}
-                </span>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  {currentStepData.subtitle}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handlePrev}
-                  className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-750 text-zinc-300 font-mono text-xs font-bold transition-colors cursor-pointer"
-                >
-                  ← PREV
-                </button>
-                <button
-                  onClick={handleNext}
-                  disabled={!isCurrentStepCompleted}
-                  className={`px-3 py-1 rounded font-mono text-xs font-bold transition-all shadow-sm ${
-                    isCurrentStepCompleted
-                      ? 'bg-meter-500 hover:bg-meter-400 text-zinc-950 cursor-pointer shadow-[0_0_10px_color-mix(in_srgb,var(--acc-500)_40%,transparent)]'
-                      : 'bg-zinc-800 text-zinc-500 opacity-40 cursor-not-allowed'
-                  }`}
-                  title={isCurrentStepCompleted ? 'Proceed to next step' : 'Complete the Hands-On Lab Task to enable'}
-                >
-                  NEXT →
-                </button>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-col gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {lesson}
+            <div className="flex flex-col gap-3">
+              {sourcePicker}
+              <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                <span className="text-zinc-400 font-bold mr-0.5">SHOW:</span>
+                {(['digital', 'analog'] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => {
+                      setStep9View(v);
+                      onToggleConsoleView(v);
+                    }}
+                    className={`px-2.5 py-1 rounded border font-bold transition-colors ${
+                      step9View === v ? 'bg-meter-500 text-zinc-950 border-meter-400' : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200'
+                    }`}
+                  >
+                    {v === 'digital' ? 'Digital' : 'Analog'}
+                  </button>
+                ))}
               </div>
             </div>
-
-            {/* Core Explanation Box */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-zinc-300 text-xs leading-relaxed">
-              <div className="bg-zinc-950/70 p-3 rounded-lg border border-zinc-850">
-                <h4 className="font-bold text-zinc-100 text-sm mb-1 uppercase tracking-wide flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-meter-400"></span>
-                  Why The Console Layout Transforms:
-                </h4>
-                <p>{currentStepData.summary}</p>
-              </div>
-
-              <div className="bg-zinc-950/70 p-3 rounded-lg border border-zinc-850 whitespace-pre-line">
-                <h4 className="font-bold text-zinc-100 text-sm mb-1 uppercase tracking-wide flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                  Tactile Knobs vs. Digital Processing Bays:
-                </h4>
-                <p>{currentStepData.mechanics}</p>
-              </div>
-            </div>
-
-            {/* Hands-On Lab Task */}
-            <div className="bg-meter-950/30 border border-meter-800/60 p-3.5 rounded-lg flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                  isCurrentStepCompleted ? 'bg-emerald-500 text-zinc-950' : 'bg-amber-500 text-zinc-950 animate-pulse'
-                }`}>
-                  {isCurrentStepCompleted ? '✓ LAB TASK COMPLETE' : 'ACTION REQUIRED'}
-                </span>
-                <span className="text-xs font-bold text-meter-300 font-mono">
-                  {isCurrentStepCompleted ? 'Digital EQ adjusted! Ready to continue to Step 11.' : 'Manipulate the EQ on the digital screen below to unlock Next:'}
-                </span>
-              </div>
-              <p className="text-xs text-zinc-200">
-                {currentStepData.actionTask}
-              </p>
-            </div>
-
-            {/* View Selector Tabs */}
-            <div className="flex items-center justify-between border-t border-zinc-800 pt-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold text-zinc-400">
-                  ACTIVE DISPLAY MODE:
-                </span>
-                <button
-                  onClick={() => {
-                    setStep9View('digital');
-                    onToggleConsoleView('digital');
-                  }}
-                  className={`px-3 py-1.5 rounded font-mono text-xs font-bold transition-all cursor-pointer ${
-                    step9View === 'digital'
-                      ? 'bg-meter-500 text-zinc-950 shadow-md ring-1 ring-meter-400'
-                      : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-750'
-                  }`}
-                >
-                  DIGITAL CONSOLE (TOUCHSCREEN PROCESSING BAY)
-                </button>
-                <button
-                  onClick={() => {
-                    setStep9View('analog');
-                    onToggleConsoleView('analog');
-                  }}
-                  className={`px-3 py-1.5 rounded font-mono text-xs font-bold transition-all cursor-pointer ${
-                    step9View === 'analog'
-                      ? 'bg-amber-500 text-zinc-950 shadow-md ring-1 ring-amber-400'
-                      : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-750'
-                  }`}
-                >
-                  ANALOG CHANNEL STRIP (PHYSICAL KNOBS)
-                </button>
-              </div>
-
-              <div className="text-[11px] font-mono text-zinc-400 hidden sm:block">
-                Interactive Multi-touch RTA & Encoders
-              </div>
-            </div>
-
-            {/* Re-oriented Interactive Display Box */}
-            <div className="bg-zinc-950 p-3 sm:p-4 rounded-xl border border-zinc-800 overflow-x-auto flex justify-center">
+          </div>
+          <div className="bg-zinc-950 p-3 sm:p-4 rounded-xl border border-zinc-800 overflow-x-auto flex justify-center">
               {step9View === 'digital' ? (
                 <div className="w-full">
                   <DigitalConsole
@@ -1021,230 +954,84 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
                   {renderChannel1Strip()}
                 </div>
               )}
-            </div>
-
-            {/* Bottom Progress Tracker */}
-            <div className="flex items-center justify-between border-t border-zinc-800 pt-3 text-xs font-mono text-zinc-400">
-              <span>Step 10 of 11</span>
-              <button
-                onClick={handleNext}
-                disabled={!isCurrentStepCompleted}
-                className={`font-bold transition-colors cursor-pointer ${
-                  isCurrentStepCompleted
-                    ? 'text-meter-400 hover:text-meter-300'
-                    : 'text-zinc-600 cursor-not-allowed'
-                }`}
-              >
-                {isCurrentStepCompleted ? 'I Understand Now! Next →' : '🔒 Complete Lab Task to Continue'}
-              </button>
-            </div>
           </div>
+          {nav}
         </div>
       ) : (
-        /* STEPS 1 TO 9 & 11: 2-COLUMN LAYOUT (Hardware Strip on Left, Pedagogy on Right) */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-          {/* LEFT COLUMN: Hardware Strip (Switches to Master Section on Step 9) */}
+          {/* Hardware: Channel 1, or the master section on step 9 */}
           <div className="lg:col-span-5 flex flex-col items-center gap-2">
-            <div className="w-full flex items-center justify-between px-1">
-              <span className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-wide">
-                {currentStep === 9 ? 'MASTER CONSOLE SECTION' : 'CHANNEL STRIP 1 (LABORATORY)'}
-              </span>
-              <span className="text-[10px] font-mono text-meter-400">
-                Live Audio Engine Active
-              </span>
-            </div>
-
-            {/* The Hardware Section: Step 9 switches to Master Section, others render Channel 1 */}
+            {sourcePicker}
             {currentStep === 9 ? renderMasterSection() : renderChannel1Strip()}
           </div>
 
-          {/* RIGHT COLUMN: Detailed Pedagogy, Step Explanations, Hands-on Lab Task */}
-          <div className="lg:col-span-7 flex flex-col gap-4">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 shadow-xl flex flex-col gap-4">
-              {/* Step Header & Navigation */}
-              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-                <div>
-                  <span className="text-[15px] font-display font-bold text-meter-400 uppercase tracking-wider">
-                    CHAPTER {currentStep}: {currentStepData.title}
-                  </span>
-                  <p className="text-xs text-zinc-400 mt-0.5">
-                    {currentStepData.subtitle}
-                  </p>
-                </div>
+          <div className="lg:col-span-7 bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-col gap-4">
+            {lesson}
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handlePrev}
-                    disabled={currentStep === 1}
-                    className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-750 disabled:opacity-30 disabled:hover:bg-zinc-800 text-zinc-300 font-mono text-xs font-bold transition-colors cursor-pointer"
-                  >
-                    ← PREV
-                  </button>
-                  <button
-                    onClick={handleNext}
-                    disabled={!isCurrentStepCompleted}
-                    className={`px-3 py-1 rounded font-mono text-xs font-bold transition-all shadow-sm ${
-                      isCurrentStepCompleted
-                        ? 'bg-meter-500 hover:bg-meter-400 text-zinc-950 cursor-pointer shadow-[0_0_10px_color-mix(in_srgb,var(--acc-500)_40%,transparent)]'
-                        : 'bg-zinc-800 text-zinc-500 opacity-40 cursor-not-allowed'
-                    }`}
-                    title={
-                      currentStep === 11
-                        ? 'Go to Mix Console'
-                        : isCurrentStepCompleted
-                        ? 'Proceed to next step'
-                        : 'Complete the Hands-On Lab Task to enable Next'
-                    }
-                  >
-                    {currentStep === 11 ? 'GO TO MIX CONSOLE →' : 'NEXT →'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Core Explanation Box */}
-              <div className="flex flex-col gap-2.5 text-zinc-300 text-xs leading-relaxed">
-                <div className="bg-zinc-950/70 p-3 rounded-lg border border-zinc-850">
-                  <h4 className="font-bold text-zinc-100 text-sm mb-1 uppercase tracking-wide flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-meter-400"></span>
-                    What It Is & Why It Matters:
-                  </h4>
-                  <p>{currentStepData.summary}</p>
-                </div>
-
-                <div className="bg-zinc-950/70 p-3 rounded-lg border border-zinc-850 whitespace-pre-line">
-                  <h4 className="font-bold text-zinc-100 text-sm mb-1 uppercase tracking-wide flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                    How It Operates Internally:
-                  </h4>
-                  <p>{currentStepData.mechanics}</p>
-                </div>
-              </div>
-
-              {/* Action Task (Hands-on Exploration with unlock requirement) */}
-              <div className="bg-meter-950/30 border border-meter-800/60 p-3.5 rounded-lg flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                    isCurrentStepCompleted ? 'bg-emerald-500 text-zinc-950' : 'bg-amber-500 text-zinc-950 animate-pulse'
-                  }`}>
-                    {isCurrentStepCompleted ? '✓ LAB TASK COMPLETE' : 'ACTION REQUIRED'}
-                  </span>
-                  <span className="text-xs font-bold text-meter-300 font-mono">
-                    {isCurrentStepCompleted ? 'Requirement met! You can now proceed.' : 'Perform this action on the mixer to unlock Next:'}
-                  </span>
-                </div>
-                <p className="text-xs text-zinc-200">
-                  {currentStepData.actionTask}
-                </p>
-              </div>
-
-              {/* Pro Audio Engineering Tip */}
-              <div className="bg-amber-950/20 border border-amber-800/40 p-3 rounded-lg flex items-start gap-2.5">
-                <span className="text-amber-400 text-base">💡</span>
-                <div>
-                  <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wide block">
-                    PRO ENGINEER'S GOLDEN RULE
-                  </span>
-                  <p className="text-xs text-zinc-300 mt-0.5">
-                    {currentStepData.proTip}
-                  </p>
-                </div>
-              </div>
-
-              {/* STEP 5: EXACT MASTER FX SECTION COMPANION (Matching AnalogConsole.tsx) */}
-              {currentStep === 5 && (
-                <div className="w-full bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border-2 border-purple-900/60 rounded-lg p-2.5 flex flex-col gap-2 shadow-2xl">
-                  {/* Master FX Header */}
-                  <div className="flex items-center justify-between border-b border-zinc-800 pb-1">
-                    <span className="text-xs font-mono font-bold text-purple-400 uppercase tracking-wider">
-                      INTERNAL FX (DSP)
-                    </span>
-                    <button
-                      onClick={() => handleMasterField('fxMute', !master.fxMute)}
-                      className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${
-                        master.fxMute
-                          ? 'bg-rose-600 text-white border-rose-400'
-                          : 'bg-zinc-800 text-zinc-400 border-zinc-700'
-                      }`}
-                    >
-                      {master.fxMute ? 'MUTED' : 'ACTIVE'}
-                    </button>
-                  </div>
-
-                  <FxPanel master={master} onField={handleMasterField} />
-
-                  {/* Aux Master & FX Return Knobs */}
-                  <div className="flex items-center justify-around bg-zinc-950/60 p-2 rounded border border-zinc-850">
-                    <Knob
-                      label="AUX MASTER"
-                      value={master.aux1Master}
-                      min={-60}
-                      max={10}
-                      color="green"
-                      size="sm"
-                      defaultValue={0}
-                      zeroNorm={0.7222}
-                      onChange={(v) => handleMasterField('aux1Master', v)}
-                    />
-                    <Knob
-                      label="FX RETURN"
-                      value={master.fxReturn}
-                      min={-60}
-                      max={10}
-                      color="purple"
-                      size="sm"
-                      defaultValue={0}
-                      zeroNorm={0.7222}
-                      onChange={(v) => handleMasterField('fxReturn', v)}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 11: SIGNAL FLOW HUD LAUNCHER */}
-              {currentStep === 11 && (
-                <div className="bg-zinc-950 p-4 rounded-lg border border-meter-400 flex flex-col gap-2.5">
-                  <span className="text-xs font-mono font-bold text-meter-400">
-                    INTERACTIVE SIGNAL FLOW HUD:
-                  </span>
-                  <p className="text-xs text-zinc-300">
-                    Open the live Signal Flow modal to inspect how audio flows sequentially through every stage of the mixer:
-                  </p>
-                  <button
-                    onClick={() => {
-                      onOpenFlow(ch.id, ch.name);
-                      markStepComplete(11);
-                      if (onCompleteLearn) onCompleteLearn();
-                    }}
-                    className="px-4 py-2.5 rounded bg-meter-500 hover:bg-meter-400 text-zinc-950 font-mono font-extrabold text-xs shadow-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-zinc-950 animate-ping"></span>
-                    OPEN SIGNAL FLOW DIAGRAM
-                  </button>
-                </div>
-              )}
-
-              {/* Bottom Progress Tracker & Unlock Indicator */}
-              <div className="flex items-center justify-between border-t border-zinc-800 pt-3 text-xs font-mono text-zinc-400">
-                <span>Step {currentStep} of 11</span>
+      {/* Step 5: the master FX section, so the send can be heard */}
+          {currentStep === 5 && (
+            <div className="w-full bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border-2 border-purple-900/60 rounded-lg p-2.5 flex flex-col gap-2 shadow-2xl">
+              {/* Master FX Header */}
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-1">
+                <span className="text-xs font-mono font-bold text-purple-400 uppercase tracking-wider">
+                  INTERNAL FX (DSP)
+                </span>
                 <button
-                  onClick={handleNext}
-                  disabled={!isCurrentStepCompleted}
-                  className={`font-bold transition-colors cursor-pointer ${
-                    isCurrentStepCompleted
-                      ? 'text-meter-400 hover:text-meter-300'
-                      : 'text-zinc-600 cursor-not-allowed'
+                  onClick={() => handleMasterField('fxMute', !master.fxMute)}
+                  className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${
+                    master.fxMute
+                      ? 'bg-rose-600 text-white border-rose-400'
+                      : 'bg-zinc-800 text-zinc-400 border-zinc-700'
                   }`}
                 >
-                  {currentStep === 11
-                    ? isCurrentStepCompleted
-                      ? 'Go to Mix Console →'
-                      : '🔒 Open Flow to Complete'
-                    : isCurrentStepCompleted
-                    ? 'I Understand Now! Next →'
-                    : '🔒 Complete Lab Task to Continue'}
+                  {master.fxMute ? 'MUTED' : 'ACTIVE'}
                 </button>
               </div>
+
+              <FxPanel master={master} onField={handleMasterField} />
+
+              {/* Aux Master & FX Return Knobs */}
+              <div className="flex items-center justify-around bg-zinc-950/60 p-2 rounded border border-zinc-850">
+                <Knob
+                  label="AUX MASTER"
+                  value={master.aux1Master}
+                  min={-60}
+                  max={10}
+                  color="green"
+                  size="sm"
+                  defaultValue={0}
+                  zeroNorm={0.7222}
+                  onChange={(v) => handleMasterField('aux1Master', v)}
+                />
+                <Knob
+                  label="FX RETURN"
+                  value={master.fxReturn}
+                  min={-60}
+                  max={10}
+                  color="purple"
+                  size="sm"
+                  defaultValue={0}
+                  zeroNorm={0.7222}
+                  onChange={(v) => handleMasterField('fxReturn', v)}
+                />
+              </div>
             </div>
+          )}
+
+          {currentStep === 11 && (
+            <button
+              onClick={() => {
+                onOpenFlow(ch.id, ch.name);
+                markStepComplete(11);
+                if (onCompleteLearn) onCompleteLearn();
+              }}
+              className="self-start px-4 py-2 rounded bg-meter-500 hover:bg-meter-400 text-zinc-950 font-mono font-extrabold text-xs transition-colors"
+            >
+              OPEN SIGNAL FLOW
+            </button>
+          )}
+
+            {nav}
           </div>
         </div>
       )}
