@@ -88,7 +88,7 @@ export const BUILTIN_SONGS: SongDefinition[] = [
       { id: 2, name: 'Perc', type: 'perc', color: '#fb923c', url: '/audio/Perc_Summertime.mp3', gainFactor: dB(-6.5) },
       { id: 3, name: 'Bass', type: 'bass', color: '#60a5fa', url: '/audio/Bass_Summertime.mp3', gainFactor: dB(-6.5) },
       { id: 4, name: 'Synths', type: 'synth', color: '#c084fc', url: '/audio/Synths_Summertime.mp3', gainFactor: dB(-6.5) },
-      { id: 5, name: 'Riffs', type: 'guitar', color: '#4ade80', url: '/audio/Riffs_Summertime.mp3', gainFactor: dB(-6.5) },
+      { id: 5, name: 'Ear Candy', type: 'synth', color: '#4ade80', url: '/audio/Riffs_Summertime.mp3', gainFactor: dB(-6.5) },
       { id: 6, name: 'Vocals', type: 'vocal', color: '#facc15', url: '/audio/Vocals_Summertime.mp3', gainFactor: dB(-8) }
     ]
   },

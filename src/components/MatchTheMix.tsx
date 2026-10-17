@@ -53,13 +53,13 @@ export const REFERENCE_PROFILES: ReferenceProfile[] = [
     id: "ref_summertime",
     name: "Summertime: Afrobeat Groove",
     songId: "song4",
-    description: "A bouncy groove where the drums and bass lock together in the middle, and the percussion and guitar riffs answer each other from the sides.",
+    description: "A bouncy groove where the drums and bass lock together in the middle, and the percussion and ear candy (plucked synth and pitched-up vocal stabs) answer each other from the sides.",
     targets: [
       { channelId: 1, targetFader: 0, targetPan: 0, targetLow: 3, targetHigh: 2 },      // Drums
       { channelId: 2, targetFader: -4, targetPan: 0.6, targetLow: -6, targetHigh: 4 },  // Perc
       { channelId: 3, targetFader: -2, targetPan: 0, targetLow: 4, targetHigh: -3 },    // Bass
       { channelId: 4, targetFader: -8, targetPan: 0.4, targetLow: -5, targetHigh: -2 }, // Synths
-      { channelId: 5, targetFader: -5, targetPan: -0.7, targetLow: -3, targetHigh: 3 }, // Riffs
+      { channelId: 5, targetFader: -5, targetPan: -0.7, targetLow: -3, targetHigh: 3 }, // Ear Candy
       { channelId: 6, targetFader: 3, targetPan: 0, targetLow: -4, targetHigh: 3 }      // Vocals
     ]
   }
