@@ -15,6 +15,7 @@ export interface SongDefinition {
   key: string;
   stems: StemDefinition[];
   stemGainDb?: number; // Optional default gain adjustment in dB
+  durationSec?: number; // Loop length of recorded songs, shown while the audio is still loading
 }
 
 export interface ChannelSettings {

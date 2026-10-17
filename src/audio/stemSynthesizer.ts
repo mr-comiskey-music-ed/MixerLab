@@ -62,8 +62,62 @@ export const BUILTIN_SONGS: SongDefinition[] = [
       { id: 2, name: "Snares", type: "drums", color: "#fb923c", url: "/audio/Snares_HipHop.mp3", gainFactor: Math.pow(10, -3.5 / 20) },
       { id: 3, name: "Hi-Hats", type: "perc", color: "#facc15", url: "/audio/Hi-Hats_HipHop.mp3", gainFactor: Math.pow(10, -3.5 / 20) },
       { id: 4, name: "Bell", type: "perc", color: "#2dd4bf", url: "/audio/Bell_HipHop.mp3", gainFactor: Math.pow(10, -3.5 / 20) },
-      { id: 5, name: "Synths & Strings", type: "synth", color: "#c084fc", url: "/audio/SynthsStrings_HipHop.mp3", gainFactor: Math.pow(10, -3.5 / 20) },
+      { id: 5, name: "Synths & Strings", type: "synth", color: "#c084fc", url: "/audio/SynthsStrings_HipHop.mp3", gainFactor: Math.pow(10, (-3.5 - 5) / 20) }, // extra -5 dB so it sits behind the other parts
       { id: 6, name: "Piano", type: "synth", color: "#60a5fa", url: "/audio/Piano_HipHop.mp3", gainFactor: Math.pow(10, -3.5 / 20) }
+    ]
+  },
+  /*
+   * Channel order for the recorded songs: drums, other percussion, bass, chords / pads / synths / guitars,
+   * and the melody on channel 6. Names are what shows on the channel strip (10 characters or so fit on
+   * the digital console, 13 on the analog one, so keep new names short).
+   * Every stem is trimmed before the mixer so each song's mix peaks near -12 dBFS like the others
+   * (Summertime has a trim per stem; Quack and Floating use one stemGainDb for all six).
+   */
+  {
+    id: "song4",
+    title: "Summertime (Afrobeat)",
+    bpm: 96,
+    key: "Afrobeat",
+    durationSec: 20.062,
+    stems: [
+      { id: 1, name: "Drums", type: "drums", color: "#f87171", url: "/audio/Drums_Summertime.mp3", gainFactor: Math.pow(10, -7 / 20) },
+      { id: 2, name: "Perc", type: "perc", color: "#fb923c", url: "/audio/Perc_Summertime.mp3", gainFactor: Math.pow(10, -6.5 / 20) },
+      { id: 3, name: "Bass", type: "bass", color: "#60a5fa", url: "/audio/Bass_Summertime.mp3", gainFactor: Math.pow(10, -6.5 / 20) },
+      { id: 4, name: "Synths", type: "synth", color: "#c084fc", url: "/audio/Synths_Summertime.mp3", gainFactor: Math.pow(10, -6.5 / 20) },
+      { id: 5, name: "Riffs", type: "guitar", color: "#4ade80", url: "/audio/Riffs_Summertime.mp3", gainFactor: Math.pow(10, -6.5 / 20) },
+      { id: 6, name: "Vocals", type: "vocal", color: "#facc15", url: "/audio/Vocals_Summertime.mp3", gainFactor: Math.pow(10, -8 / 20) }
+    ]
+  },
+  {
+    id: "song5",
+    title: "Quack (Funk Groove)",
+    bpm: 104,
+    key: "Funk",
+    stemGainDb: -10,
+    durationSec: 36.989,
+    stems: [
+      { id: 1, name: "Drums", type: "drums", color: "#f87171", url: "/audio/Drums_Quack.mp3" },
+      { id: 2, name: "Bass", type: "bass", color: "#60a5fa", url: "/audio/Bass_Quack.mp3" },
+      { id: 3, name: "Synth Swells", type: "synth", color: "#c084fc", url: "/audio/Synth Swells_Quack.mp3" },
+      { id: 4, name: "Synth Wobbles", type: "synth", color: "#2dd4bf", url: "/audio/Synth Wobbles_Quack.mp3" },
+      { id: 5, name: "E Guit", type: "guitar", color: "#4ade80", url: "/audio/EGuit_Quack.mp3" },
+      { id: 6, name: "Melody&Quack", type: "synth", color: "#facc15", url: "/audio/Melody&Quack_Quack.mp3" }
+    ]
+  },
+  {
+    id: "song6",
+    title: "Floating (R&B Groove)",
+    bpm: 90,
+    key: "R&B",
+    stemGainDb: -6.5,
+    durationSec: 42.72,
+    stems: [
+      { id: 1, name: "Drums", type: "drums", color: "#f87171", url: "/audio/Drums_Float.mp3" },
+      { id: 2, name: "Shaker", type: "perc", color: "#fb923c", url: "/audio/Shaker_Float.mp3" },
+      { id: 3, name: "E Guit Chords", type: "guitar", color: "#4ade80", url: "/audio/EGuitChords_Float.mp3" },
+      { id: 4, name: "SK-5 Samples", type: "synth", color: "#c084fc", url: "/audio/SK-5Samples_Float.mp3" },
+      { id: 5, name: "E Guit Plucks", type: "guitar", color: "#60a5fa", url: "/audio/EGuitPlucks_Float.mp3" },
+      { id: 6, name: "E Guit Melody", type: "guitar", color: "#facc15", url: "/audio/EGuitMelody_Float.mp3" }
     ]
   }
 ];
