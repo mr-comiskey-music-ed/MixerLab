@@ -63,17 +63,21 @@ export interface MasterSettings {
 export interface ScenarioItem {
   id: number;
   title: string;
-  category: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  context: string;
-  problemSummary: string;
-  objective: string;
-  hint: string;
+  problem: string; // what the student sees and hears (no answers)
+  hint: string;    // points toward the fix without giving it away
+  /** Channel with a condenser mic: it stays silent until +48V is on. */
+  condenserChannel?: number;
+  /** Channel that rings with feedback while the problem is unsolved. */
+  feedbackChannel?: number;
   setupState: {
     channels: Partial<ChannelSettings>[];
     master?: Partial<MasterSettings>;
     songId?: string;
   };
+  /**
+   * Checks the console. `passed` solves it. When not passed, feedback is only shown to the student
+   * if score >= 50, so those messages must be nudges ("almost") rather than answers.
+   */
   targetValidation: (channels: ChannelSettings[], master: MasterSettings) => {
     passed: boolean;
     score: number;

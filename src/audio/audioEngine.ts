@@ -149,11 +149,57 @@ export class AudioEngine {
   public feedbackGain: GainNode | null = null;
   public feedbackFilter: BiquadFilterNode | null = null;
 
-  // Phantom power enforcement for troubleshooting scenarios & drills
-  public enforcePhantomPower: boolean = false;
+  // Scenario simulation: the channel with a condenser mic (silent without +48V), if any
+  public condenserChannelId: number | null = null;
 
-  public setEnforcePhantomPower(val: boolean) {
-    this.enforcePhantomPower = val;
+  public setCondenserChannel(id: number | null) {
+    this.condenserChannelId = id;
+    this.channelSettings.forEach((cs, i) => cs && this.applyPhantom(i, cs));
+  }
+
+  private applyPhantom(index: number, s: ChannelSettings) {
+    const ch = this.channels[index];
+    if (!ch || !this.ctx) return;
+    const level = this.condenserChannelId === s.id && !s.phantom48V ? 0.0001 : 1.0;
+    ch.phantomGain.gain.setTargetAtTime(level, this.ctx.currentTime, 0.02);
+  }
+
+  // Scenario simulation: acoustic feedback, a ringing tone at the given frequency
+  private screech: { osc: OscillatorNode; lfo: OscillatorNode } | null = null;
+
+  /** The ring is only heard while the song plays (moderate level: clearly a problem, not painful in headphones). */
+  private refreshScreech() {
+    if (!this.ctx || !this.feedbackGain || !this.screech) return;
+    this.feedbackGain.gain.setTargetAtTime(this.isPlaying ? 0.06 : 0, this.ctx.currentTime, this.isPlaying ? 0.4 : 0.03);
+  }
+
+  public setFeedbackScreech(on: boolean, freq = 2500) {
+    if (!this.ctx || !this.feedbackGain) return;
+    const t = this.ctx.currentTime;
+    if (on) {
+      if (!this.screech) {
+        const osc = this.ctx.createOscillator();
+        osc.type = 'sine';
+        const lfo = this.ctx.createOscillator(); // slight wobble, like a real feedback ring
+        lfo.frequency.value = 5.5;
+        const lfoDepth = this.ctx.createGain();
+        lfoDepth.gain.value = freq * 0.004;
+        lfo.connect(lfoDepth).connect(osc.frequency);
+        osc.connect(this.feedbackGain);
+        osc.start();
+        lfo.start();
+        this.screech = { osc, lfo };
+      }
+      this.screech.osc.frequency.setTargetAtTime(freq, t, 0.05);
+      this.refreshScreech();
+    } else {
+      this.feedbackGain.gain.setTargetAtTime(0, t, 0.05);
+      if (this.screech) {
+        const { osc, lfo } = this.screech;
+        this.screech = null;
+        setTimeout(() => { try { osc.stop(); lfo.stop(); } catch { /* already stopped */ } }, 300);
+      }
+    }
   }
 
   // Isolated channel playback for Learn section (plays only specified channel e.g. Channel 1)
@@ -399,9 +445,9 @@ export class AudioEngine {
       saturator.curve = distortionCurve;
       saturator.oversample = '2x';
 
-      // 48V Phantom Power switch (Ch 3 Vocal by default simulates condenser)
+      // 48V Phantom Power (silences a scenario's condenser mic until +48V is on)
       const phantomGain = this.ctx.createGain();
-      phantomGain.gain.value = i === 2 ? 1.0 : 1.0;
+      phantomGain.gain.value = 1.0;
 
       // Hi-Z filter (Ch 1-2 instrument impedance simulation)
       const hizFilter = this.ctx.createBiquadFilter();
@@ -744,6 +790,7 @@ export class AudioEngine {
     const startTime = this.ctx!.currentTime;
     this.startTime = startTime - (offsetSec % this.loopDuration);
     this.isPlaying = true;
+    this.refreshScreech();
     this.updateSoloState();
 
     for (let i = 0; i < 6; i++) {
@@ -771,12 +818,14 @@ export class AudioEngine {
     this.pauseOffset = this.getCurrentTime();
     this.stopSources();
     this.isPlaying = false;
+    this.refreshScreech();
   }
 
   public stop() {
     this.stopSources();
     this.pauseOffset = 0;
     this.isPlaying = false;
+    this.refreshScreech();
   }
 
   private stopSources() {
@@ -829,13 +878,8 @@ export class AudioEngine {
     // True Solo logic: isolated playback of soloed channel(s)
     this.updateSoloState();
 
-    // 48V Phantom Power: If condenser mic (Ch 3 Vocal) and 48V is off, attenuate to ~0 only when enforcePhantomPower is true
-    if (s.id === 3) {
-      const phantomLevel = (this.enforcePhantomPower && !s.phantom48V) ? 0.0001 : 1.0;
-      ch.phantomGain.gain.setTargetAtTime(phantomLevel, this.ctx.currentTime, 0.02);
-    } else {
-      ch.phantomGain.gain.setTargetAtTime(1.0, this.ctx.currentTime, 0.02);
-    }
+    // 48V Phantom Power: a scenario's condenser mic is silent until +48V is on
+    this.applyPhantom(index, s);
 
     // Hi-Z Switch: Ensure clean and transparent frequency response (20kHz) by default for all channels
     if (s.id <= 2) {
@@ -904,7 +948,6 @@ export class AudioEngine {
     const fxLinear = s.fxPost <= -59 ? 0 : Math.pow(10, s.fxPost / 20);
     ch.fxSend.gain.setTargetAtTime(fxLinear, this.ctx.currentTime, 0.02);
 
-    this.checkFeedbackCondition(index, s);
   }
 
   public updateMaster(m: MasterSettings) {
@@ -1182,22 +1225,6 @@ export class AudioEngine {
       }
     } else if (type === 'chorus') {
       this.setChorusIntensity(this.currentChorusIntensity);
-    }
-  }
-
-  // Acoustic feedback loop simulation
-  private checkFeedbackCondition(chIndex: number, s: ChannelSettings) {
-    if (chIndex !== 2) return; // Ch 3 vocal mic is the feedback culprit
-    if (!this.feedbackGain || !this.feedbackFilter || !this.ctx) return;
-
-    // Feedback occurs if Vocal Gain > 24dB + Fader > +3dB + Mid EQ > 3dB and NOT muted
-    const dangerousGain = s.gain > 24 && s.faderLevel > 2 && s.eqMid > 2 && !s.mute;
-    if (dangerousGain) {
-      // Build up screech
-      this.feedbackGain.gain.setTargetAtTime(0.35, this.ctx.currentTime, 0.2);
-    } else {
-      // Rapid dampening
-      this.feedbackGain.gain.setTargetAtTime(0.0, this.ctx.currentTime, 0.05);
     }
   }
 

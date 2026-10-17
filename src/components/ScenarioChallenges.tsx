@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { audioEngine } from '../audio/audioEngine';
 import { ScenarioItem, ChannelSettings, MasterSettings } from '../types/audio';
 
 interface ScenarioChallengesProps {
@@ -10,222 +11,145 @@ interface ScenarioChallengesProps {
   onScenarioChange?: (scenarioId: number) => void;
 }
 
+/*
+ * Troubleshooting scenarios, written for Card Game (Indie):
+ *   1 Drums · 2 Bass · 3 E Guits · 4 A Guit · 5 Piano & Organ · 6 Vocals
+ * Each starts from a zeroed console plus the overrides in setupState.
+ */
+const near = (v: number, target: number, tol: number) => Math.abs(v - target) <= tol;
+const ch = (chs: ChannelSettings[], id: number) => chs.find((c) => c.id === id)!;
+
 export const SCENARIOS: ScenarioItem[] = [
   {
     id: 1,
-    title: "Condenser Mic Not Working!",
-    category: "Preamp & Power",
-    difficulty: "Beginner",
-    context: "The lead vocalist is using a high-end condenser microphone plugged into Channel 3 (XLR). The drummer is playing, but there is complete silence from the vocal track despite the singer singing loudly.",
-    problemSummary: "Condenser capsules require active electrostatic polarization power to function.",
-    objective: "Diagnose why Channel 3 has zero signal output and supply the necessary hardware power.",
-    hint: "Check the +48V Phantom Power switch on Channel 3.",
-    setupState: {
-      channels: [
-        { id: 3, phantom48V: false, gain: 18, faderLevel: 0, mute: false }
-      ]
-    },
+    title: 'Condenser Mic Not Working',
+    problem: "The singer is using a condenser mic on Channel 6 (Vocals). They're singing, but nothing is coming through that channel.",
+    hint: "Condenser mics are different from other mics: they can't work on their own. Look at Channel 6's input switches.",
+    condenserChannel: 6,
+    setupState: { channels: [{ id: 6, phantom48V: false }] },
     targetValidation: (chs) => {
-      const ch3 = chs.find(c => c.id === 3);
-      if (!ch3) return { passed: false, score: 0, feedback: "Channel 3 not found." };
-      if (!ch3.phantom48V) {
-        return { passed: false, score: 0, feedback: "Incorrect: +48V Phantom Power is still disengaged on Channel 3." };
-      }
-      if (ch3.mute) {
-        return { passed: false, score: 30, feedback: "+48V is engaged, but Channel 3 is currently MUTED." };
-      }
-      return { passed: true, score: 100, feedback: "Excellent! +48V Phantom Power is supplied to the condenser mic capsule. Full vocal signal is restored." };
+      const v = ch(chs, 6);
+      if (!v.phantom48V) return { passed: false, score: 0, feedback: '' };
+      if (v.mute || v.faderLevel < -30) return { passed: false, score: 50, feedback: "The mic is working now, but something else on Channel 6 is still keeping the vocal quiet." };
+      return { passed: true, score: 100, feedback: "+48V phantom power gives a condenser mic the power it needs. The vocal is back." };
     }
   },
   {
     id: 2,
-    title: "Create Stereo Width!",
-    category: "Spatial Imaging & Panning",
-    difficulty: "Intermediate",
-    context: "Everything in the mix is panned dead center (mono), making it sound congested and narrow. We need to create a wide stereo soundstage by panning out the Electric Guitar (Channel 4) and Percussion (Channel 6) to opposite sides.",
-    problemSummary: "Hard-centering all instruments collapses the soundstage into a narrow mono column.",
-    objective: "Pan Channel 4 and Channel 6 away from center by at least ±0.20 in opposite directions (one left, one right).",
-    hint: "Adjust the PAN knob on Channel 4 and Channel 6 to opposite sides.",
-    setupState: {
-      channels: [
-        { id: 4, pan: 0 },
-        { id: 6, pan: 0 }
-      ]
-    },
+    title: 'Everything Is in the Middle',
+    problem: 'Every channel is panned to the center. The two guitar parts are stacked on top of each other and the whole mix sounds narrow.',
+    hint: 'Think about which parts could move out to the sides, and which parts hold the song together and should stay in the middle.',
+    setupState: { channels: [] },
     targetValidation: (chs) => {
-      const ch4 = chs.find(c => c.id === 4);
-      const ch6 = chs.find(c => c.id === 6);
-      if (!ch4 || !ch6) return { passed: false, score: 0, feedback: "Channels not found." };
-      if (Math.abs(ch4.pan) < 0.20 || Math.abs(ch6.pan) < 0.20) {
-        return { passed: false, score: 40, feedback: "Both Channel 4 and Channel 6 must be panned out by at least ±0.20 from center." };
-      }
-      if (Math.sign(ch4.pan) === Math.sign(ch6.pan)) {
-        return { passed: false, score: 60, feedback: "Channel 4 and Channel 6 must be panned to opposite sides (one left, one right) to create stereo width." };
-      }
-      return { passed: true, score: 100, feedback: "Fantastic stereo imaging! Panning guitar and percussion to opposite sides opens up a wide, professional mix soundstage." };
+      const e = ch(chs, 3).pan, a = ch(chs, 4).pan;
+      if (Math.abs(e) < 0.3 || Math.abs(a) < 0.3) return { passed: false, score: 0, feedback: '' };
+      if (Math.sign(e) === Math.sign(a)) return { passed: false, score: 50, feedback: 'Both guitars are on the same side now. Try giving each one its own side.' };
+      const anchorsCentered = [1, 2, 6].every((id) => Math.abs(ch(chs, id).pan) <= 0.15);
+      if (!anchorsCentered) return { passed: false, score: 60, feedback: 'The guitars are spread out nicely, but the mix feels lopsided. Some parts should stay right in the middle.' };
+      return { passed: true, score: 100, feedback: 'Each guitar has its own side, and the drums, bass and vocal stay centered to anchor the mix.' };
     }
   },
   {
     id: 3,
-    title: "Clipping Drums!",
-    category: "Gain Staging",
-    difficulty: "Intermediate",
-    context: "Channel 1 (Kick / Snare) is severely clipping! The red CLIP LED is pegged on continuously with harsh digital distortion, but the sound tech tried to fix it by dragging the channel fader down to -25dB. That doesn't stop the preamp from distorting!",
-    problemSummary: "Pulling down a post-fader does NOT prevent an overdriven analog preamp from clipping.",
-    objective: "Properly gain-stage Channel 1: lower the input Preamp GAIN to nominal (0 to +8 dB) and raise the channel fader to near unity (-3 to +3 dB).",
-    hint: "Lower GAIN to ~+4dB, and bring the channel fader up to 0dB (Unity).",
-    setupState: {
-      channels: [
-        { id: 1, gain: 18, faderLevel: -25, mute: false }
-      ]
-    },
+    title: 'Distorted Drums',
+    problem: "The drums sound crunchy and distorted. Someone tried to fix it by pulling the Channel 1 fader way down. Now the drums are quiet, but they're still distorted.",
+    hint: "Watch Channel 1's PEAK light. The distortion happens at the top of the channel strip, before the sound ever reaches the fader.",
+    setupState: { channels: [{ id: 1, gain: 18, faderLevel: -25 }] },
     targetValidation: (chs) => {
-      const ch1 = chs.find(c => c.id === 1);
-      if (!ch1) return { passed: false, score: 0, feedback: "Channel 1 not found." };
-      if (ch1.gain > 10) {
-        return { passed: false, score: 20, feedback: `Preamp Gain is still too high (+${ch1.gain} dB). Lower it into the 0 to +8 dB range to eliminate clipping distortion.` };
-      }
-      if (ch1.faderLevel < -6 || ch1.faderLevel > 6) {
-        return { passed: false, score: 60, feedback: `Gain is fixed, but the channel fader is at ${ch1.faderLevel} dB. Move it to unity (~0 dB) for proper fader resolution.` };
-      }
-      return { passed: true, score: 100, feedback: "Masterful gain staging! Preamp headroom is preserved with zero clipping, and the fader operates at its optimal unity resolution." };
+      const d = ch(chs, 1);
+      if (d.gain > 8) return { passed: false, score: 0, feedback: '' };
+      if (d.faderLevel < -6) return { passed: false, score: 60, feedback: 'The distortion is gone, but now the drums are buried. Bring them back up in the mix.' };
+      if (d.faderLevel > 6) return { passed: false, score: 60, feedback: 'The distortion is gone, but the drums are now much louder than everything else.' };
+      return { passed: true, score: 100, feedback: 'Fix distortion with the GAIN knob, not the fader. Gain sets how hot the signal comes in; the fader only sets its level in the mix.' };
     }
   },
   {
     id: 4,
-    title: "Cleanup the Mud!",
-    category: "Filtering & EQ",
-    difficulty: "Intermediate",
-    context: "The rhythm guitar (Channel 4) has sub-rumble, and the Analog Synth Pad (Channel 5) has boxy low-mids around 300-500Hz crowding the mix.",
-    problemSummary: "Uncontrolled low-end and boxy low-mids make the overall mix muddy and unclear.",
-    objective: "Engage the 100Hz Low Cut on Channel 4, and cut the Low EQ or Mid EQ on Channel 5 by at least -3dB.",
-    hint: "Hit the 100Hz LOW CUT button on Ch 4 and attenuate Low/Mid EQ on Ch 5.",
-    setupState: {
-      channels: [
-        { id: 4, lowCut100Hz: false },
-        { id: 5, eqLow: 4, eqMid: 4 }
-      ]
-    },
+    title: 'Muddy Mix',
+    problem: "The mix sounds muddy and boomy, and the kick and bass are getting lost. The acoustic guitar mic is picking up low rumble from the stage, and the Piano & Organ has way too much low end.",
+    hint: "One channel needs its rumble filtered out with a switch. The other has EQ knobs turned up that should be flat or turned down.",
+    setupState: { channels: [{ id: 4, lowCut100Hz: false }, { id: 5, eqLow: 6, eqMid: 6, eqMidFreq: 400 }] },
     targetValidation: (chs) => {
-      const ch4 = chs.find(c => c.id === 4);
-      const ch5 = chs.find(c => c.id === 5);
-      if (!ch4 || !ch5) return { passed: false, score: 0, feedback: "Channel 4 or 5 not found." };
-      if (!ch4.lowCut100Hz) {
-        return { passed: false, score: 35, feedback: "100Hz Low Cut filter is not engaged on Channel 4." };
-      }
-      if (ch5.eqLow > 0 && ch5.eqMid > 0) {
-        return { passed: false, score: 70, feedback: "Channel 4 low-cut is active, but Channel 5 (Analog Synth Pad) still has boosted low/mid EQ. Cut Low or Mid EQ on Ch 5 by at least -3dB." };
-      }
-      return { passed: true, score: 100, feedback: "Superb! Engaging the 100Hz highpass filter on guitar and scooping boxy low-mids on the synth pad cleared up the mud and opened space for kick and bass." };
+      const g = ch(chs, 4), k = ch(chs, 5);
+      const guitarFixed = g.lowCut100Hz;
+      const keysFixed = k.eqLow <= 0 && k.eqMid <= 0;
+      if (guitarFixed && keysFixed) return { passed: true, score: 100, feedback: "The low cut removes rumble the acoustic guitar doesn't need, and flattening the Piano & Organ's low EQ leaves room for the kick and bass." };
+      if (guitarFixed || keysFixed) return { passed: false, score: 50, feedback: "That helped, but there's still extra low end coming from another channel." };
+      return { passed: false, score: 0, feedback: '' };
     }
   },
   {
     id: 5,
-    title: "Singer Can't Hear Themselves!",
-    category: "Monitor Mixing",
-    difficulty: "Intermediate",
-    context: "During soundcheck, the lead singer asks for significantly more vocal in their stage floor wedge (Aux Mon). However, the house mix in the auditorium PA is already perfectly balanced. You must boost their vocal monitor by at least +4dB without altering the house main fader.",
-    problemSummary: "Monitors must be mixed via Pre-Fader Aux sends so house fader adjustments do not change stage volume.",
-    objective: "Boost Channel 3 Aux (Mon) send to between +3dB and +8dB, while keeping Channel 3 Main Fader at 0dB unity.",
-    hint: "Turn up AUX (MON) knob on Channel 3 and verify Aux (Mon) Master is up.",
-    setupState: {
-      channels: [
-        { id: 3, aux1Pre: -60, faderLevel: 0 }
-      ],
-      master: { aux1Master: 0 }
-    },
+    title: "Singer Can't Hear Themselves",
+    problem: "The singer says they can't hear their own voice in their stage monitor (the speaker on the floor facing them). The audience mix already sounds great, so don't change it.",
+    hint: "Stage monitors get their own mix from the AUX knobs, which work separately from the faders. There's an AUX control on each channel and one in the master section.",
+    setupState: { channels: [{ id: 6, aux1Pre: -60 }], master: { aux1Master: -60 } },
     targetValidation: (chs, m) => {
-      const ch3 = chs.find(c => c.id === 3);
-      if (!ch3) return { passed: false, score: 0, feedback: "Channel 3 not found." };
-      if (ch3.aux1Pre < 2) {
-        return { passed: false, score: 30, feedback: `Channel 3 Aux (Mon) send is only ${ch3.aux1Pre} dB. Raise it to +3 dB to +8 dB.` };
-      }
-      if (Math.abs(ch3.faderLevel) > 2) {
-        return { passed: false, score: 50, feedback: "Warning: You changed the Channel 3 main fader! The audience PA mix was disturbed. Keep main fader near 0dB." };
-      }
-      if (m.aux1Master < -10) {
-        return { passed: false, score: 70, feedback: "Channel 3 Aux send is up, but the AUX (MON) MASTER knob in the master section is turned down!" };
-      }
-      return { passed: true, score: 100, feedback: "Perfect! The lead singer has plenty of vocal in their floor wedge, and because Aux (Mon) is pre-fader, the house mix remains untouched." };
+      const v = ch(chs, 6);
+      const audienceMixChanged = !near(v.faderLevel, 0, 2) || v.mute;
+      if (audienceMixChanged) return { passed: false, score: 50, feedback: 'That changed the audience mix too, and it was already right. The monitor needs its own control.' };
+      if (v.aux1Pre < -5) return { passed: false, score: 0, feedback: '' };
+      if (m.aux1Master < -10) return { passed: false, score: 60, feedback: "The vocal is being sent to the monitor now, but the monitor's overall level is still all the way down." };
+      return { passed: true, score: 100, feedback: "The AUX send feeds the stage monitor. It's pre-fader, so the singer's monitor and the audience mix can be set separately." };
     }
   },
   {
     id: 6,
-    title: "The Show Is Too Loud!",
-    category: "Master Routing",
-    difficulty: "Beginner",
-    context: "The club manager rushes over: 'The overall volume is about 6dB too loud for local noise ordinances!' A beginner might run and pull down all 6 individual channel faders, destroying their carefully dialed balance. How should a professional engineer handle this?",
-    problemSummary: "Global room volume must be adjusted on the Master Fader to preserve inter-channel balance.",
-    objective: "Lower the Main Master Fader to between -5dB and -8dB without altering individual channel faders.",
-    hint: "Pull down the red MAIN MIX Master Fader.",
-    setupState: {
-      channels: [],
-      master: { mainFader: 0 }
-    },
-    targetValidation: (_chs, m) => {
+    title: 'The Show Is Too Loud',
+    problem: 'The venue manager says the show is about 6 dB too loud. The band\'s balance sounds perfect, so keep it exactly the same.',
+    hint: "You don't need to move six faders to turn everything down evenly.",
+    setupState: { channels: [], master: { mainFader: 0 } },
+    targetValidation: (chs, m) => {
+      const balanceKept = chs.every((c) => near(c.faderLevel, 0, 0.5) && !c.mute);
       if (m.mainFader > -4) {
-        return { passed: false, score: 20, feedback: `Master Fader is still at ${m.mainFader} dB. Lower it to around -6 dB.` };
+        if (balanceKept) return { passed: false, score: 0, feedback: '' };
+        const f = chs.map((c) => c.faderLevel);
+        const allMovedTogether = Math.max(...f) - Math.min(...f) <= 0.5 && f[0] < -3;
+        return {
+          passed: false,
+          score: 50,
+          feedback: allMovedTogether
+            ? 'That turns everything down, but it takes six moves and is easy to get uneven. One control can do it all at once.'
+            : "The band's balance changed. Every channel was set right; the whole mix just needs to come down."
+        };
       }
-      if (m.mainFader < -9) {
-        return { passed: false, score: 50, feedback: `Master Fader is pulled down too low (${m.mainFader} dB). Target -5 dB to -8 dB.` };
-      }
-      return { passed: true, score: 100, feedback: "Spot on! Lowering the Main Master Fader brought the venue SPL down 6dB while preserving all multi-track channel balances." };
+      if (!balanceKept) return { passed: false, score: 60, feedback: "The show is quieter, but the band's balance changed. Put the channel faders back where they were." };
+      if (m.mainFader < -9) return { passed: false, score: 60, feedback: "That's quieter than the manager asked for. About 6 dB down is the goal." };
+      return { passed: true, score: 100, feedback: 'The MAIN MIX fader turns the whole mix down at once, so every channel keeps its balance.' };
     }
   },
   {
     id: 7,
-    title: "Mic Feedback!",
-    category: "Emergency Troubleshooting",
-    difficulty: "Advanced",
-    context: "EMERGENCY: Channel 3 vocal mic is on the verge of a piercing 3.15kHz acoustic feedback screech! Preamp gain is dangerously high (+30dB), Mid EQ is boosted (+8dB), and fader is pushed. The loop is threatening to blow the tweeters!",
-    problemSummary: "Acoustic feedback happens when a mic picks up its own amplified sound in a runaway loop.",
-    objective: "Suppress the feedback loop immediately: cut Mid EQ (2.5k) to -3dB or lower, or lower Channel 3 gain/fader to safe levels, or mute the channel.",
-    hint: "Cut MID EQ on Channel 3 or lower Preamp Gain below +20dB.",
-    setupState: {
-      channels: [
-        { id: 3, gain: 18, faderLevel: 4, eqMid: 9, mute: false }
-      ]
-    },
+    title: 'Mic Feedback',
+    problem: 'A loud, high-pitched ring is coming out of the speakers: the vocal mic is feeding back. Stop it without losing the singer. (Press play to hear it.)',
+    hint: "Feedback builds up when a mic is turned up too far and one frequency is boosted too much. Look at Channel 6's gain, fader and EQ.",
+    feedbackChannel: 6,
+    setupState: { channels: [{ id: 6, gain: 18, faderLevel: 4, eqMid: 9, eqMidFreq: 2500 }] },
     targetValidation: (chs) => {
-      const ch3 = chs.find(c => c.id === 3);
-      if (!ch3) return { passed: false, score: 0, feedback: "Channel 3 not found." };
-      const feedbackCondition = ch3.gain > 14 && ch3.faderLevel > 2 && ch3.eqMid > 2 && !ch3.mute;
-      if (feedbackCondition) {
-        return { passed: false, score: 0, feedback: "Feedback is still screaming! Cut Mid EQ, lower gain/fader, or hit MUTE!" };
-      }
-      return { passed: true, score: 100, feedback: "Crisis averted! Offending frequencies were notched and loop gain reduced below unity. The feedback screech stopped instantly." };
+      const v = ch(chs, 6);
+      if (v.mute || v.faderLevel < -30) return { passed: false, score: 50, feedback: 'The ringing stopped, but now nobody can hear the singer. Find what is causing the ring instead.' };
+      if (isRinging(v)) return { passed: false, score: 0, feedback: '' };
+      return { passed: true, score: 100, feedback: 'Feedback is a loop: the mic picks up its own sound from the speakers. Cutting the boosted frequency or bringing the level down breaks the loop.' };
     }
   },
   {
     id: 8,
-    title: "Adding Depth!",
-    category: "Master Effects & Depth",
-    difficulty: "Intermediate",
-    context: "The lead vocal (Channel 3) and analog synth pad (Channel 5) are dry and lack emotional space. Let's send them into the Master Stereo Delay processor to add lush spatial depth.",
-    problemSummary: "Dry tracks lack emotional dimension and professional studio polish.",
-    objective: "Turn up the FX Post send on Channel 3 and Channel 5 to at least -15dB, and ensure Master FX Return is up.",
-    hint: "Turn up the FX send knob on Ch 3 and Ch 5, and verify Master FX Return.",
-    setupState: {
-      channels: [
-        { id: 3, fxPost: -60 },
-        { id: 5, fxPost: -60 }
-      ],
-      master: { fxReturn: -20 }
-    },
+    title: 'Dry and Flat',
+    problem: 'The vocal and the Piano & Organ sound dry and flat, like they were recorded in a closet. Give them some space with the console\'s built-in effect.',
+    hint: 'Each channel has an FX knob that sends it to the effect. The master section controls how much of the effect you hear.',
+    setupState: { channels: [{ id: 5, fxPost: -60 }, { id: 6, fxPost: -60 }], master: { fxReturn: -60, fxMute: false } },
     targetValidation: (chs, m) => {
-      const ch3 = chs.find(c => c.id === 3);
-      const ch5 = chs.find(c => c.id === 5);
-      if (!ch3 || !ch5) return { passed: false, score: 0, feedback: "Channel 3 or 5 not found." };
-      if (ch3.fxPost < -20 || ch5.fxPost < -20) {
-        return { passed: false, score: 40, feedback: "Raise the FX Post send knob on Channel 3 and Channel 5 to at least -15dB." };
-      }
-      if (m.fxReturn < -35) {
-        return { passed: false, score: 70, feedback: "FX sends are up, but the Master FX Return knob in the master section is too low." };
-      }
-      return { passed: true, score: 100, feedback: "Gorgeous! Routing vocals and synth pads into the stereo delay creates an immersive, professional three-dimensional mix depth." };
+      const sent = [5, 6].filter((id) => ch(chs, id).fxPost >= -20).length;
+      if (sent === 0) return { passed: false, score: 0, feedback: '' };
+      if (m.fxReturn < -30 || m.fxMute) return { passed: false, score: 60, feedback: "The channels are being sent to the effect, but you can't hear the effect come back yet." };
+      if (sent === 1) return { passed: false, score: 60, feedback: 'One of the two parts has some space now. The other still sounds dry.' };
+      return { passed: true, score: 100, feedback: 'FX sends feed each channel into the effect, and the FX RETURN brings the effect back into the mix.' };
     }
   }
 ];
+
+/** Feedback rings while the vocal channel's gain, fader and mid EQ are all pushed and it isn't muted. */
+const isRinging = (c: ChannelSettings) => c.gain > 14 && c.faderLevel > 2 && c.eqMid > 2 && !c.mute;
 
 export const ScenarioChallenges: React.FC<ScenarioChallengesProps> = ({
   channels,
@@ -236,252 +160,162 @@ export const ScenarioChallenges: React.FC<ScenarioChallengesProps> = ({
   onScenarioChange
 }) => {
   const [activeScenarioId, setActiveScenarioId] = useState<number>(1);
-  const [validationResult, setValidationResult] = useState<{ passed: boolean; score: number; feedback: string } | null>(null);
-  const [showObjective, setShowObjective] = useState<boolean>(false);
+  const [showHint, setShowHint] = useState(false);
+  const [solved, setSolved] = useState<{ score: number; feedback: string } | null>(null);
   const prevPassedRef = useRef<boolean>(false);
   const recordScoreRef = useRef(onRecordScenarioScore);
   recordScoreRef.current = onRecordScenarioScore;
 
-  const currentScenario = SCENARIOS.find(s => s.id === activeScenarioId) || SCENARIOS[0];
+  const currentScenario = SCENARIOS.find((s) => s.id === activeScenarioId) || SCENARIOS[0];
+  const result = useMemo(() => currentScenario.targetValidation(channels, master), [channels, master, currentScenario]);
 
-  // Apply initial uncompleted scenario setup state on component mount so Scenario 1 starts in its unpassed state
+  // Start Scenario 1 in its broken state when the tab opens
   useEffect(() => {
-    if (onScenarioChange) {
-      onScenarioChange(activeScenarioId);
-    }
-    if (!completedScenarios[1]) {
-      onApplyScenarioState(SCENARIOS[0].setupState);
-    }
+    onScenarioChange?.(activeScenarioId);
+    if (!completedScenarios[1]) onApplyScenarioState(SCENARIOS[0].setupState);
   }, []);
 
   const handleLoadScenario = (sc: ScenarioItem) => {
     setActiveScenarioId(sc.id);
-    setValidationResult(null);
-    setShowObjective(false);
+    setSolved(null);
+    setShowHint(false);
     prevPassedRef.current = false;
-    if (onScenarioChange) {
-      onScenarioChange(sc.id);
-    }
+    onScenarioChange?.(sc.id);
     onApplyScenarioState(sc.setupState);
-    // Clicking on scenario buttons does not scroll the page at all
   };
 
-  const handleNextScenario = () => {
-    const nextIdx = SCENARIOS.findIndex(s => s.id === activeScenarioId) + 1;
-    if (nextIdx < SCENARIOS.length) {
-      handleLoadScenario(SCENARIOS[nextIdx]);
-    }
-  };
+  const idx = SCENARIOS.findIndex((s) => s.id === activeScenarioId);
+  const nextScenario = SCENARIOS[idx + 1];
 
-  // Real-time automatic validation whenever channels or master change
+  // Feedback scenario: the vocal rings while the problem is unsolved
   useEffect(() => {
-    const result = currentScenario.targetValidation(channels, master);
-    if (result.passed) {
-      setValidationResult(result);
-      recordScoreRef.current(currentScenario.id, result.score);
+    const id = currentScenario.feedbackChannel;
+    const c = id ? channels.find((x) => x.id === id) : undefined;
+    audioEngine.setFeedbackScreech(!!c && isRinging(c), c?.eqMidFreq || 2500);
+  }, [channels, currentScenario]);
+  useEffect(() => () => audioEngine.setFeedbackScreech(false), []);
 
-      // When the scenario transitions from unpassed to passed, immediately terminate any active mouse drag/hold
-      if (!prevPassedRef.current) {
-        prevPassedRef.current = true;
-
-        // 1. Force blur active element and clear text/cursor selections
-        if (document.activeElement instanceof HTMLElement) {
-          document.activeElement.blur();
-        }
-        window.getSelection()?.removeAllRanges();
-
-        // 2. Disable all range sliders immediately to force the browser to abort native drag tracking
-        const rangeSliders = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="range"]'));
-        rangeSliders.forEach(slider => {
-          slider.disabled = true;
-          slider.blur();
-        });
-
-        // 3. Capture-phase blocker on window: swallow all input, change, and pointer/mouse move events
-        const swallowCapture = (e: Event) => {
-          e.stopImmediatePropagation();
-          e.preventDefault();
-        };
-
-        const capturedEventNames = ['mousemove', 'pointermove', 'touchmove', 'input', 'change'] as const;
-        capturedEventNames.forEach(evt => {
-          window.addEventListener(evt, swallowCapture, { capture: true });
-        });
-
-        // 4. Dispatch release events to cancel any custom JS drag listeners (e.g. rotary knobs)
-        ['pointerup', 'mouseup', 'touchend', 'pointercancel'].forEach(eventType => {
-          window.dispatchEvent(new Event(eventType, { bubbles: true, cancelable: true }));
-          document.dispatchEvent(new Event(eventType, { bubbles: true, cancelable: true }));
-        });
-
-        // 5. Restore interactions once the physical mouse button is released or after scroll completes
-        let isCleanedUp = false;
-        const restoreInteractions = () => {
-          if (isCleanedUp) return;
-          isCleanedUp = true;
-
-          capturedEventNames.forEach(evt => {
-            window.removeEventListener(evt, swallowCapture, { capture: true });
-          });
-          rangeSliders.forEach(slider => {
-            slider.disabled = false;
-          });
-          window.removeEventListener('pointerup', restoreInteractions, { capture: true });
-          window.removeEventListener('mouseup', restoreInteractions, { capture: true });
-          window.removeEventListener('touchend', restoreInteractions, { capture: true });
-        };
-
-        window.addEventListener('pointerup', restoreInteractions, { capture: true });
-        window.addEventListener('mouseup', restoreInteractions, { capture: true });
-        window.addEventListener('touchend', restoreInteractions, { capture: true });
-        setTimeout(restoreInteractions, 1000);
-
-        // 6. Smooth scroll to top scenario banner
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        document.getElementById('scenarios-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    } else if (!prevPassedRef.current) {
-      // Only clear validation if it has not yet passed in this round
-      setValidationResult(null);
+  // Check the console whenever it changes
+  useEffect(() => {
+    if (!result.passed) {
+      if (!prevPassedRef.current) setSolved(null);
+      return;
     }
-  }, [channels, master, currentScenario]);
+    setSolved({ score: result.score, feedback: result.feedback });
+    recordScoreRef.current(currentScenario.id, result.score);
+    if (prevPassedRef.current) return;
+    prevPassedRef.current = true;
+
+    // Just solved: end any knob or fader drag so a still-moving hand can't un-solve it, then show the result.
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    window.getSelection()?.removeAllRanges();
+    const sliders = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="range"]'));
+    sliders.forEach((sl) => { sl.disabled = true; sl.blur(); });
+    const swallow = (e: Event) => { e.stopImmediatePropagation(); e.preventDefault(); };
+    const blocked = ['mousemove', 'pointermove', 'touchmove', 'input', 'change'] as const;
+    blocked.forEach((evt) => window.addEventListener(evt, swallow, { capture: true }));
+    ['pointerup', 'mouseup', 'touchend', 'pointercancel'].forEach((t) => {
+      window.dispatchEvent(new Event(t, { bubbles: true, cancelable: true }));
+      document.dispatchEvent(new Event(t, { bubbles: true, cancelable: true }));
+    });
+    let restored = false;
+    const restore = () => {
+      if (restored) return;
+      restored = true;
+      blocked.forEach((evt) => window.removeEventListener(evt, swallow, { capture: true }));
+      sliders.forEach((sl) => { sl.disabled = false; });
+      ['pointerup', 'mouseup', 'touchend'].forEach((t) => window.removeEventListener(t, restore, { capture: true }));
+    };
+    ['pointerup', 'mouseup', 'touchend'].forEach((t) => window.addEventListener(t, restore, { capture: true }));
+    setTimeout(restore, 1000);
+    document.getElementById('scenarios-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [result, currentScenario]);
+
+  const nudge = !solved && !result.passed && result.score >= 50 ? result.feedback : null;
 
   return (
-    <div id="scenarios-top" className="w-full max-w-5xl mx-auto flex flex-col gap-3 pb-4">
-      {/* Compact Scenario Selection Chips */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-1.5">
+    <div id="scenarios-top" className="w-full max-w-5xl mx-auto flex flex-col gap-3 pb-4 scroll-mt-4">
+      {/* Scenario picker */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1.5">
         {SCENARIOS.map((sc) => {
-          const score = completedScenarios[sc.id];
           const isCurrent = sc.id === activeScenarioId;
-          const isSolved = score !== undefined && score > 0;
-
+          const isSolved = (completedScenarios[sc.id] ?? 0) >= 100;
           return (
             <button
               key={sc.id}
               onClick={() => handleLoadScenario(sc)}
-              className={`p-2 rounded-lg border text-left flex flex-col justify-between transition-all ${
-                isCurrent
-                  ? 'bg-zinc-800 border-meter-400 shadow-md ring-1 ring-meter-400'
-                  : isSolved
-                  ? 'bg-emerald-950/20 border-emerald-800/40 hover:border-emerald-700'
-                  : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+              className={`px-2 py-1.5 rounded-lg border text-left transition-colors ${
+                isCurrent ? 'bg-meter-500/15 border-meter-400' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-600'
               }`}
             >
-              <div className="flex items-center justify-between w-full">
-                <span className="text-[10px] font-mono font-bold text-meter-400">
-                  #{sc.id}
-                </span>
-                {isSolved && (
-                  <span className="text-[9px] font-mono font-bold text-emerald-400">
-                    ✓ PASS
-                  </span>
-                )}
+              <div className="flex items-center justify-between font-mono text-[10px] font-bold">
+                <span className={isCurrent ? 'text-meter-300' : 'text-zinc-500'}>{sc.id}</span>
+                {isSolved && <span className="text-zinc-400">✓</span>}
               </div>
-              <span className="text-[11px] font-semibold text-zinc-200 line-clamp-1 mt-0.5">
-                {sc.title.split(' - ')[0]}
+              <span className={`block font-display text-[15px] font-semibold leading-tight tracking-wide ${isCurrent ? 'text-meter-300' : 'text-zinc-300'}`}>
+                {sc.title}
               </span>
             </button>
           );
         })}
       </div>
 
-      {/* Streamlined Scenario Briefing Card */}
-      <div className="bg-zinc-900 border border-zinc-750 rounded-xl p-4 shadow-xl flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between border-b border-zinc-800 pb-2 gap-2">
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-meter-950 border border-meter-600 text-meter-400 text-xs font-mono font-bold">
-              SCENARIO #{currentScenario.id}
-            </span>
-            <h2 className="text-lg sm:text-xl font-bold text-zinc-100">
-              {currentScenario.title}
-            </h2>
+      {/* Briefing */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <span className="font-mono text-[11px] font-bold text-meter-400">SCENARIO {currentScenario.id} OF {SCENARIOS.length}</span>
+            <h2 className="text-2xl font-bold text-zinc-100 leading-tight">{currentScenario.title}</h2>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleLoadScenario(currentScenario)}
-              className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-750 text-meter-400 text-xs font-mono font-bold rounded border border-meter-800/60 transition-colors"
-              title="Reset console to this scenario's initial faulty state"
-            >
-              RESET SCENARIO
-            </button>
-          </div>
-        </div>
-
-        {/* Real-World Situation & Objective (Compact Grid, No Hints) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-          <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800 flex flex-col gap-1">
-            <span className="font-mono font-bold text-amber-400 text-[11px] uppercase">
-              PROBLEM:
-            </span>
-            <p className="text-zinc-300 leading-relaxed text-[11px]">
-              {currentScenario.context}
-            </p>
-            <div className="text-[10px] text-zinc-400 font-mono mt-1 pt-1 border-t border-zinc-850">
-              <strong>Symptom:</strong> {currentScenario.problemSummary}
-            </div>
-          </div>
-
-          <div
-            onClick={() => setShowObjective(!showObjective)}
-            className={`p-3 rounded-lg border transition-all cursor-pointer flex flex-col justify-between ${
-              showObjective
-                ? 'bg-zinc-950 border-zinc-800'
-                : 'bg-gradient-to-br from-emerald-950/40 via-zinc-950 to-zinc-950 border-emerald-600/70 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:border-emerald-500'
-            }`}
-            title={showObjective ? "Click to conceal objective" : "Click anywhere to reveal mission objective hint"}
+          <button
+            onClick={() => handleLoadScenario(currentScenario)}
+            className="shrink-0 px-2.5 py-1 rounded border border-zinc-700 bg-zinc-850 hover:bg-zinc-800 text-zinc-300 font-mono text-[11px] font-bold transition-colors"
+            title="Put the console back the way this scenario started"
           >
-            <div className="flex items-center justify-between">
-              <span className="font-mono font-bold text-emerald-400 text-[11px] uppercase flex items-center gap-2">
-                <span>MISSION OBJECTIVE:</span>
-              </span>
-            </div>
-            {showObjective ? (
-              <p className="text-zinc-300 leading-relaxed text-[11px] mt-2">
-                {currentScenario.objective}
-              </p>
-            ) : (
-              <div className="py-3 flex items-center justify-center text-center">
-                <span className="text-emerald-300 font-mono font-bold text-xs bg-emerald-950/80 px-4 py-2 rounded-lg border border-emerald-500/60 shadow animate-pulse">
-                  💡 Click to Reveal Hint
-                </span>
-              </div>
-            )}
-          </div>
+            RESET
+          </button>
         </div>
 
-        {/* Real-Time Status / Passed Banner */}
-        {validationResult?.passed && (
-          <div className="bg-emerald-950/80 border-2 border-emerald-500 rounded-lg p-3 flex flex-wrap items-center justify-between gap-3 shadow-lg shadow-emerald-950/40">
-            <div className="flex items-center gap-2.5">
-              <span className="w-7 h-7 rounded-full bg-emerald-500 text-zinc-950 flex items-center justify-center font-extrabold text-base">
-                ✓
-              </span>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-emerald-300 font-mono font-extrabold text-sm">
-                    PASSED ({validationResult.score} PTS)
-                  </span>
-                  <span className="text-[10px] bg-emerald-900/60 text-emerald-300 px-2 py-0.5 rounded border border-emerald-700/60 font-mono">
-                    VERIFIED
-                  </span>
-                </div>
-                <p className="text-xs text-zinc-200 mt-0.5">{validationResult.feedback}</p>
-              </div>
-            </div>
+        <p className="font-mono text-sm leading-relaxed text-zinc-200 max-w-3xl">{currentScenario.problem}</p>
 
-            {activeScenarioId < SCENARIOS.length ? (
+        {showHint ? (
+          <p className="font-mono text-[13px] leading-relaxed text-zinc-300 border-l-2 border-meter-400 bg-meter-500/10 rounded-r px-3 py-2 max-w-3xl">
+            <span className="font-bold text-meter-300">Hint: </span>
+            {currentScenario.hint}
+          </p>
+        ) : (
+          !solved && (
+            <button
+              onClick={() => setShowHint(true)}
+              className="self-start px-3 py-1.5 rounded-lg border border-meter-600/70 text-meter-300 hover:bg-meter-500/10 font-mono text-xs font-bold transition-colors"
+            >
+              Show a hint
+            </button>
+          )
+        )}
+
+        {nudge && (
+          <p className="font-mono text-[13px] text-orange-300 max-w-3xl">
+            <span className="font-bold">Almost: </span>
+            {nudge}
+          </p>
+        )}
+
+        {solved && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-600/70 bg-emerald-950/50 px-3 py-2.5">
+            <p className="font-mono text-[13px] text-zinc-200 max-w-3xl">
+              <span className="font-bold text-emerald-300">✓ Solved. </span>
+              {solved.feedback}
+            </p>
+            {nextScenario ? (
               <button
-                onClick={handleNextScenario}
-                className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-mono font-extrabold text-xs rounded-lg shadow-md transition-all flex items-center gap-1.5 animate-pulse"
+                onClick={() => handleLoadScenario(nextScenario)}
+                className="px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-mono font-extrabold text-xs transition-colors"
               >
-                <span>NEXT SCENARIO</span>
-                <span className="text-sm">→</span>
+                NEXT SCENARIO →
               </button>
             ) : (
-              <div className="px-3 py-1.5 bg-emerald-900/80 border border-emerald-500/80 rounded text-emerald-200 text-xs font-mono font-bold">
-                🎉 ALL 8 SCENARIOS COMPLETE!
-              </div>
+              <span className="font-mono text-xs font-bold text-emerald-300">That's all {SCENARIOS.length}!</span>
             )}
           </div>
         )}

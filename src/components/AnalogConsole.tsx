@@ -83,8 +83,8 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
               className="w-28 flex flex-col bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border border-zinc-800 rounded-lg p-1 gap-1 shadow-md relative"
             >
               {/* Channel Strip Header */}
-              <div className="flex items-center justify-between border-b border-zinc-800 pb-1">
-                <div className="flex flex-col">
+              <div className="flex flex-wrap items-center justify-between border-b border-zinc-800 pb-1">
+                <div className="contents">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-mono text-meter-400 font-bold">
                       Ch {ch.id}
@@ -96,7 +96,7 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
                       title={meter.clipped ? 'PEAK / CLIPPING' : 'Normal'}
                     />
                   </div>
-                  <span className="text-[11px] font-semibold text-zinc-100 truncate max-w-[70px]" title={ch.name}>
+                  <span className="order-last w-full text-[11px] font-semibold text-zinc-100 truncate" title={ch.name}>
                     {ch.name}
                   </span>
                 </div>

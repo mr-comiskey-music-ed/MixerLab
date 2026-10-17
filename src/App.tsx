@@ -118,11 +118,11 @@ export default function App() {
     }
 
     if (activeTab === 'scenarios') {
-      audioEngine.setEnforcePhantomPower(activeScenarioId === 1);
       const currentSc = SCENARIOS.find(s => s.id === activeScenarioId) || SCENARIOS[0];
+      audioEngine.setCondenserChannel(currentSc.condenserChannel ?? null);
       handleApplyScenarioState(currentSc.setupState);
     } else {
-      audioEngine.setEnforcePhantomPower(false);
+      audioEngine.setCondenserChannel(null);
     }
   }, [activeTab, activeScenarioId]);
 
@@ -267,7 +267,7 @@ export default function App() {
   };
 
   // Apply scenario state (resets mixer to clean defaults first, then applies scenario overrides).
-  // Scenarios are written for the funk song's channel layout (Lead Vocal on Ch 3, etc.).
+  // Scenarios are written for Card Game's channel layout (Vocals on Ch 6, etc.).
   const handleApplyScenarioState = (setup: ScenarioItem['setupState']) => {
     const songId = setup.songId || DEFAULT_SONG_ID;
     if (songId !== currentSongId) {
@@ -557,7 +557,7 @@ export default function App() {
               completedScenarios={scenariosCompleted}
               onScenarioChange={setActiveScenarioId}
             />
-            {renderConsoleBay("Troubleshooting Console — Adjust Knobs, Faders & Switches to Resolve")}
+            {renderConsoleBay("Fix it on the console")}
           </div>
         )}
 
