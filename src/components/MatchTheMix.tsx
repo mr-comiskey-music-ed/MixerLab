@@ -19,27 +19,27 @@ export interface ReferenceProfile {
   targets: ReferenceTarget[];
 }
 
-// Channel order follows each song's stems (see BUILTIN_SONGS).
+// Channel order follows each song's stems (see songs.ts).
 export const REFERENCE_PROFILES: ReferenceProfile[] = [
   {
-    id: "ref_funk",
-    name: "Commercial Radio Funk Balance",
-    songId: "song1",
-    description: "A punchy, radio-ready funk balance. Listen for how loud each part is, where it sits left-to-right, and how bright or heavy it sounds.",
+    id: "ref_free",
+    name: "Free: Hip Hop Mix",
+    songId: "song6",
+    description: "The lead vocal and 808 sit up front, and the background parts spread out wide. Listen for how loud each part is, where it sits left to right, and how bright or heavy it sounds.",
     targets: [
-      { channelId: 1, targetFader: -3, targetPan: 0, targetLow: 4, targetHigh: 3 },     // Kick / Snare
-      { channelId: 2, targetFader: -5, targetPan: 0, targetLow: 5, targetHigh: -4 },    // E. Bass
-      { channelId: 3, targetFader: 3, targetPan: 0, targetLow: -5, targetHigh: 4 },     // Lead Vocal
-      { channelId: 4, targetFader: -6, targetPan: -0.7, targetLow: -6, targetHigh: 2 }, // E. Guitar
-      { channelId: 5, targetFader: -9, targetPan: 0.7, targetLow: -4, targetHigh: -3 }, // Synth Pad
-      { channelId: 6, targetFader: -8, targetPan: 0.4, targetLow: -6, targetHigh: 5 }   // Perc / Aux
+      { channelId: 1, targetFader: 0, targetPan: 0, targetLow: 2, targetHigh: 3 },      // Drums
+      { channelId: 2, targetFader: -2, targetPan: 0, targetLow: 4, targetHigh: -4 },    // 808
+      { channelId: 3, targetFader: -8, targetPan: 0.6, targetLow: -6, targetHigh: 2 },  // Hums
+      { channelId: 4, targetFader: -6, targetPan: -0.5, targetLow: -4, targetHigh: 0 }, // Other
+      { channelId: 5, targetFader: -7, targetPan: -0.8, targetLow: -5, targetHigh: 3 }, // Vox Dbl/AdLib
+      { channelId: 6, targetFader: 3, targetPan: 0, targetLow: -4, targetHigh: 4 }      // Lead Vocal
     ]
   },
   {
     id: "ref_rock",
-    name: "Driving Modern Rock Staging",
+    name: "Give My Heart: Rock Mix",
     songId: "song2",
-    description: "An aggressive modern rock mix. Listen for which guitars are wide and which are centered, how much snap the drums have, and how far forward the vocal sits.",
+    description: "An aggressive rock mix. Listen for which guitars are wide and which are centered, how much snap the drums have, and how far forward the vocal sits.",
     targets: [
       { channelId: 1, targetFader: 0, targetPan: 0, targetLow: 3, targetHigh: 4 },      // Drums
       { channelId: 2, targetFader: -3, targetPan: 0, targetLow: 5, targetHigh: -3 },    // Bass
@@ -47,6 +47,20 @@ export const REFERENCE_PROFILES: ReferenceProfile[] = [
       { channelId: 4, targetFader: -6, targetPan: 0.8, targetLow: -5, targetHigh: 3 },  // Clean E Guit
       { channelId: 5, targetFader: -10, targetPan: 0.4, targetLow: -6, targetHigh: 4 }, // A Guit
       { channelId: 6, targetFader: 3, targetPan: 0, targetLow: -4, targetHigh: 5 }      // Vocals
+    ]
+  },
+  {
+    id: "ref_summertime",
+    name: "Summertime: Afrobeat Groove",
+    songId: "song4",
+    description: "A bouncy groove where the drums and bass lock together in the middle, and the percussion and guitar riffs answer each other from the sides.",
+    targets: [
+      { channelId: 1, targetFader: 0, targetPan: 0, targetLow: 3, targetHigh: 2 },      // Drums
+      { channelId: 2, targetFader: -4, targetPan: 0.6, targetLow: -6, targetHigh: 4 },  // Perc
+      { channelId: 3, targetFader: -2, targetPan: 0, targetLow: 4, targetHigh: -3 },    // Bass
+      { channelId: 4, targetFader: -8, targetPan: 0.4, targetLow: -5, targetHigh: -2 }, // Synths
+      { channelId: 5, targetFader: -5, targetPan: -0.7, targetLow: -3, targetHigh: 3 }, // Riffs
+      { channelId: 6, targetFader: 3, targetPan: 0, targetLow: -4, targetHigh: 3 }      // Vocals
     ]
   }
 ];
