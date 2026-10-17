@@ -3,7 +3,7 @@ import { ChannelSettings, MasterSettings, MyMix, StudentSubmission, EqWizardScor
 import { SCENARIOS } from './ScenarioChallenges';
 import { BUILTIN_SONGS } from '../audio/songs';
 import { summarizeMixChanges } from '../utils/mixChanges';
-import { encodeSubmission, decodeSubmission } from '../utils/submissionCodec';
+import { encodeSubmission, decodeSubmission, extractCodes } from '../utils/submissionCodec';
 import {
   Assignment, AssignmentItem, ASSIGNMENT_ITEMS, EVERYTHING, assignmentName, buildAssignmentLink,
   computeGrade, isEverything, itemsToLetters, lettersToItems, matchGrade
@@ -58,6 +58,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
 
   // Teacher batch verifier state
   const [batchInput, setBatchInput] = useState<string>('');
+  const [batchNote, setBatchNote] = useState<string>('');
   const [rows, setRows] = useState<VerifiedRow[]>([]);
   const [isVerifying, setIsVerifying] = useState(false);
   const [sortField, setSortField] = useState<'name' | 'assignment' | 'total' | 'scenarios' | 'drill' | 'match' | 'mymix'>('name');
@@ -115,7 +116,8 @@ export const GradeReport: React.FC<GradeReportProps> = ({
 
   // ---------- Teacher batch ----------
   const handleVerifyBatch = async () => {
-    const lines = batchInput.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const lines = extractCodes(batchInput);
+    setBatchNote(lines.length ? `Found ${lines.length} code${lines.length === 1 ? '' : 's'} in what you pasted.` : "I couldn't find any codes in that text. Codes start with ML3.");
     setIsVerifying(true);
     const results = await Promise.all(
       lines.map(async (line): Promise<VerifiedRow> => {
@@ -396,12 +398,12 @@ export const GradeReport: React.FC<GradeReportProps> = ({
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-mono font-bold text-purple-300 uppercase">2 · Paste the whole class's codes (one per line)</label>
+          <label className="text-xs font-mono font-bold text-purple-300 uppercase">2 · Paste the whole class's codes</label>
           <textarea
             value={batchInput}
             onChange={(e) => setBatchInput(e.target.value)}
             rows={4}
-            placeholder="ML3d.…"
+            placeholder="Paste a list of codes, or copy the whole Google Classroom page. Names and other text are ignored."
             className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-200 focus:outline-none focus:border-purple-500 select-text"
           />
           <button
@@ -411,6 +413,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
           >
             {isVerifying ? 'CHECKING…' : 'CHECK ALL CODES'}
           </button>
+          {batchNote && <p className="text-[11px] font-mono text-zinc-500">{batchNote}</p>}
         </div>
 
         {rows.length > 0 && (
@@ -616,7 +619,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
             <div className="flex flex-col gap-2">
               <h4 className="text-sm font-bold text-yellow-400 uppercase tracking-wider">Scenarios</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
-                {SCENARIOS.map((sc) => {
+                {SCENARIOS.map((sc, i) => {
                   const pts = report.scores.scenarios[sc.id];
                   const passed = pts !== undefined && pts >= 100;
                   const tried = pts !== undefined && pts > 0;
@@ -632,7 +635,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                       }`}
                     >
                       <span className="text-[11px]">
-                        {passed ? '✓' : tried ? '◐' : '○'} #{sc.id} {sc.title}
+                        {passed ? '✓' : tried ? '◐' : '○'} #{i + 1} {sc.title}
                       </span>
                       <span className="font-bold text-[11px] whitespace-nowrap">{tried ? `${pts} PTS` : '—'}</span>
                     </div>

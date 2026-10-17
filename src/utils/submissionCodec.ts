@@ -250,3 +250,24 @@ function decodeLegacy(raw: string): DecodedSubmission | null {
     }
   };
 }
+
+/**
+ * Pulls submission codes out of pasted text. Works on a clean list of codes, but also on a whole
+ * Google Classroom page copied and pasted: student names, dates, "Turned in" labels and blank lines
+ * are skipped, and a code is found even when it sits in the middle of a line.
+ */
+export function extractCodes(text: string): string[] {
+  const clean = text.replace(/[​-‍⁠﻿]/g, '');
+  const found: string[] = [];
+  const seen = new Set<string>();
+  const add = (c: string) => { if (!seen.has(c)) { seen.add(c); found.push(c); } };
+  for (const token of clean.split(/\s+/)) {
+    if (!token) continue;
+    const current = token.match(/ML3[dj]\.[A-Za-z0-9_-]+\.[0-9a-f]{8}/g);
+    if (current) { current.forEach(add); continue; }
+    // Older codes: one long run of base64 with no prefix
+    const legacy = token.replace(/^[^A-Za-z0-9+/=]+|[^A-Za-z0-9+/=]+$/g, '');
+    if (legacy.length >= 60 && /^[A-Za-z0-9+/]+={0,2}$/.test(legacy)) add(legacy);
+  }
+  return found;
+}

@@ -64,6 +64,8 @@ export interface ScenarioItem {
   id: number;
   title: string;
   problem: string; // what the student sees and hears (no answers)
+  /** Extra context shown under the problem (not an answer). */
+  note?: string;
   hint: string;    // points toward the fix without giving it away
   /** Channel with a condenser mic: it stays silent until +48V is on. */
   condenserChannel?: number;

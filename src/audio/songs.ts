@@ -38,8 +38,8 @@ export const BUILTIN_SONGS: SongDefinition[] = [
     stems: [
       { id: 1, name: 'Drums', type: 'drums', color: '#f87171', url: '/audio/Drums_Free.mp3', gainFactor: dB(-3) },
       { id: 2, name: '808', type: 'bass', color: '#60a5fa', url: '/audio/808_Free.mp3', gainFactor: dB(-3) },
-      { id: 3, name: 'Hums', type: 'vocal', color: '#c084fc', url: '/audio/Hums_Free.mp3', gainFactor: dB(-3) },
-      { id: 4, name: 'Other', type: 'synth', color: '#2dd4bf', url: '/audio/Other_Free.mp3', gainFactor: dB(-3) },
+      { id: 3, name: 'Other', type: 'synth', color: '#c084fc', url: '/audio/Other_Free.mp3', gainFactor: dB(-3) },
+      { id: 4, name: 'Hums', type: 'vocal', color: '#2dd4bf', url: '/audio/Hums_Free.mp3', gainFactor: dB(-3) },
       { id: 5, name: 'Vox Dbl/AdLib', type: 'vocal', color: '#fb923c', url: '/audio/VocalDblAdLib_Free.mp3', gainFactor: dB(-3) },
       { id: 6, name: 'Lead Vocal', type: 'vocal', color: '#facc15', url: '/audio/LeadVocal_Free.mp3', gainFactor: dB(-3) }
     ]

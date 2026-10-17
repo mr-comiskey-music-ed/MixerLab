@@ -473,19 +473,19 @@
   {
    "songId": "song6",
    "stemIndex": 2,
-   "stemName": "Hums",
-   "lowShare": 0.224,
-   "highShare": 0.00167,
+   "stemName": "Other",
+   "lowShare": 0.198,
+   "highShare": 0.00299,
    "file": "/eq/stem_song6_3_1.mp3",
-   "start": 0,
+   "start": 0.3,
    "duration": 8
   },
   {
    "songId": "song6",
    "stemIndex": 2,
-   "stemName": "Hums",
-   "lowShare": 0.22,
-   "highShare": 0.0017,
+   "stemName": "Other",
+   "lowShare": 0.195,
+   "highShare": 0.00474,
    "file": "/eq/stem_song6_3_2.mp3",
    "start": 0.3,
    "duration": 8
@@ -493,9 +493,9 @@
   {
    "songId": "song6",
    "stemIndex": 2,
-   "stemName": "Hums",
-   "lowShare": 0.216,
-   "highShare": 0.00174,
+   "stemName": "Other",
+   "lowShare": 0.209,
+   "highShare": 0.006,
    "file": "/eq/stem_song6_3_3.mp3",
    "start": 0.3,
    "duration": 8
@@ -503,19 +503,19 @@
   {
    "songId": "song6",
    "stemIndex": 3,
-   "stemName": "Other",
-   "lowShare": 0.198,
-   "highShare": 0.00299,
+   "stemName": "Hums",
+   "lowShare": 0.224,
+   "highShare": 0.00167,
    "file": "/eq/stem_song6_4_1.mp3",
-   "start": 0.3,
+   "start": 0,
    "duration": 8
   },
   {
    "songId": "song6",
    "stemIndex": 3,
-   "stemName": "Other",
-   "lowShare": 0.195,
-   "highShare": 0.00474,
+   "stemName": "Hums",
+   "lowShare": 0.22,
+   "highShare": 0.0017,
    "file": "/eq/stem_song6_4_2.mp3",
    "start": 0.3,
    "duration": 8
@@ -523,9 +523,9 @@
   {
    "songId": "song6",
    "stemIndex": 3,
-   "stemName": "Other",
-   "lowShare": 0.209,
-   "highShare": 0.006,
+   "stemName": "Hums",
+   "lowShare": 0.216,
+   "highShare": 0.00174,
    "file": "/eq/stem_song6_4_3.mp3",
    "start": 0.3,
    "duration": 8

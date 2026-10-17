@@ -10,7 +10,7 @@ import { AnalogConsole } from './components/AnalogConsole';
 import { DigitalConsole } from './components/DigitalConsole';
 import { SignalFlowXRay } from './components/SignalFlowXRay';
 import { ScenarioChallenges, SCENARIOS } from './components/ScenarioChallenges';
-import { WhatChanged, WHAT_CHANGED_QUESTIONS } from './components/WhatChanged';
+import { WhatChanged, WHAT_CHANGED_QUESTIONS, WHAT_CHANGED_SONG_ID } from './components/WhatChanged';
 import { ChallengeTabs } from './components/ChallengeTabs';
 import { MatchTheMix, REFERENCE_PROFILES, ReferenceProfile, buildReferenceMix } from './components/MatchTheMix';
 import { MyMix as MyMixPanel, MY_MIX_MIN_WORDS } from './components/MyMix';
@@ -53,7 +53,7 @@ export default function App() {
   const [matchScores, setMatchScores] = useState<Record<string, number>>({});
   const [learnCompleted, setLearnCompleted] = useState<boolean>(false);
   const [eqScores, setEqScores] = useState<EqWizardScores>(() => emptyEqScores());
-  const [activeScenarioId, setActiveScenarioId] = useState<number>(1);
+  const [activeScenarioId, setActiveScenarioId] = useState<number>(SCENARIOS[0].id);
 
   // Mixer state
   const [channels, setChannels] = useState<ChannelSettings[]>(() => makeDefaultChannels(DEFAULT_SONG_ID));
@@ -369,7 +369,9 @@ export default function App() {
     }
 
     // Entering a tab
-    if (tab === 'match') {
+    if (tab === 'whatchanged') {
+      if (currentSongId !== WHAT_CHANGED_SONG_ID) handleSelectSong(WHAT_CHANGED_SONG_ID);
+    } else if (tab === 'match') {
       const profile = REFERENCE_PROFILES.find(p => p.id === matchProfileId) || REFERENCE_PROFILES[0];
       const saved = matchWorkRef.current[profile.id];
       if (profile.songId !== currentSongId) handleSelectSong(profile.songId);
@@ -565,7 +567,6 @@ export default function App() {
         {activeTab === 'whatchanged' && (
           <div className="w-full flex flex-col items-center">
             <WhatChanged
-              currentSongId={currentSongId}
               isPlaying={isPlaying}
               onPlay={handlePlay}
               onPause={handlePause}

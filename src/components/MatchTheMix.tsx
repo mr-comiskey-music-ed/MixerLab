@@ -25,12 +25,12 @@ export const REFERENCE_PROFILES: ReferenceProfile[] = [
     id: "ref_free",
     name: "Free: Hip Hop Mix",
     songId: "song6",
-    description: "The lead vocal and 808 sit up front, and the background parts spread out wide. Listen for how loud each part is, where it sits left to right, and how bright or heavy it sounds.",
+    description: "The lead vocal and 808 sit up front, and the vocal doubles and ad-libs sit off to one side. Listen for how loud each part is, where it sits left to right, and how bright or heavy it sounds.",
     targets: [
       { channelId: 1, targetFader: 0, targetPan: 0, targetLow: 2, targetHigh: 3 },      // Drums
       { channelId: 2, targetFader: -2, targetPan: 0, targetLow: 4, targetHigh: -4 },    // 808
-      { channelId: 3, targetFader: -8, targetPan: 0.6, targetLow: -6, targetHigh: 2 },  // Hums
-      { channelId: 4, targetFader: -6, targetPan: -0.5, targetLow: -4, targetHigh: 0 }, // Other
+      { channelId: 3, targetFader: -6, targetPan: 0, targetLow: -4, targetHigh: 0 },    // Other
+      { channelId: 4, targetFader: -8, targetPan: 0, targetLow: -6, targetHigh: 2 },    // Hums
       { channelId: 5, targetFader: -7, targetPan: -0.8, targetLow: -5, targetHigh: 3 }, // Vox Dbl/AdLib
       { channelId: 6, targetFader: 3, targetPan: 0, targetLow: -4, targetHigh: 4 }      // Lead Vocal
     ]

@@ -3,6 +3,8 @@ import { ChannelSettings, MasterSettings } from '../types/audio';
 import { makeDefaultChannels, makeDefaultMaster } from '../utils/mixDefaults';
 
 export const WHAT_CHANGED_QUESTIONS = 8;
+/** What Changed? always uses Quack: a full sound, and it loops cleanly. */
+export const WHAT_CHANGED_SONG_ID = 'song5';
 
 type StemType = string; // 'drums' | 'bass' | 'vocal' | 'guitar' | 'synth' | 'perc'
 
@@ -89,7 +91,7 @@ const CHANGE_TYPES: ChangeType[] = [
     short: 'got brighter (HIGH EQ boost)',
     listenFor: 'The part got brighter and more sizzly, with more "air" on top.',
     big: false,
-    fits: ['drums', 'vocal', 'guitar', 'perc'],
+    fits: ['drums', 'vocal', 'guitar', 'perc', 'synth'],
     apply: (ch) => ({ ...ch, eqHigh: 12 })
   },
   {
@@ -97,7 +99,7 @@ const CHANGE_TYPES: ChangeType[] = [
     short: 'got duller (HIGH EQ cut)',
     listenFor: 'The part lost its top end and sounded darker, like it moved behind a curtain.',
     big: false,
-    fits: ['drums', 'vocal', 'guitar', 'perc'],
+    fits: ['drums', 'vocal', 'guitar', 'perc', 'synth'],
     apply: (ch) => ({ ...ch, eqHigh: -15 })
   },
   {
@@ -129,8 +131,10 @@ const shuffle = <T,>(arr: T[]): T[] => {
 
 /** Build 8 questions: the first 4 use big, obvious changes; the last 4 can be subtler. */
 export function generateQuestions(channels: ChannelSettings[], songId: string): WhatChangedQuestion[] {
+  // Parts that share an instrument type (Quack has three synths) are hard to tell apart, so they only get big changes
+  const hasTwin = (idx: number) => channels.filter((c) => c.type === channels[idx]?.type).length > 1;
   const fitsChannel = (ct: ChangeType, idx: number) =>
-    ct.fits.includes(channels[idx]?.type || 'synth') && (!ct.songs || ct.songs.includes(songId));
+    ct.fits.includes(channels[idx]?.type || 'synth') && (!ct.songs || ct.songs.includes(songId)) && (ct.big || !hasTwin(idx));
   const used = new Set<string>();
   const questions: WhatChangedQuestion[] = [];
   let lastChannel = -1;
@@ -181,9 +185,7 @@ export function buildQuestionMixes(songId: string, q: WhatChangedQuestion) {
   return { before: { channels: before, master }, after: { channels: after, master } };
 }
 
-interface WhatChangedProps {
-  currentSongId: string;
-  isPlaying: boolean;
+interface WhatChangedProps {  isPlaying: boolean;
   onPlay: () => void;
   onPause: () => void;
   onAudition: (mix: { channels: ChannelSettings[]; master: MasterSettings } | null) => void;
@@ -192,7 +194,6 @@ interface WhatChangedProps {
 }
 
 export const WhatChanged: React.FC<WhatChangedProps> = ({
-  currentSongId,
   isPlaying,
   onPlay,
   onPause,
@@ -200,6 +201,7 @@ export const WhatChanged: React.FC<WhatChangedProps> = ({
   bestScore,
   onFinish
 }) => {
+  const currentSongId = WHAT_CHANGED_SONG_ID;
   // Channel names and stem types come straight from the song, so questions always match what's loaded
   const channels = useMemo(() => makeDefaultChannels(currentSongId), [currentSongId]);
   const [questions, setQuestions] = useState<WhatChangedQuestion[]>(() => generateQuestions(makeDefaultChannels(currentSongId), currentSongId));
@@ -341,6 +343,14 @@ export const WhatChanged: React.FC<WhatChangedProps> = ({
     (o) => o.channelIdx === question.channelIdx && o.changeId === question.changeId
   );
   const changeInfo = CHANGE_TYPES.find((c) => c.id === question.changeId);
+  // Several parts of the same instrument are hard to tell apart; say so and give the listener something to hold on to
+  const lookAlikeNote = (() => {
+    const type = channels[question.channelIdx]?.type;
+    const twins = channels.filter((c) => c.type === type);
+    if (twins.length < 2) return null;
+    const names = twins.map((c) => c.name).join(', ');
+    return `${names} are all ${type}s and sound alike, which is one of the hard parts of mixing. When parts overlap, listen for what each one does: the slow swells, the wobbling movement, and the melody with the quack.`;
+  })();
 
   return (
     <div className="w-full max-w-3xl mx-auto flex flex-col gap-4 pb-8">
@@ -385,6 +395,13 @@ export const WhatChanged: React.FC<WhatChangedProps> = ({
             <span className="text-zinc-500"> (These changes can be more subtle, so listen closely.)</span>
           )}
         </p>
+
+        {lookAlikeNote && (
+          <p className="font-mono text-[12px] leading-relaxed text-zinc-400 border-l-2 border-fuchsia-500/60 pl-3">
+            <span className="font-bold text-fuchsia-300">Heads up: </span>
+            {lookAlikeNote}
+          </p>
+        )}
 
         {transport}
 

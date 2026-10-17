@@ -165,8 +165,8 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
           <select
             value={currentSongId}
             onChange={(e) => onSelectSong(e.target.value)}
-            disabled={activeTab === 'match'}
-            title={activeTab === 'match' ? 'In Match the Mix, the song is set by the reference you pick' : 'Choose a song'}
+            disabled={activeTab === 'match' || activeTab === 'whatchanged'}
+            title={activeTab === 'match' ? 'In Match the Mix, the song is set by the reference you pick' : activeTab === 'whatchanged' ? 'What Changed? always uses Quack' : 'Choose a song'}
             className="disabled:opacity-60 bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-xs font-mono text-zinc-200 focus:outline-none focus:border-meter-500"
           >
             {BUILTIN_SONGS.map((s) => (
