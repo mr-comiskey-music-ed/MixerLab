@@ -152,8 +152,7 @@ export const SCENARIOS: ScenarioItem[] = [
     id: 9,
     title: 'Uneven Vocal',
     problem: "The lead vocal is inconsistent: the quiet words get lost behind the band, and the loud ones jump out. Make the vocal's level more consistent without touching its fader.",
-    note: "Good to know: this vocal was already compressed a little when it was recorded, so you won't need much.",
-    hint: "Compressors turn down the loudest parts so the whole performance sits at a steadier level. Look at Channel 6's strip.",
+    hint: "Compressors turn down the loudest parts so the whole performance sits at a steadier level. Look at Channel 6's strip. This vocal was already compressed a little when it was recorded, so it won't take much.",
     setupState: { channels: [] },
     targetValidation: (chs) => {
       const v = ch(chs, 6);
@@ -167,7 +166,7 @@ export const SCENARIOS: ScenarioItem[] = [
     id: 10,
     title: 'Vocal Lost in the Mix',
     problem: "The vocal is at a good level, but the lyrics are hard to understand. The E Guits and the Piano & Organ are crowding the same range as the voice. Don't touch the vocal fader.",
-    hint: "Parts that sit in the same frequency range cover each other up. Make some room for the voice, and give the voice itself a little extra clarity. Try the MID EQ.",
+    hint: "Parts that sit in the same frequency range cover each other up. Make some room for the voice, and give the voice itself a little extra clarity.",
     setupState: { channels: [{ id: 3, eqMid: 6, eqMidFreq: 2500 }, { id: 5, eqMid: 6, eqMidFreq: 2500 }] },
     targetValidation: (chs) => {
       const v = ch(chs, 6), g = ch(chs, 3), k = ch(chs, 5);
@@ -270,6 +269,11 @@ export const ScenarioChallenges: React.FC<ScenarioChallengesProps> = ({
 
   return (
     <div id="scenarios-top" className="w-full max-w-5xl mx-auto flex flex-col gap-3 pb-4 scroll-mt-4">
+      <div>
+        <span className="font-mono text-xs font-bold text-yellow-400 uppercase tracking-wider">Real-World Problem Solving</span>
+        <p className="font-mono text-xs text-zinc-500 mt-0.5">Something is wrong with the mix. Find it and fix it on the console.</p>
+      </div>
+
       {/* Scenario picker */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-1.5">
         {SCENARIOS.map((sc, i) => {

@@ -958,14 +958,19 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
           {nav}
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        <>
+        {/* On small screens the source buttons get their own row, so the strip and the lesson can sit side by side */}
+        <div className="lg:hidden">{sourcePicker}</div>
+        <div className={`grid gap-2 sm:gap-4 items-start lg:grid-cols-12 ${currentStep === 9 ? 'grid-cols-1' : 'grid-cols-[7rem_minmax(0,1fr)]'}`}>
           {/* Hardware: Channel 1, or the master section on step 9 */}
-          <div className="lg:col-span-5 flex flex-col items-center gap-2">
-            {sourcePicker}
-            {currentStep === 9 ? renderMasterSection() : renderChannel1Strip()}
+          <div className="lg:col-span-5 self-stretch">
+            <div className="sticky top-2 lg:static flex flex-col items-center gap-2">
+              <div className="hidden lg:block w-full">{sourcePicker}</div>
+              {currentStep === 9 ? renderMasterSection() : renderChannel1Strip()}
+            </div>
           </div>
 
-          <div className="lg:col-span-7 bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-col gap-4">
+          <div className="lg:col-span-7 bg-zinc-900 border border-zinc-800 rounded-xl p-3 sm:p-5 flex flex-col gap-4 min-w-0">
             {lesson}
 
       {/* Step 5: the master FX section, so the send can be heard */}
@@ -1034,6 +1039,7 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
             {nav}
           </div>
         </div>
+        </>
       )}
     </div>
   );

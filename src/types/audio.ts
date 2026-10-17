@@ -136,8 +136,8 @@ export type TabId = 'learn' | 'console' | 'scenarios' | 'whatchanged' | 'match' 
 /** The tabs grouped under CHALLENGES (shown as sub-tabs). */
 export type ChallengeTabId = 'scenarios' | 'whatchanged' | 'match' | 'mymix';
 export const CHALLENGE_TABS: { id: ChallengeTabId; label: string }[] = [
-  { id: 'whatchanged', label: 'WHAT CHANGED?' },
   { id: 'scenarios', label: 'SCENARIOS' },
+  { id: 'whatchanged', label: 'WHAT CHANGED?' },
   { id: 'match', label: 'MATCH THE MIX' },
   { id: 'mymix', label: 'MY MIX' }
 ];

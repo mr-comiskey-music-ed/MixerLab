@@ -22,8 +22,8 @@ export interface Assignment {
 
 export const ASSIGNMENT_ITEMS: { id: AssignmentItem; letter: string; label: string }[] = [
   { id: 'learn', letter: 'l', label: 'Mixer Academy (Learn)' },
-  { id: 'whatchanged', letter: 'w', label: 'What Changed?' },
   { id: 'scenarios', letter: 's', label: 'Scenarios' },
+  { id: 'whatchanged', letter: 'w', label: 'What Changed?' },
   { id: 'match', letter: 'm', label: 'Match the Mix' },
   { id: 'mymix', letter: 'y', label: 'My Mix' },
   { id: 'freqid', letter: 'f', label: 'Freq Tone ID' },
