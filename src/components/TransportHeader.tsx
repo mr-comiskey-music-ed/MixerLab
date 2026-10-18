@@ -214,37 +214,35 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
             {formatTime(currentTime)} / {formatTime(duration)}
           </div>
 
-          {/* Scrubber Progress Slider */}
-          <input
-            type="range"
-            min={0}
-            max={duration || 8}
-            step={0.1}
-            value={currentTime}
-            onChange={(e) => onSeek(parseFloat(e.target.value))}
-            className="w-28 sm:w-44 accent-meter-400 cursor-pointer"
-          />
-
-          {/* Song loading bar: shown while the stems download so students know why there's no sound yet */}
-          {songLoading && (
+          {/* Scrubber slot: shows the loading bar while a new song downloads, then the playhead slider */}
+          {songLoading ? (
             <div
-              className="basis-full flex items-center gap-2"
+              className="relative w-28 sm:w-44 h-5 rounded bg-zinc-950 border border-zinc-800 overflow-hidden"
               role="progressbar"
               aria-label="Loading song"
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={Math.round(songLoadProgress * 100)}
+              title="Loading song…"
             >
-              <span className="text-[11px] font-mono font-bold text-meter-400 whitespace-nowrap">
-                LOADING SONG… {Math.round(songLoadProgress * 100)}%
+              <div
+                className="absolute inset-y-0 left-0 bg-meter-500/70 transition-[width] duration-150 ease-out"
+                style={{ width: `${Math.max(3, songLoadProgress * 100)}%` }}
+              />
+              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-mono font-bold tabular-nums text-zinc-100">
+                LOADING {Math.round(songLoadProgress * 100)}%
               </span>
-              <div className="flex-1 h-1.5 rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden">
-                <div
-                  className="h-full bg-meter-400 transition-[width] duration-150 ease-out"
-                  style={{ width: `${Math.max(3, songLoadProgress * 100)}%` }}
-                />
-              </div>
             </div>
+          ) : (
+            <input
+              type="range"
+              min={0}
+              max={duration || 8}
+              step={0.1}
+              value={currentTime}
+              onChange={(e) => onSeek(parseFloat(e.target.value))}
+              className="w-28 sm:w-44 accent-meter-400 cursor-pointer"
+            />
           )}
         </div>
       </div>
