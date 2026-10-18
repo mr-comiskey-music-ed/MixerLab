@@ -6,6 +6,8 @@ import { TabId, isChallengeTab, tabAccent } from '../types/audio';
 interface TransportHeaderProps {
   currentSongId: string;
   onSelectSong: (songId: string) => void;
+  songLoading?: boolean;
+  songLoadProgress?: number;
   isPlaying: boolean;
   isLooping: boolean;
   currentTime: number;
@@ -27,6 +29,8 @@ interface TransportHeaderProps {
 export const TransportHeader: React.FC<TransportHeaderProps> = ({
   currentSongId,
   onSelectSong,
+  songLoading = false,
+  songLoadProgress = 0,
   isPlaying,
   isLooping,
   currentTime,
@@ -220,6 +224,28 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
             onChange={(e) => onSeek(parseFloat(e.target.value))}
             className="w-28 sm:w-44 accent-meter-400 cursor-pointer"
           />
+
+          {/* Song loading bar: shown while the stems download so students know why there's no sound yet */}
+          {songLoading && (
+            <div
+              className="basis-full flex items-center gap-2"
+              role="progressbar"
+              aria-label="Loading song"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(songLoadProgress * 100)}
+            >
+              <span className="text-[11px] font-mono font-bold text-meter-400 whitespace-nowrap">
+                LOADING SONG… {Math.round(songLoadProgress * 100)}%
+              </span>
+              <div className="flex-1 h-1.5 rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden">
+                <div
+                  className="h-full bg-meter-400 transition-[width] duration-150 ease-out"
+                  style={{ width: `${Math.max(3, songLoadProgress * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

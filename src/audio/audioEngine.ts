@@ -627,7 +627,23 @@ export class AudioEngine {
     }
   }
 
-  public async fetchAndDecodeAudio(url: string, gainFactor: number = 1.0): Promise<AudioBuffer> {
+  /** Called as the current song downloads (progress 0..1). `loading` goes false when it's ready. */
+  public onLoadProgress?: (state: { loading: boolean; progress: number }) => void;
+  private loadFractions: Map<string, number[]> = new Map();
+
+  private emitLoadProgress(songId: string) {
+    if (songId !== this.currentSongId) return;
+    const fr = this.loadFractions.get(songId);
+    if (!fr) return;
+    const progress = fr.reduce((a, b) => a + b, 0) / fr.length;
+    this.onLoadProgress?.({ loading: true, progress });
+  }
+
+  public async fetchAndDecodeAudio(
+    url: string,
+    gainFactor: number = 1.0,
+    onProgress?: (fraction: number) => void
+  ): Promise<AudioBuffer> {
     if (!this.ctx) this.init();
     const baseUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL)
       ? import.meta.env.BASE_URL
@@ -640,8 +656,33 @@ export class AudioEngine {
     if (!res.ok) {
       throw new Error(`Failed to fetch audio from ${normalizedUrl}: ${res.statusText}`);
     }
-    const arrayBuffer = await res.arrayBuffer();
+    // Stream the download so we can report progress (download = first 90%, decode = last 10%)
+    let arrayBuffer: ArrayBuffer;
+    const total = Number(res.headers.get('content-length')) || 0;
+    if (res.body && total > 0 && onProgress) {
+      const reader = res.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let received = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.length;
+        onProgress(Math.min(0.9, (received / total) * 0.9));
+      }
+      const merged = new Uint8Array(received);
+      let pos = 0;
+      for (const c of chunks) {
+        merged.set(c, pos);
+        pos += c.length;
+      }
+      arrayBuffer = merged.buffer as ArrayBuffer;
+    } else {
+      arrayBuffer = await res.arrayBuffer();
+    }
+    onProgress?.(0.9);
     const audioBuffer = await this.ctx!.decodeAudioData(arrayBuffer);
+    onProgress?.(1);
 
     // Apply per-stem gain reduction (e.g. -3dB or -5.5dB)
     if (gainFactor !== 1.0) {
@@ -691,13 +732,25 @@ export class AudioEngine {
 
     const loadPromise = (async () => {
       try {
+        const fractions: number[] = song.stems.map(() => 0);
+        this.loadFractions.set(songId, fractions);
         const buffers = await Promise.all(
-          song.stems.map((stem) => (stem.url ? this.fetchAndDecodeAudio(stem.url, stem.gainFactor ?? 1) : Promise.resolve(this.silentStems(8)[0])))
+          song.stems.map((stem, i) => {
+            if (!stem.url) {
+              fractions[i] = 1;
+              return Promise.resolve(this.silentStems(8)[0]);
+            }
+            return this.fetchAndDecodeAudio(stem.url, stem.gainFactor ?? 1, (f) => {
+              fractions[i] = f;
+              this.emitLoadProgress(songId);
+            });
+          })
         );
         this.cachedSongBuffers.set(songId, buffers);
         this.touchCache(songId);
         return buffers;
       } finally {
+        this.loadFractions.delete(songId);
         this.pendingSongLoads.delete(songId);
       }
     })();
@@ -725,6 +778,7 @@ export class AudioEngine {
       if (this.onDurationChange) {
         this.onDurationChange(this.loopDuration);
       }
+      this.onLoadProgress?.({ loading: false, progress: 1 });
       if (wasPlaying) {
         this.play(0);
       }
@@ -738,9 +792,13 @@ export class AudioEngine {
       this.onDurationChange(this.loopDuration);
     }
 
+    this.onLoadProgress?.({ loading: true, progress: 0 });
+    this.emitLoadProgress(songId);
+
     try {
       const buffers = await this.preloadSong(songId);
       if (this.currentSongId === songId) {
+        this.onLoadProgress?.({ loading: false, progress: 1 });
         this.stemBuffers = buffers;
         this.loopDuration = buffers[0]?.duration || 8.0;
         if (this.onDurationChange) {
@@ -755,6 +813,7 @@ export class AudioEngine {
       return buffers;
     } catch (err) {
       console.error(`Failed to load song ${songId}:`, err);
+      if (this.currentSongId === songId) this.onLoadProgress?.({ loading: false, progress: 0 });
       return this.stemBuffers;
     }
   }

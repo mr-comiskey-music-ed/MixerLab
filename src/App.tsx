@@ -23,6 +23,7 @@ type MixState = { channels: ChannelSettings[]; master: MasterSettings };
 export default function App() {
   const [currentSongId, setCurrentSongId] = useState<string>(DEFAULT_SONG_ID);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [songLoad, setSongLoad] = useState<{ loading: boolean; progress: number }>({ loading: false, progress: 0 });
   const [isLooping, setIsLooping] = useState<boolean>(true);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(8.0);
@@ -128,8 +129,9 @@ export default function App() {
 
   // Initialize engine on mount
   useEffect(() => {
-    audioEngine.init();
+    audioEngine.onLoadProgress = (state) => setSongLoad(state);
     audioEngine.onDurationChange = (dur) => setDuration(dur);
+    audioEngine.init();
     channels.forEach((ch, idx) => audioEngine.updateChannel(idx, ch));
     audioEngine.updateMaster(master);
     setDuration(audioEngine.loopDuration);
@@ -469,6 +471,8 @@ export default function App() {
       <TransportHeader
         currentSongId={currentSongId}
         onSelectSong={handleSelectSong}
+        songLoading={songLoad.loading}
+        songLoadProgress={songLoad.progress}
         isPlaying={isPlaying}
         isLooping={isLooping}
         currentTime={currentTime}
