@@ -160,22 +160,45 @@ export class AudioEngine {
   private applyPhantom(index: number, s: ChannelSettings) {
     const ch = this.channels[index];
     if (!ch || !this.ctx) return;
-    const level = this.condenserChannelId === s.id && !s.phantom48V ? 0.0001 : 1.0;
+    let level = this.condenserChannelId === s.id && !s.phantom48V ? 0.0001 : 1.0;
+    // Feedback scenario: the over-boosted vocal is trimmed down so the problem isn't a jolt
+    if (this.feedbackTrim && this.feedbackTrim.id === s.id) level *= this.feedbackTrim.linear;
     ch.phantomGain.gain.setTargetAtTime(level, this.ctx.currentTime, 0.02);
   }
 
   // Scenario simulation: acoustic feedback, a ringing tone at the given frequency
   private screech: { osc: OscillatorNode; lfo: OscillatorNode } | null = null;
+  private feedbackTrim: { id: number; linear: number } | null = null;
 
-  /** The ring is only heard while the song plays (moderate level: clearly a problem, not painful in headphones). */
+  /** Ring level (linear, into the main fader) and how long it takes to swell in from silence. */
+  private static readonly SCREECH_LEVEL = 0.035;
+  private static readonly SCREECH_FADE_IN_SEC = 3;
+
+  /** The ring is only heard while the song plays. It fades in over 3 seconds so it never jumps out at the student. */
   private refreshScreech() {
     if (!this.ctx || !this.feedbackGain || !this.screech) return;
-    this.feedbackGain.gain.setTargetAtTime(this.isPlaying ? 0.06 : 0, this.ctx.currentTime, this.isPlaying ? 0.4 : 0.03);
+    const g = this.feedbackGain.gain;
+    const now = this.ctx.currentTime;
+    const target = AudioEngine.SCREECH_LEVEL;
+    g.cancelScheduledValues(now);
+    if (this.isPlaying) {
+      const current = Math.min(g.value, target);
+      g.setValueAtTime(current, now);
+      // Only the remaining part of the swell, so repeated knob moves don't restart it
+      g.linearRampToValueAtTime(target, now + AudioEngine.SCREECH_FADE_IN_SEC * (1 - current / target));
+    } else {
+      g.setTargetAtTime(0, now, 0.03);
+    }
   }
 
-  public setFeedbackScreech(on: boolean, freq = 2500) {
+  public setFeedbackScreech(on: boolean, freq = 2500, trimChannelId?: number, trimDb = 0) {
     if (!this.ctx || !this.feedbackGain) return;
     const t = this.ctx.currentTime;
+    const trim = on && trimChannelId !== undefined && trimDb !== 0 ? { id: trimChannelId, linear: Math.pow(10, trimDb / 20) } : null;
+    if (this.feedbackTrim?.id !== trim?.id || this.feedbackTrim?.linear !== trim?.linear) {
+      this.feedbackTrim = trim;
+      this.channelSettings.forEach((cs, i) => cs && this.applyPhantom(i, cs));
+    }
     if (on) {
       if (!this.screech) {
         const osc = this.ctx.createOscillator();
@@ -193,6 +216,7 @@ export class AudioEngine {
       this.screech.osc.frequency.setTargetAtTime(freq, t, 0.05);
       this.refreshScreech();
     } else {
+      this.feedbackGain.gain.cancelScheduledValues(t);
       this.feedbackGain.gain.setTargetAtTime(0, t, 0.05);
       if (this.screech) {
         const { osc, lfo } = this.screech;

@@ -71,6 +71,8 @@ export interface ScenarioItem {
   condenserChannel?: number;
   /** Channel that rings with feedback while the problem is unsolved. */
   feedbackChannel?: number;
+  /** Channels whose EQ is greyed out and locked while this scenario is open (the fix is elsewhere). */
+  lockEqChannels?: number[];
   setupState: {
     channels: Partial<ChannelSettings>[];
     master?: Partial<MasterSettings>;

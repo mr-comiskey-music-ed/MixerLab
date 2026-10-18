@@ -422,6 +422,10 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isPlaying, currentTime, activeTab]);
 
+  // Scenarios can grey out a channel's EQ when the fix is somewhere else
+  const lockedEqChannelIds =
+    activeTab === 'scenarios' ? (SCENARIOS.find(s => s.id === activeScenarioId) || SCENARIOS[0]).lockEqChannels ?? [] : [];
+
   // Helper to render the interactive audio console bay
   const renderConsoleBay = (title?: string, matchMode = false) => (
     <div id="audio-console-bay" className="w-full flex flex-col items-center mt-6">
@@ -448,10 +452,12 @@ export default function App() {
           onLoadCustomStem={handleLoadCustomStem}
           onOpenXRay={(channelId, channelName) => setXrayState({ isOpen: true, channelId, channelName })}
           matchMode={matchMode}
+          lockedEqChannelIds={lockedEqChannelIds}
         />
       ) : (
         <DigitalConsole
           matchMode={matchMode}
+          lockedEqChannelIds={lockedEqChannelIds}
           channels={channels}
           master={master}
           selectedChannelIndex={selectedDigitalChannelIndex}

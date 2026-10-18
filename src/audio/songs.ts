@@ -20,13 +20,16 @@ export const BUILTIN_SONGS: SongDefinition[] = [
     bpm: 145,
     key: 'Indie',
     durationSec: 26.568,
+    // Base -3 dB trim plus a balance set by ear on the console faders (Drums +3, Bass -2.5, E Guits -2,
+    // A Guit -3.5, Piano & Organ -5, Vocals +0.5), baked in so the faders start at 0 on a balanced mix.
+    // Full mix peaks near -13.4 dBFS with all faders at 0.
     stems: [
-      { id: 1, name: 'Drums', type: 'drums', color: '#f87171', url: '/audio/Drums_CardGame.mp3', gainFactor: dB(-3) },
-      { id: 2, name: 'Bass', type: 'bass', color: '#60a5fa', url: '/audio/Bass_CardGame.mp3', gainFactor: dB(-3) },
-      { id: 3, name: 'E Guits', type: 'guitar', color: '#f97316', url: '/audio/EGuits_CardGame.mp3', gainFactor: dB(-3) },
-      { id: 4, name: 'A Guit', type: 'guitar', color: '#4ade80', url: '/audio/AGuit_CardGame.mp3', gainFactor: dB(-3) },
-      { id: 5, name: 'Piano & Organ', type: 'synth', color: '#c084fc', url: '/audio/PnoOrg_CardGame.mp3', gainFactor: dB(-3) },
-      { id: 6, name: 'Vocals', type: 'vocal', color: '#facc15', url: '/audio/Vocals_CardGame.mp3', gainFactor: dB(-3) }
+      { id: 1, name: 'Drums', type: 'drums', color: '#f87171', url: '/audio/Drums_CardGame.mp3', gainFactor: dB(-3 + 3.0) },
+      { id: 2, name: 'Bass', type: 'bass', color: '#60a5fa', url: '/audio/Bass_CardGame.mp3', gainFactor: dB(-3 - 2.5) },
+      { id: 3, name: 'E Guits', type: 'guitar', color: '#f97316', url: '/audio/EGuits_CardGame.mp3', gainFactor: dB(-3 - 2.0) },
+      { id: 4, name: 'A Guit', type: 'guitar', color: '#4ade80', url: '/audio/AGuit_CardGame.mp3', gainFactor: dB(-3 - 3.5) },
+      { id: 5, name: 'Piano & Organ', type: 'synth', color: '#c084fc', url: '/audio/PnoOrg_CardGame.mp3', gainFactor: dB(-3 - 5.0) },
+      { id: 6, name: 'Vocals', type: 'vocal', color: '#facc15', url: '/audio/Vocals_CardGame.mp3', gainFactor: dB(-3 + 0.5) }
     ]
   },
   {

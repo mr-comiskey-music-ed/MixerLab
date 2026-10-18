@@ -25,6 +25,7 @@ interface DigitalConsoleProps {
   onUpdateMaster: (settings: MasterSettings) => void;
   onOpenXRay: (channelId: number, channelName: string) => void;
   matchMode?: boolean; // Match the Mix: only faders, pan, LOW and HIGH EQ count, so grey out the rest
+  lockedEqChannelIds?: number[]; // Scenarios: channels whose EQ is greyed out and can't be touched
 }
 
 export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
@@ -36,10 +37,12 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
   onUpdateChannel,
   onUpdateMaster,
   onOpenXRay,
-  matchMode = false
+  matchMode = false,
+  lockedEqChannelIds = []
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const selectedCh = channels[selectedChannelIndex] || channels[0];
+  const eqLocked = lockedEqChannelIds.includes(selectedCh.id);
   const lastTouchTime = useRef(0);
 
   const handleTouchStartReset = (resetVal: number, setVal: (v: number) => void) => (e: React.TouchEvent) => {
@@ -776,7 +779,10 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
               </div>
 
               {/* Right: Interactive Parametric EQ Canvas (3 cols) */}
-              <div className="md:col-span-3 bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 flex flex-col gap-1.5">
+              <div
+                className={`md:col-span-3 bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 flex flex-col gap-1.5${eqLocked ? ' opacity-25 grayscale pointer-events-none' : ''}`}
+                title={eqLocked ? 'EQ is locked for this scenario' : undefined}
+              >
                 <div className="flex items-center justify-between px-1 flex-wrap gap-1">
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-mono font-bold text-meter-400">

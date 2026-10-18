@@ -24,6 +24,7 @@ interface AnalogConsoleProps {
   onLoadCustomStem: (channelIndex: number, file: File) => void;
   onOpenXRay: (channelId: number, channelName: string) => void;
   matchMode?: boolean; // Match the Mix: only faders, pan, LOW and HIGH EQ count, so grey out the rest
+  lockedEqChannelIds?: number[]; // Scenarios: channels whose EQ is greyed out and can't be touched
 }
 
 export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
@@ -34,7 +35,8 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
   onUpdateMaster,
   onLoadCustomStem,
   onOpenXRay,
-  matchMode = false
+  matchMode = false,
+  lockedEqChannelIds = []
 }) => {
   const fileInputs = useRef<(HTMLInputElement | null)[]>([]);
   const [lastInteractedChannelIdx, setLastInteractedChannelIdx] = useState<number>(0);
@@ -215,7 +217,10 @@ export const AnalogConsole: React.FC<AnalogConsoleProps> = ({
               </div>
 
               {/* 3-Band EQ Section */}
-              <div className="flex flex-col items-center gap-1 bg-zinc-950/40 p-1 rounded border border-zinc-850">
+              <div
+                className={`flex flex-col items-center gap-1 bg-zinc-950/40 p-1 rounded border border-zinc-850${lockedEqChannelIds.includes(ch.id) ? ' opacity-25 grayscale pointer-events-none' : ''}`}
+                title={lockedEqChannelIds.includes(ch.id) ? 'EQ is locked for this scenario' : undefined}
+              >
                 <span className="text-[8px] font-mono font-bold text-sky-400 uppercase tracking-wider">
                   EQ
                 </span>

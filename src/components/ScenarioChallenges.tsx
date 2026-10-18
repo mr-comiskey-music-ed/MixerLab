@@ -64,9 +64,9 @@ export const SCENARIOS: ScenarioItem[] = [
   {
     id: 3,
     title: 'Distorted Drums',
-    problem: "The drums sound crunchy and distorted. Someone tried to fix it by pulling the Channel 1 fader way down. Now the drums are quiet, but they're still distorted.",
+    problem: "The drums sound crunchy and distorted. Someone tried to fix it by pulling the Channel 1 fader down. Now the drums are quieter, but they're still distorted.",
     hint: "Watch Channel 1's PEAK light. The distortion happens at the top of the channel strip, before the sound ever reaches the fader.",
-    setupState: { channels: [{ id: 1, gain: 18, faderLevel: -25 }] },
+    setupState: { channels: [{ id: 1, gain: 18, faderLevel: -12 }] },
     targetValidation: (chs) => {
       const d = ch(chs, 1);
       if (d.gain > 8) return { passed: false, score: 0, feedback: '' };
@@ -78,10 +78,11 @@ export const SCENARIOS: ScenarioItem[] = [
   {
     id: 1,
     title: 'Condenser Mic Not Working',
-    problem: "The singer is using a condenser mic on Channel 6 (Vocals). They're singing, but nothing is coming through that channel.",
+    problem: "The singer is using a condenser mic on Channel 6 (Vocals). They're singing, but nothing is coming through that channel (other than the bleed from the acoustic guitar microphone).",
     hint: "Condenser mics are different from other mics: they can't work on their own. Look at Channel 6's input switches.",
     condenserChannel: 6,
-    setupState: { channels: [{ id: 6, phantom48V: false }] },
+    // A Guit down 6 dB so its vocal bleed doesn't mask the silent vocal channel
+    setupState: { channels: [{ id: 6, phantom48V: false }, { id: 4, faderLevel: -6 }] },
     targetValidation: (chs) => {
       const v = ch(chs, 6);
       if (!v.phantom48V) return { passed: false, score: 0, feedback: '' };
@@ -92,9 +93,10 @@ export const SCENARIOS: ScenarioItem[] = [
   {
     id: 4,
     title: 'Muddy Mix',
-    problem: "The mix sounds muddy and boomy, and the kick and bass are getting lost. The acoustic guitar mic is picking up low rumble from the stage, and the Piano & Organ has way too much low end.",
+    problem: "The mix sounds muddy and boomy, and the kick and bass are getting lost. The acoustic guitar mic is picking up low rumble from the stage, and the Piano & Organ has way too much low end. (The A Guit's EQ is greyed out for this one: fix that channel with a setting, not the EQ knobs.)",
     note: "Good to know: on this recording, the singer's voice leaks into the acoustic guitar mic. If you hear a quiet vocal on the A Guit channel, that is normal. The track is not mislabeled.",
     hint: "One channel needs its rumble filtered out with a switch. The other has EQ knobs turned up that should be flat or turned down.",
+    lockEqChannels: [4],
     setupState: { channels: [{ id: 4, lowCut100Hz: false }, { id: 5, eqLow: 6, eqMid: 6, eqMidFreq: 400 }] },
     targetValidation: (chs) => {
       const g = ch(chs, 4), k = ch(chs, 5);
@@ -126,7 +128,8 @@ export const SCENARIOS: ScenarioItem[] = [
     problem: 'A loud, high-pitched ring is coming out of the speakers: the vocal mic is feeding back. Stop it without losing the singer. (Press play to hear it.)',
     hint: "Feedback builds up when a mic is turned up too far and one frequency is boosted too much. Look at Channel 6's gain, fader and EQ.",
     feedbackChannel: 6,
-    setupState: { channels: [{ id: 6, gain: 18, faderLevel: 4, eqMid: 9, eqMidFreq: 2500 }] },
+    // The ring sits at the boosted mid frequency (4 kHz)
+    setupState: { channels: [{ id: 6, gain: 16, faderLevel: 3, eqMid: 9, eqMidFreq: 4000 }] },
     targetValidation: (chs) => {
       const v = ch(chs, 6);
       if (v.mute || v.faderLevel < -30) return { passed: false, score: 50, feedback: 'The ringing stopped, but now nobody can hear the singer. Find what is causing the ring instead.' };
@@ -152,11 +155,13 @@ export const SCENARIOS: ScenarioItem[] = [
     id: 9,
     title: 'Uneven Vocal',
     problem: "The lead vocal is inconsistent: the quiet words get lost behind the band, and the loud ones jump out. Make the vocal's level more consistent without touching its fader.",
-    hint: "Compressors turn down the loudest parts so the whole performance sits at a steadier level. Look at Channel 6's strip. This vocal was already compressed a little when it was recorded, so it won't take much.",
+    note: "(The actual vocal in this recording is mixed so it doesn't have this problem, but we are pretending it does for this scenario.)",
+    hint: "Compressors turn down the loudest parts so the whole performance sits at a steadier level. Look at Channel 6's strip.",
     setupState: { channels: [] },
     targetValidation: (chs) => {
       const v = ch(chs, 6);
       if (v.comp < 25) return { passed: false, score: 0, feedback: '' };
+      if (v.comp < 50) return { passed: false, score: 50, feedback: 'The compressor is working, but the vocal still jumps around. It needs more compression than that.' };
       if (v.mute || !near(v.faderLevel, 0, 6)) return { passed: false, score: 50, feedback: "The vocal's level is changing, but this one should be fixed without the fader. Let the compressor do the work." };
       if (v.comp > 85) return { passed: false, score: 60, feedback: 'That is a lot of compression. The vocal is steady, but it would sound flat and lifeless. Back it off until it still sounds natural.' };
       return { passed: true, score: 100, feedback: 'A compressor turns down the loudest parts, so quiet and loud words end up closer in level. A moderate amount keeps the vocal steady and still natural.' };
@@ -181,6 +186,9 @@ export const SCENARIOS: ScenarioItem[] = [
     }
   }
 ];
+
+/** While the feedback problem is active, the boosted vocal is pulled down this much so starting the scenario isn't a jolt. */
+const FEEDBACK_VOCAL_TRIM_DB = -12;
 
 /** Feedback rings while the vocal channel's gain, fader and mid EQ are all pushed and it isn't muted. */
 const isRinging = (c: ChannelSettings) => c.gain > 14 && c.faderLevel > 2 && c.eqMid > 2 && !c.mute;
@@ -225,7 +233,7 @@ export const ScenarioChallenges: React.FC<ScenarioChallengesProps> = ({
   useEffect(() => {
     const id = currentScenario.feedbackChannel;
     const c = id ? channels.find((x) => x.id === id) : undefined;
-    audioEngine.setFeedbackScreech(!!c && isRinging(c), c?.eqMidFreq || 2500);
+    audioEngine.setFeedbackScreech(!!c && isRinging(c), c?.eqMidFreq || 2500, id, FEEDBACK_VOCAL_TRIM_DB);
   }, [channels, currentScenario]);
   useEffect(() => () => audioEngine.setFeedbackScreech(false), []);
 
