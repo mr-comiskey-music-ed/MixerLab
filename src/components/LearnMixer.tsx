@@ -8,6 +8,7 @@ import { MeterLadder } from './MeterLadder';
 import { FaderScale } from './FaderScale';
 import { DigitalConsole } from './DigitalConsole';
 import { sliderPosToDb, dbToSliderPos } from '../utils/faderCurves';
+import { CONSOLE_LOW_HZ, CONSOLE_HIGH_HZ, fmtCornerHz } from '../audio/eqCorners';
 
 interface LearnMixerProps {
   channels: ChannelSettings[];
@@ -269,9 +270,9 @@ export const LearnMixer: React.FC<LearnMixerProps> = ({
       title: 'EQ',
       what: "EQ turns specific frequency ranges up or down to shape a sound's tone.",
       details: [
-        'LOW (80 Hz): weight and boom.',
+        `LOW (${fmtCornerHz(CONSOLE_LOW_HZ)}): weight and boom.`,
         'MID with MID FREQ: boost or cut one range you choose, from 100 Hz to 8 kHz. Low mids (300-600 Hz) sound boxy or muddy; upper mids (2-4 kHz) add presence and bite.',
-        'HIGH (10 kHz): air, sparkle and cymbal shimmer.'
+        `HIGH (${fmtCornerHz(CONSOLE_HIGH_HZ)}): air, sparkle and cymbal shimmer.`
       ],
       task: 'With WHITE NOISE playing, turn MID up, then sweep MID FREQ from left to right. Hear the boosted range move from low to high.',
       tip: "Cut before you boost. Taking out what's muddy or harsh often helps more than turning up what you like."

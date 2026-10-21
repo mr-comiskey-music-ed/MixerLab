@@ -1,6 +1,7 @@
 import { ChannelSettings, MasterSettings } from '../types/audio';
 import { BUILTIN_SONGS, DEFAULT_SONG_ID } from './songs';
 import { GEQ_10, GEQ_31, GEQ_10_Q, GEQ_31_Q } from './eqBands';
+import { CONSOLE_LOW_HZ, CONSOLE_HIGH_HZ } from './eqCorners';
 
 export interface ChannelNodes {
   preampGain: GainNode;
@@ -507,7 +508,7 @@ export class AudioEngine {
       // 3-Band EQ: Low and High operate as gentle shelving filters with fixed Q ~ 0.7
       const eqLow = this.ctx.createBiquadFilter();
       eqLow.type = 'lowshelf';
-      eqLow.frequency.value = 80;
+      eqLow.frequency.value = CONSOLE_LOW_HZ;
       eqLow.Q.value = 0.7;
       eqLow.gain.value = 0;
 
@@ -519,7 +520,7 @@ export class AudioEngine {
 
       const eqHigh = this.ctx.createBiquadFilter();
       eqHigh.type = 'highshelf';
-      eqHigh.frequency.value = 10000;
+      eqHigh.frequency.value = CONSOLE_HIGH_HZ;
       eqHigh.Q.value = 0.7;
       eqHigh.gain.value = 0;
 
@@ -998,9 +999,9 @@ export class AudioEngine {
     }
     ch.compMakeup.gain.setTargetAtTime(this.compMakeupLinear(index, s.comp ?? 0), now, 0.03);
 
-    // 3-Band EQ: Low and High operate as shelving filters with gentle fixed Q ~ 0.7
+    // 3-Band EQ: Low and High operate as shelving filters (Web Audio ignores Q on shelves; the slope is fixed)
     ch.eqLow.type = 'lowshelf';
-    ch.eqLow.frequency.setTargetAtTime(80, this.ctx.currentTime, 0.02);
+    ch.eqLow.frequency.setTargetAtTime(CONSOLE_LOW_HZ, this.ctx.currentTime, 0.02);
     ch.eqLow.Q.setTargetAtTime(0.7, this.ctx.currentTime, 0.02);
     ch.eqLow.gain.setTargetAtTime(s.eqLow, this.ctx.currentTime, 0.02);
 
@@ -1009,7 +1010,7 @@ export class AudioEngine {
     ch.eqMid.frequency.setTargetAtTime(s.eqMidFreq || 2500, this.ctx.currentTime, 0.02);
 
     ch.eqHigh.type = 'highshelf';
-    ch.eqHigh.frequency.setTargetAtTime(10000, this.ctx.currentTime, 0.02);
+    ch.eqHigh.frequency.setTargetAtTime(CONSOLE_HIGH_HZ, this.ctx.currentTime, 0.02);
     ch.eqHigh.Q.setTargetAtTime(0.7, this.ctx.currentTime, 0.02);
     ch.eqHigh.gain.setTargetAtTime(s.eqHigh, this.ctx.currentTime, 0.02);
 

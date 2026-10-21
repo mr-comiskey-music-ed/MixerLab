@@ -81,7 +81,7 @@ const CHANGE_TYPES: ChangeType[] = [
   {
     id: 'low_boost',
     short: 'got more bass (LOW EQ boost)',
-    listenFor: 'The part got heavier and boomier. The extra energy is down low, under about 80 Hz.',
+    listenFor: 'The part got heavier and boomier. The extra energy is down low, under about 120 Hz.',
     big: false,
     fits: ['drums', 'bass', 'synth', 'guitar'],
     apply: (ch) => ({ ...ch, eqLow: 12 })

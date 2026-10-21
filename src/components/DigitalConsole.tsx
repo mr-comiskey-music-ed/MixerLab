@@ -7,6 +7,7 @@ import { Knob } from './Knob';
 import { FxPanel } from './FxPanel';
 import { CompKnob } from './CompKnob';
 import { sliderPosToDb, dbToSliderPos } from '../utils/faderCurves';
+import { CONSOLE_LOW_HZ, CONSOLE_HIGH_HZ } from '../audio/eqCorners';
 
 interface DigitalConsoleProps {
   channels: ChannelSettings[];
@@ -227,16 +228,16 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
           hpLoss = -12 * Math.log2(100 / Math.max(10, f));
         }
 
-        // Low Shelf (80Hz)
-        const lowGain = eqLow / (1 + Math.pow(f / 80, 2));
+        // Low Shelf
+        const lowGain = eqLow / (1 + Math.pow(f / CONSOLE_LOW_HZ, 2));
 
         // Mid Bell (Peaking at eqMidFreq)
         const midCenter = eqMidFreq || 2500;
         const q = 1.4;
         const midGain = eqMid * Math.exp(-Math.pow(Math.log(f / midCenter) * q, 2));
 
-        // High Shelf (10000Hz, Q 0.7)
-        const highGain = eqHigh / (1 + Math.pow(10000 / Math.max(1, f), 2));
+        // High Shelf
+        const highGain = eqHigh / (1 + Math.pow(CONSOLE_HIGH_HZ / Math.max(1, f), 2));
 
         const totalDb = hpLoss + lowGain + midGain + highGain;
         const y = dbToY(totalDb, height);
@@ -263,8 +264,8 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
       const currentActive = activeDragNodeRef.current;
       const currentHover = hoveredNodeRef.current;
 
-      // Low Shelf Node (80Hz, Cyan)
-      const lowNodeX = freqToX(80, width);
+      // Low Shelf Node (Cyan)
+      const lowNodeX = freqToX(CONSOLE_LOW_HZ, width);
       const lowNodeY = dbToY(eqLow, height);
       drawNode(
         ctx,
@@ -272,7 +273,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
         lowNodeY,
         '#06b6d4',
         'LOW',
-        `80Hz · ${eqLow > 0 ? '+' : ''}${eqLow.toFixed(1)}dB`,
+        `${CONSOLE_LOW_HZ}Hz · ${eqLow > 0 ? '+' : ''}${eqLow.toFixed(1)}dB`,
         currentHover === 'low',
         currentActive === 'low',
         false
@@ -295,8 +296,8 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
         true
       );
 
-      // High Shelf Node (10kHz Shelf, Sky Blue)
-      const highNodeX = freqToX(10000, width);
+      // High Shelf Node (Sky Blue)
+      const highNodeX = freqToX(CONSOLE_HIGH_HZ, width);
       const highNodeY = dbToY(eqHigh, height);
       drawNode(
         ctx,
@@ -304,7 +305,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
         highNodeY,
         '#38bdf8',
         'HIGH',
-        `10k · ${eqHigh > 0 ? '+' : ''}${eqHigh.toFixed(1)}dB`,
+        `${CONSOLE_HIGH_HZ / 1000}k · ${eqHigh > 0 ? '+' : ''}${eqHigh.toFixed(1)}dB`,
         currentHover === 'high',
         currentActive === 'high',
         false
@@ -404,11 +405,11 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const { x, y, width, height } = getCanvasCoords(e);
 
-    const lowX = freqToX(80, width);
+    const lowX = freqToX(CONSOLE_LOW_HZ, width);
     const lowY = dbToY(eqLow, height);
     const midX = freqToX(eqMidFreq || 2500, width);
     const midY = dbToY(eqMid, height);
-    const highX = freqToX(10000, width);
+    const highX = freqToX(CONSOLE_HIGH_HZ, width);
     const highY = dbToY(eqHigh, height);
 
     const distLow = Math.hypot(x - lowX, y - lowY);
@@ -438,11 +439,11 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
 
     if (!activeDragNode) {
       // Hover detection to highlight the little colored circle and update cursor
-      const lowX = freqToX(80, width);
+      const lowX = freqToX(CONSOLE_LOW_HZ, width);
       const lowY = dbToY(eqLow, height);
       const midX = freqToX(eqMidFreq || 2500, width);
       const midY = dbToY(eqMid, height);
-      const highX = freqToX(10000, width);
+      const highX = freqToX(CONSOLE_HIGH_HZ, width);
       const highY = dbToY(eqHigh, height);
 
       const HIT_RADIUS = 24;
@@ -505,11 +506,11 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
     const width = canvas.width;
     const height = canvas.height;
 
-    const lowX = freqToX(80, width);
+    const lowX = freqToX(CONSOLE_LOW_HZ, width);
     const lowY = dbToY(eqLow, height);
     const midX = freqToX(eqMidFreq || 2500, width);
     const midY = dbToY(eqMid, height);
-    const highX = freqToX(12000, width);
+    const highX = freqToX(CONSOLE_HIGH_HZ, width);
     const highY = dbToY(eqHigh, height);
 
     const HIT_RADIUS = 35;
@@ -807,9 +808,9 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                     >
                       RESET ALL EQ
                     </button>
-                    <span className="text-cyan-400">● LOW 80Hz</span>
+                    <span className="text-cyan-400">● LOW {CONSOLE_LOW_HZ}Hz</span>
                     <span className="text-teal-400">● MID SWEEP</span>
-                    <span className="text-sky-400">● HIGH 10kHz</span>
+                    <span className="text-sky-400">● HIGH {CONSOLE_HIGH_HZ / 1000}kHz</span>
                   </div>
                 </div>
 
@@ -829,14 +830,14 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
 
                 {/* EQ Numerical Readouts & Adjusters with Dedicated Knobs and Sliders */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2 bg-zinc-900/80 p-2 rounded-lg border border-zinc-800 text-[11px] font-mono">
-                  {/* LOW (80Hz) */}
+                  {/* LOW shelf */}
                   <div
                     onDoubleClick={() => updateSelectedField('eqLow', 0)}
                     className="flex flex-col items-center justify-between gap-1 p-1.5 bg-zinc-950/60 rounded border border-zinc-850 cursor-pointer"
                     title="Double-click anywhere to reset Low Shelf to 0.0 dB Flat"
                   >
                     <div className="flex items-center justify-between w-full px-1 border-b border-zinc-850 pb-0.5">
-                      <span className="text-cyan-400 font-bold text-[10px]">● LOW (80Hz)</span>
+                      <span className="text-cyan-400 font-bold text-[10px]">● LOW ({CONSOLE_LOW_HZ}Hz)</span>
                       <span className="font-bold text-zinc-200 text-[10px] hover:text-cyan-300">
                         {selectedCh.eqLow > 0 ? '+' : ''}{selectedCh.eqLow.toFixed(1)} dB
                       </span>
@@ -918,7 +919,7 @@ export const DigitalConsole: React.FC<DigitalConsoleProps> = ({
                     title="Double-click anywhere to reset High Shelf to 0.0 dB Flat"
                   >
                     <div className="flex items-center justify-between w-full px-1 border-b border-zinc-850 pb-0.5">
-                      <span className="text-sky-400 font-bold text-[10px]">● HIGH (10kHz)</span>
+                      <span className="text-sky-400 font-bold text-[10px]">● HIGH ({CONSOLE_HIGH_HZ / 1000}kHz)</span>
                       <span className="font-bold text-zinc-200 text-[10px] hover:text-sky-300">
                         {selectedCh.eqHigh > 0 ? '+' : ''}{selectedCh.eqHigh.toFixed(1)} dB
                       </span>

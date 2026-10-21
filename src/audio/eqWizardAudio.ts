@@ -1,5 +1,6 @@
 import { audioEngine } from './audioEngine';
 import { Clip, getClipBuffer } from './clipLibrary';
+import { CONSOLE_LOW_HZ, CONSOLE_HIGH_HZ } from './eqCorners';
 
 /** One EQ filter: the same shapes the console uses (low shelf, peaking mid, high shelf). */
 export interface FilterSpec {
@@ -9,12 +10,19 @@ export interface FilterSpec {
   q?: number;
 }
 
-/** The console's channel EQ, as filter specs (low shelf 80 Hz, sweepable mid, high shelf 10 kHz). */
-export function channelEqSpecs(low: number, mid: number, midFreq: number, high: number): FilterSpec[] {
+/** The console's channel EQ, as filter specs (low shelf, sweepable mid, high shelf). Shelf corners default to the console's. */
+export function channelEqSpecs(
+  low: number,
+  mid: number,
+  midFreq: number,
+  high: number,
+  lowHz: number = CONSOLE_LOW_HZ,
+  highHz: number = CONSOLE_HIGH_HZ
+): FilterSpec[] {
   return [
-    { type: 'lowshelf', freq: 80, gain: low },
+    { type: 'lowshelf', freq: lowHz, gain: low },
     { type: 'peaking', freq: midFreq, gain: mid, q: 1.4 },
-    { type: 'highshelf', freq: 10000, gain: high }
+    { type: 'highshelf', freq: highHz, gain: high }
   ];
 }
 

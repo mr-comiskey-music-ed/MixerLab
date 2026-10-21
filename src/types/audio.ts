@@ -31,10 +31,10 @@ export interface ChannelSettings {
   // One-knob compressor (0 = off, 100 = maximum squash)
   comp: number;
   // 3-Band EQ
-  eqHigh: number; // -15 to +15 dB (12kHz shelf)
+  eqHigh: number; // -15 to +15 dB (8kHz shelf)
   eqMid: number;  // -15 to +15 dB (peaking)
   eqMidFreq: number; // 200Hz to 8000Hz (sweepable)
-  eqLow: number;  // -15 to +15 dB (80Hz shelf)
+  eqLow: number;  // -15 to +15 dB (120Hz shelf)
   // Sends
   aux1Pre: number; // -60 to +10 dB (Pre-fader monitor send)
   fxPost: number;  // -60 to +10 dB (Post-fader internal FX send)

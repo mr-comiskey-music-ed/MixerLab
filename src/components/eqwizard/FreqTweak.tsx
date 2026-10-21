@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { EQ_QUESTIONS } from '../../types/audio';
 import { audioEngine } from '../../audio/audioEngine';
 import { eqWizardPlayer, channelEqSpecs, FilterSpec } from '../../audio/eqWizardAudio';
+import { TWEAK_LOW_HZ, TWEAK_HIGH_HZ, fmtCornerHz } from '../../audio/eqCorners';
 import { StemClip, loadClipLibrary, getClipBuffer } from '../../audio/clipLibrary';
 import { Knob } from '../Knob';
 import {
@@ -49,8 +50,12 @@ function makeRound(level: FreqTweakLevel, qIndex: number, stems: StemClip[], rec
   return null;
 }
 
+/** FreqTweak's channel EQ: same filters as the console but with shelves reaching further in, so changes are obvious on small speakers. */
+const tweakEqSpecs = (low: number, mid: number, midFreq: number, high: number): FilterSpec[] =>
+  channelEqSpecs(low, mid, midFreq, high, TWEAK_LOW_HZ, TWEAK_HIGH_HZ);
+
 /** The hidden change is the opposite of the fix, so turning the knobs to the fix undoes it exactly. */
-const changeSpecs = (fix: TweakSettings): FilterSpec[] => channelEqSpecs(-fix.low, -fix.mid, fix.freq, -fix.high);
+const changeSpecs = (fix: TweakSettings): FilterSpec[] => tweakEqSpecs(-fix.low, -fix.mid, fix.freq, -fix.high);
 
 const fmt = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB`;
 const fmtHz = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(2)} kHz` : `${Math.round(v)} Hz`);
@@ -95,7 +100,7 @@ export const FreqTweak: React.FC<Props> = ({ levelIndex, best, onDone, onQuit })
   }, [stems, qIndex, finished]);
 
   const studentSpecs = (k: TweakSettings) =>
-    channelEqSpecs(k.low, k.mid, level.active.includes('freq') ? k.freq : FIXED_MID_FREQ, k.high);
+    tweakEqSpecs(k.low, k.mid, level.active.includes('freq') ? k.freq : FIXED_MID_FREQ, k.high);
 
   const setKnob = (key: keyof TweakSettings, v: number) => {
     const next = { ...knobs, [key]: v };
@@ -311,8 +316,8 @@ const DigitalEq: React.FC<{
 }> = ({ knobs, isOn, onKnob, locked, fix }) => {
   const W = 600, H = 170, RANGE = 16;
   const midFreq = isOn('freq') ? knobs.freq : FIXED_MID_FREQ;
-  const curve = useMemo(() => responseDb(channelEqSpecs(knobs.low, knobs.mid, midFreq, knobs.high)), [knobs, midFreq]);
-  const fixCurve = useMemo(() => (fix ? responseDb(channelEqSpecs(fix.low, fix.mid, fix.freq, fix.high)) : null), [fix]);
+  const curve = useMemo(() => responseDb(tweakEqSpecs(knobs.low, knobs.mid, midFreq, knobs.high)), [knobs, midFreq]);
+  const fixCurve = useMemo(() => (fix ? responseDb(tweakEqSpecs(fix.low, fix.mid, fix.freq, fix.high)) : null), [fix]);
   const toPath = (vals: number[]) =>
     vals.map((db, i) => `${i ? 'L' : 'M'}${((i / (CURVE_POINTS - 1)) * W).toFixed(1)},${(H / 2 - (Math.max(-RANGE, Math.min(RANGE, db)) / RANGE) * (H / 2 - 6)).toFixed(1)}`).join(' ');
   const gridHz = [50, 100, 200, 500, 1000, 2000, 5000, 10000];
@@ -361,7 +366,7 @@ const DigitalEq: React.FC<{
         </span>
       )}
       <div className="flex flex-wrap gap-2">
-        {ctrl('low', '● LOW (80Hz)', gainKnob('low', 'LOW GAIN', 'blue'))}
+        {ctrl('low', `● LOW (${fmtCornerHz(TWEAK_LOW_HZ)})`, gainKnob('low', 'LOW GAIN', 'blue'))}
         {ctrl('mid', '● MID GAIN', gainKnob('mid', 'MID GAIN', 'teal'), 'text-amber-400')}
         {ctrl(
           'freq',
@@ -381,7 +386,7 @@ const DigitalEq: React.FC<{
           />,
           'text-amber-400'
         )}
-        {ctrl('high', '● HIGH (10kHz)', gainKnob('high', 'HIGH GAIN', 'light-blue'), 'text-sky-400')}
+        {ctrl('high', `● HIGH (${fmtCornerHz(TWEAK_HIGH_HZ)})`, gainKnob('high', 'HIGH GAIN', 'light-blue'), 'text-sky-400')}
       </div>
     </div>
   );
