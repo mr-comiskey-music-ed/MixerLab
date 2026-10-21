@@ -101,6 +101,7 @@ export const BUILTIN_SONGS: SongDefinition[] = [
     bpm: 104,
     key: 'Funk',
     durationSec: 36.989,
+    edgeFadeMs: 5, // these stems start and end abruptly, which clicked at the loop point
     stems: [
       { id: 1, name: 'Drums', type: 'drums', color: '#f87171', url: '/audio/Drums_Quack.mp3', gainFactor: dB(-10) },
       { id: 2, name: 'Bass', type: 'bass', color: '#60a5fa', url: '/audio/Bass_Quack.mp3', gainFactor: dB(-10) },

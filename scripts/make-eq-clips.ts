@@ -29,6 +29,14 @@ const STEM_PER_PART = 3;
 const STEM_SPACING = 6;
 /** Sections that make confusing EQ examples (Tubular opens with ~6 s of filtered hi-hat). */
 const SKIP_UNTIL: Record<string, number> = { song3: 6.5 };
+/** Single-instrument parts that make poor Freq Tweak examples ("song:stemIndex", 0-based). */
+const EXCLUDE_STEMS = new Set([
+  'song6:4' // Free > Vox Dbl/AdLib: already heavily mid-boosted to sit behind the lead
+]);
+/** Latest clip start for a part, to keep clips off a long decay at the end ("song:stemIndex" -> seconds). */
+const LAST_START: Record<string, number> = {
+  'song2:2': 50 // Give My Heart > Dist E Guit: the last chord rings out from ~53 s
+};
 
 type Stereo = [Float32Array, Float32Array];
 
@@ -131,7 +139,10 @@ for (const song of BUILTIN_SONGS) {
   mixStarts.forEach((s, k) => mix.push({ songId: song.id, ...writeClip(sum, s, MIX_SECONDS, `mix_${tag}_${k + 1}.mp3`) }));
 
   parts.forEach((p, idx) => {
-    const starts = spread(goodStarts(blockLevels(p), STEM_SECONDS).filter((s) => s >= skip), STEM_PER_PART, STEM_SPACING);
+    const key = `${song.id}:${idx}`;
+    if (EXCLUDE_STEMS.has(key)) return;
+    const last = LAST_START[key] ?? Infinity;
+    const starts = spread(goodStarts(blockLevels(p), STEM_SECONDS).filter((s) => s >= skip && s <= last), STEM_PER_PART, STEM_SPACING);
     starts.forEach((s, k) => {
       const a = Math.round(s * SR), b = Math.round((s + STEM_SECONDS) * SR);
       const shares = bandShares(p[0].subarray(a, b));

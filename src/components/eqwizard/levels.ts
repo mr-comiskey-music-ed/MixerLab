@@ -246,11 +246,14 @@ export type TweakBand = 'low' | 'mid' | 'high';
 export interface TweakQuestion {
   bands: TweakBand[];      // which bands were knocked out of shape
   fix: TweakSettings;      // the knob settings that exactly undo it
-  multi: boolean;          // more than one knob changed (questions 7-8)
+  multi: boolean;          // two bands changed (questions 7-8)
 }
 
+/** Most bands (HIGH / MID / LOW) a multi-change question can knock out of shape. */
+const MAX_MULTI_BANDS = 2;
+
 /**
- * Questions 1-6 change ONE band; questions 7-8 change two or more (when the level
+ * Questions 1-6 change ONE band; questions 7-8 change TWO (when the level
  * has more than one band to work with). `freqRange` picks a sensible MID FREQ
  * for the instrument, and `canUse` says which bands the instrument can show off.
  */
@@ -267,7 +270,7 @@ export function makeTweakQuestion(
   let bands: TweakBand[];
   if (wantMulti) {
     const shuffled = [...pool].sort(() => Math.random() - 0.5);
-    bands = shuffled.slice(0, pool.length === 2 ? 2 : Math.random() < 0.5 ? 2 : 3);
+    bands = shuffled.slice(0, MAX_MULTI_BANDS);
   } else {
     bands = [pickOne(pool)];
   }
@@ -280,8 +283,12 @@ export function makeTweakQuestion(
   return { bands, fix, multi: bands.length > 1 };
 }
 
+/** Lowest score for a question where the student actually tried something (moved a gain knob). */
+export const TWEAK_SCORE_FLOOR = 50;
+
 /** Score one question: gains within 0.5 dB = 100%, fading to 0 at 6 dB off;
- *  MID FREQ within 1/6 octave = 100%, fading to 0 at one octave off. */
+ *  MID FREQ within 1/6 octave = 100%, fading to 0 at one octave off.
+ *  Any real attempt scores at least TWEAK_SCORE_FLOOR; leaving every gain flat scores 0. */
 export function tweakScore(level: FreqTweakLevel, answer: TweakSettings, fix: TweakSettings): { total: number; parts: Record<string, number> } {
   const parts: Record<string, number> = {};
   const gainPct = (a: number, b: number) => {
@@ -307,7 +314,9 @@ export function tweakScore(level: FreqTweakLevel, answer: TweakSettings, fix: Tw
   const changedKeys = bandKeys.filter((k) => fix[k as keyof TweakSettings] !== 0);
   const untouchedKeys = bandKeys.filter((k) => !changedKeys.includes(k));
   const avg = (keys: string[]) => (keys.length ? keys.reduce((a, k) => a + bandScore(k), 0) / keys.length : 100);
-  const total = Math.round(avg(changedKeys) * (avg(untouchedKeys) / 100));
+  const raw = Math.round(avg(changedKeys) * (avg(untouchedKeys) / 100));
+  const attempted = answer.low !== 0 || answer.mid !== 0 || answer.high !== 0;
+  const total = attempted ? Math.max(TWEAK_SCORE_FLOOR, raw) : 0;
   return { total, parts };
 }
 

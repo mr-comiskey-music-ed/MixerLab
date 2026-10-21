@@ -33,6 +33,9 @@ export function channelEqSpecs(
  * Flipping between A and B is instant and stays in time because both
  * hear the same sources. Clips loop until stopped.
  */
+/** A few milliseconds: long enough to stop a click, too short to hear as a fade. */
+const EDGE_FADE_SECONDS = 0.005;
+
 class EqWizardPlayer {
   private sources: AudioBufferSourceNode[] = [];
   private out: GainNode | null = null;
@@ -63,7 +66,7 @@ class EqWizardPlayer {
   }
 
   /** Start a looping clip. `change` is the hidden EQ move; `student` is the student's own EQ (FreqTweak). */
-  async playClip(clip: Clip, change: FilterSpec[], student: FilterSpec[] = [], fadeSeconds = 0) {
+  async playClip(clip: Clip, change: FilterSpec[], student: FilterSpec[] = [], fadeSeconds = EDGE_FADE_SECONDS) {
     this.stopAll();
     const myToken = this.token;
     const ctx = this.ctx;
@@ -104,7 +107,7 @@ class EqWizardPlayer {
     const now = ctx.currentTime + 0.05;
     const loopEnd = Math.min(clip.start + clip.duration, ...buffers.map((b) => b.duration));
 
-    // Optional long fade in/out on every pass of the loop, so the clip's edges never click or jump.
+    // Fade in/out on every pass of the loop (a few ms by default), so the clip's edges never click or jump.
     // The envelope sits ahead of the A/B split, so ORIGINAL and CHANGED fade identically.
     let env: AudioNode = input;
     if (fadeSeconds > 0) {
@@ -197,24 +200,45 @@ class EqWizardPlayer {
 
   stopAll() {
     this.token++;
-    this.sources.forEach((s) => {
-      try { s.stop(); s.disconnect(); } catch { /* already stopped */ }
-    });
+    const ctx = audioEngine.ctx;
+    const t = ctx ? ctx.currentTime : 0;
+    const sources = this.sources;
+    const out = this.out;
+    const limiter = this.limiter;
+    const tone = this.tone;
     this.sources = [];
-    if (this.out) {
-      try { this.out.disconnect(); } catch { /* ignore */ }
-      this.out = null;
-    }
-    if (this.limiter) {
-      try { this.limiter.disconnect(); } catch { /* ignore */ }
-      this.limiter = null;
-    }
-    if (this.tone) {
-      try { this.tone.osc.stop(); this.tone.gain.disconnect(); } catch { /* ignore */ }
-      this.tone = null;
-    }
+    this.out = null;
+    this.limiter = null;
+    this.tone = null;
     this.changeFilters = [];
     this.studentFilters = [];
+
+    // Fade out over a few ms before cutting, so stopping mid-wave never clicks; tear down afterwards.
+    const fadeOut = (node: GainNode) => {
+      try {
+        node.gain.cancelScheduledValues(t);
+        node.gain.setValueAtTime(node.gain.value, t);
+        node.gain.linearRampToValueAtTime(0, t + EDGE_FADE_SECONDS);
+      } catch { /* ignore */ }
+    };
+    const stopAt = t + EDGE_FADE_SECONDS + 0.002;
+    if (ctx && out) fadeOut(out);
+    sources.forEach((src) => {
+      try { src.stop(ctx ? stopAt : 0); } catch { /* already stopped */ }
+    });
+    if (ctx && tone) {
+      fadeOut(tone.gain);
+      try { tone.osc.stop(stopAt); } catch { /* already stopped */ }
+    } else if (tone) {
+      try { tone.osc.stop(); } catch { /* ignore */ }
+    }
+    setTimeout(() => {
+      sources.forEach((src) => { try { src.disconnect(); } catch { /* ignore */ } });
+      try { out?.disconnect(); } catch { /* ignore */ }
+      try { limiter?.disconnect(); } catch { /* ignore */ }
+      try { tone?.gain.disconnect(); } catch { /* ignore */ }
+    }, 60);
+
     if (this.isPlaying) {
       this.isPlaying = false;
       this.onChange?.();

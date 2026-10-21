@@ -532,36 +532,6 @@
   },
   {
    "songId": "song6",
-   "stemIndex": 4,
-   "stemName": "Vox Dbl/AdLib",
-   "lowShare": 0.051,
-   "highShare": 0.0467,
-   "file": "/eq/stem_song6_5_1.mp3",
-   "start": 0,
-   "duration": 8
-  },
-  {
-   "songId": "song6",
-   "stemIndex": 4,
-   "stemName": "Vox Dbl/AdLib",
-   "lowShare": 0.046,
-   "highShare": 0.04772,
-   "file": "/eq/stem_song6_5_2.mp3",
-   "start": 0.3,
-   "duration": 8
-  },
-  {
-   "songId": "song6",
-   "stemIndex": 4,
-   "stemName": "Vox Dbl/AdLib",
-   "lowShare": 0.042,
-   "highShare": 0.04602,
-   "file": "/eq/stem_song6_5_3.mp3",
-   "start": 0.3,
-   "duration": 8
-  },
-  {
-   "songId": "song6",
    "stemIndex": 5,
    "stemName": "Lead Vocal",
    "lowShare": 0.09,
@@ -674,8 +644,8 @@
    "songId": "song2",
    "stemIndex": 2,
    "stemName": "Dist E Guit",
-   "lowShare": 0.536,
-   "highShare": 0.0005,
+   "lowShare": 0.339,
+   "highShare": 0.00343,
    "file": "/eq/stem_song2_3_3.mp3",
    "start": 0.3,
    "duration": 8

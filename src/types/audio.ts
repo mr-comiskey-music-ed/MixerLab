@@ -16,6 +16,7 @@ export interface SongDefinition {
   stems: StemDefinition[];
   stemGainDb?: number; // Optional default gain adjustment in dB
   durationSec?: number; // Loop length of recorded songs, shown while the audio is still loading
+  edgeFadeMs?: number; // Tiny fade in/out baked into each stem's start and end when it loads, so the loop point never clicks
 }
 
 export interface ChannelSettings {

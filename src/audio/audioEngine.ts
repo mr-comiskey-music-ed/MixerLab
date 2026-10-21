@@ -737,6 +737,28 @@ export class AudioEngine {
     }
   }
 
+  /**
+   * Tiny fade in at the start and out at the end of the loop, baked into the decoded stems, so
+   * the loop point and the first/last sample never click. Fades end exactly where the loop does.
+   */
+  private applyEdgeFades(buffers: AudioBuffer[], fadeMs: number) {
+    const loopSec = buffers[0]?.duration ?? 0;
+    for (const buf of buffers) {
+      const fadeN = Math.round((fadeMs / 1000) * buf.sampleRate);
+      const endN = Math.min(buf.length, Math.round(loopSec * buf.sampleRate));
+      const n = Math.min(fadeN, Math.floor(endN / 2));
+      if (n < 2) continue;
+      for (let c = 0; c < buf.numberOfChannels; c++) {
+        const d = buf.getChannelData(c);
+        for (let i = 0; i < n; i++) {
+          const g = i / n;
+          d[i] *= g;
+          d[endN - 1 - i] *= g;
+        }
+      }
+    }
+  }
+
   /** Six silent stereo buffers, used while a song is still downloading. */
   private silentStems(seconds: number): AudioBuffer[] {
     const sr = this.ctx!.sampleRate || 44100;
@@ -771,6 +793,7 @@ export class AudioEngine {
             });
           })
         );
+        if (song.edgeFadeMs) this.applyEdgeFades(buffers, song.edgeFadeMs);
         this.cachedSongBuffers.set(songId, buffers);
         this.touchCache(songId);
         return buffers;
