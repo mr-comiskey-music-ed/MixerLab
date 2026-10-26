@@ -16,7 +16,7 @@ const dB = (db: number) => Math.pow(10, db / 20);
 export const BUILTIN_SONGS: SongDefinition[] = [
   {
     id: 'song1',
-    title: 'Card Game (Indie)',
+    title: 'Card Game - Grey Morgan (Indie)',
     bpm: 145,
     key: 'Indie',
     durationSec: 26.568,
@@ -34,7 +34,7 @@ export const BUILTIN_SONGS: SongDefinition[] = [
   },
   {
     id: 'song6',
-    title: 'Free (Hip Hop)',
+    title: 'Free - The Happiness Club (Hip Hop)',
     bpm: 96,
     key: 'Hip Hop',
     durationSec: 40.032,
@@ -81,7 +81,7 @@ export const BUILTIN_SONGS: SongDefinition[] = [
   },
   {
     id: 'song4',
-    title: 'Summertime (Afrobeat)',
+    title: 'Summertime - The Happiness Club (Afrobeat)',
     bpm: 96,
     key: 'Afrobeat',
     durationSec: 20.062,
