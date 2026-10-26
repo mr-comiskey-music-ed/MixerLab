@@ -164,7 +164,7 @@ export const FreqBandId: React.FC<Props> = ({ levelIndex, best, onDone, onQuit }
       <p className="text-sm text-zinc-300">
         Listen to the <strong className="text-sky-300">original</strong>, then the <strong className="text-orange-300">changed</strong>{' '}
         version. {level.cutsToo ? 'Which change was made?' : 'Which part of the sound was boosted?'}{' '}
-        <span className="text-zinc-500">({song?.title}, full mix)</span>
+        <span className="text-zinc-500">· {song?.title}, full mix</span>
       </p>
 
       <ABSwitch

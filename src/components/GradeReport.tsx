@@ -690,7 +690,7 @@ export const GradeReport: React.FC<GradeReportProps> = ({
                       `Submitted: ${new Date(report.timestamp).toLocaleString()}\n` +
                       `Grade: ${reportGrade!.total}%\n` +
                       reportGrade!.parts.map((p) => `${p.label}: ${p.percent}% (${p.detail})\n`).join('') +
-                      (report.myMix ? `My Mix (${songTitle(report.myMix.songId)}): ${report.myMix.explanation}\n` : '') +
+                      (report.myMix ? `My Mix, ${songTitle(report.myMix.songId)}: ${report.myMix.explanation}\n` : '') +
                       `Code check: ${reportValid ? 'OK' : 'EDITED OR DAMAGED'}\n`;
                     navigator.clipboard.writeText(text);
                     setCopiedReportText(true);
