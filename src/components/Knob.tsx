@@ -1,4 +1,5 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
+import { useTouchGrab } from '../utils/useTouchGrab';
 
 interface KnobProps {
   label: string;
@@ -216,109 +217,77 @@ export const Knob: React.FC<KnobProps> = ({
     document.body.style.cursor = 'ns-resize';
   };
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 0) return;
-    const now = Date.now();
-    if (now - lastClickTime.current < 350) {
-      e.preventDefault();
-      e.stopPropagation();
-      onChange(defaultValue);
-      lastClickTime.current = 0;
-      return;
-    }
-    lastClickTime.current = now;
-
-    setIsDragging(true);
-    dragStartY.current = e.touches[0].clientY;
-    dragStartNorm.current = getNormalized(value);
-  };
-
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     onChange(defaultValue);
   };
 
+  // Turn the knob from a vertical finger/mouse position, relative to where the drag began.
+  const applyY = useCallback(
+    (clientY: number) => {
+      const deltaY = dragStartY.current - clientY;
+      // Dragging 140px vertically traverses the entire 0-100% normalized travel
+      const deltaNorm = deltaY / 140;
+      const newNorm = Math.min(1, Math.max(0, dragStartNorm.current + deltaNorm));
+
+      let newVal = normToVal(newNorm);
+
+      if (centerDetent) {
+        if (centerValue !== undefined) {
+          if (Math.abs(newVal - centerValue) < (max - min) * 0.035) {
+            newVal = centerValue;
+          }
+        } else if (Math.abs(newVal) < (max - min) * 0.035) {
+          newVal = 0;
+        }
+      }
+
+      newVal = Math.min(max, Math.max(min, newVal));
+      if (step) {
+        newVal = Math.round(newVal / step) * step;
+      }
+      onChange(Number(newVal.toFixed(step < 1 ? 1 : 0)));
+    },
+    [max, min, step, centerDetent, centerValue, normToVal, onChange]
+  );
+
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (!isDragging) return;
-      const deltaY = dragStartY.current - e.clientY;
-      // Dragging 140px vertically traverses the entire 0-100% normalized travel
-      const deltaNorm = deltaY / 140;
-      let newNorm = Math.min(1, Math.max(0, dragStartNorm.current + deltaNorm));
-
-      let newVal = normToVal(newNorm);
-
-      if (centerDetent) {
-        if (centerValue !== undefined) {
-          if (Math.abs(newVal - centerValue) < (max - min) * 0.035) {
-            newVal = centerValue;
-          }
-        } else if (Math.abs(newVal) < (max - min) * 0.035) {
-          newVal = 0;
-        }
-      }
-
-      newVal = Math.min(max, Math.max(min, newVal));
-      if (step) {
-        newVal = Math.round(newVal / step) * step;
-      }
-      onChange(Number(newVal.toFixed(step < 1 ? 1 : 0)));
+      applyY(e.clientY);
     },
-    [isDragging, max, min, step, centerDetent, centerValue, normToVal, onChange]
+    [isDragging, applyY]
   );
 
-  const handleTouchMove = useCallback(
-    (e: TouchEvent) => {
-      if (!isDragging || e.touches.length === 0) return;
-      const deltaY = dragStartY.current - e.touches[0].clientY;
-      const deltaNorm = deltaY / 140;
-      let newNorm = Math.min(1, Math.max(0, dragStartNorm.current + deltaNorm));
-
-      let newVal = normToVal(newNorm);
-
-      if (centerDetent) {
-        if (centerValue !== undefined) {
-          if (Math.abs(newVal - centerValue) < (max - min) * 0.035) {
-            newVal = centerValue;
-          }
-        } else if (Math.abs(newVal) < (max - min) * 0.035) {
-          newVal = 0;
-        }
-      }
-
-      newVal = Math.min(max, Math.max(min, newVal));
-      if (step) {
-        newVal = Math.round(newVal / step) * step;
-      }
-      onChange(Number(newVal.toFixed(step < 1 ? 1 : 0)));
+  // Touch: a quick swipe scrolls the page; press and hold briefly to grab the knob, then drag.
+  useTouchGrab(knobRef, {
+    onGrab: (y) => {
+      setIsDragging(true);
+      dragStartY.current = y;
+      dragStartNorm.current = getNormalized(value);
     },
-    [isDragging, max, min, step, centerDetent, centerValue, normToVal, onChange]
-  );
+    onMove: applyY,
+    onRelease: () => setIsDragging(false),
+    onDoubleTap: () => onChange(defaultValue),
+    cancelEvent: 'mixer:cancel-drag',
+  });
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
     document.body.style.cursor = 'default';
   }, []);
 
-  const handleTouchEnd = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
   useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
-      window.addEventListener('touchmove', handleTouchMove, { passive: true });
-      window.addEventListener('touchend', handleTouchEnd);
       return () => {
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
-        window.removeEventListener('touchmove', handleTouchMove);
-        window.removeEventListener('touchend', handleTouchEnd);
       };
     }
-  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
@@ -391,10 +360,9 @@ export const Knob: React.FC<KnobProps> = ({
         <div
           ref={knobRef}
           onMouseDown={handleMouseDown}
-          onTouchStart={handleTouchStart}
           onDoubleClick={handleDoubleClick}
           onWheel={handleWheel}
-          className={`relative ${sizeClasses} rounded-full cursor-pointer touch-none select-none flex items-center justify-center transition-shadow duration-150 ${colorStyles.glow}`}
+          className={`relative ${sizeClasses} rounded-full cursor-pointer touch-manipulation select-none flex items-center justify-center transition-shadow duration-150 ${colorStyles.glow}`}
           style={{ transform: `rotate(${angle}deg)` }}
           title="Double-click or Alt+Click to reset to default"
         >
