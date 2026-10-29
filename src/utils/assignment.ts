@@ -6,7 +6,7 @@ import { MY_MIX_MIN_WORDS } from '../components/MyMix';
 
 /**
  * Assignments travel inside the link the teacher posts in Google Classroom,
- * e.g. mrkamiski.com/mixerlab?a=swy&t=Unit+3. Nothing is stored anywhere:
+ * e.g. mixerlab.mrcomiskey.com/?a=swy&t=Unit+3. Nothing is stored anywhere:
  * the link holds the teacher's choices, the submission code holds the student's work.
  *
  * Letters: s = Scenarios, w = What Changed?, m = Match the Mix, y = My Mix, l = Learn (Mixer Academy),
