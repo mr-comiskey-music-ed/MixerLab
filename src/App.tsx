@@ -17,6 +17,8 @@ import { MyMix as MyMixPanel, MY_MIX_MIN_WORDS } from './components/MyMix';
 import { GradeReport } from './components/GradeReport';
 import { LearnMixer } from './components/LearnMixer';
 import { makeDefaultChannels, makeDefaultMaster } from './utils/mixDefaults';
+import { type WorkSnapshot, hasWork, loadSaved, writeSaved, clearSaved } from './utils/autosave';
+import { SaveIndicator, RestorePrompt, type SaveStatus } from './components/AutosaveUI';
 
 type MixState = { channels: ChannelSettings[]; master: MasterSettings };
 
@@ -84,6 +86,72 @@ export default function App() {
     aux1: 0,
     pflActive: false
   });
+
+  // ---------- Autosave (kept in this browser only; see utils/autosave.ts) ----------
+  // If an earlier session was saved, ask before doing anything. Autosave stays off until the
+  // student answers, so a fresh empty console can never overwrite their saved work.
+  const [restoreOffer, setRestoreOffer] = useState(() => loadSaved());
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  const snapshot: WorkSnapshot = useMemo(
+    () => ({
+      scenarios: scenariosCompleted,
+      whatChangedBest,
+      whatChangedFinished,
+      matchScores,
+      learnCompleted,
+      eqScores,
+      myMix
+    }),
+    [scenariosCompleted, whatChangedBest, whatChangedFinished, matchScores, learnCompleted, eqScores, myMix]
+  );
+  const snapshotRef = useRef(snapshot);
+  snapshotRef.current = snapshot;
+  const autosaveOn = restoreOffer === null;
+
+  const saveNow = useCallback(() => {
+    const snap = snapshotRef.current;
+    if (!hasWork(snap)) return; // never overwrite a good save with an empty session
+    if (writeSaved(snap)) {
+      setSaveStatus('saved');
+      setSavedAt(Date.now());
+    } else {
+      setSaveStatus('failed');
+    }
+  }, []);
+
+  // Save shortly after the student stops changing things
+  useEffect(() => {
+    if (!autosaveOn) return;
+    const timer = window.setTimeout(saveNow, 1500);
+    return () => window.clearTimeout(timer);
+  }, [snapshot, autosaveOn, saveNow]);
+
+  // Save right away when the tab is hidden or closed, so a quick close doesn't lose the last change
+  useEffect(() => {
+    if (!autosaveOn) return;
+    const flush = () => saveNow();
+    const onVisibility = () => { if (document.visibilityState === 'hidden') flush(); };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [autosaveOn, saveNow]);
+
+  // Only warn on leaving when the browser can't save (otherwise leaving is safe)
+  useEffect(() => {
+    if (saveStatus !== 'failed') return;
+    const warn = (e: BeforeUnloadEvent) => {
+      if (!hasWork(snapshotRef.current)) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [saveStatus]);
 
   const channelsRef = useRef(channels);
   channelsRef.current = channels;
@@ -346,6 +414,32 @@ export default function App() {
     setActiveTab('console');
   };
 
+  // ---------- Restore / start fresh ----------
+  const handleRestore = () => {
+    if (!restoreOffer) return;
+    const saved = restoreOffer.snapshot;
+    setScenariosCompleted(saved.scenarios);
+    setWhatChangedBest(saved.whatChangedBest);
+    setWhatChangedFinished(saved.whatChangedFinished);
+    setMatchScores(saved.matchScores);
+    setLearnCompleted(saved.learnCompleted);
+    setEqScores(saved.eqScores);
+    setMyMix(saved.myMix);
+    // An assignment link can open straight onto My Mix: put the restored mix on the console
+    if (saved.myMix && activeTab === 'mymix') {
+      if (saved.myMix.songId !== currentSongId) handleSelectSong(saved.myMix.songId);
+      loadMixIntoConsole({ channels: saved.myMix.channels, master: saved.myMix.master });
+    }
+    setSavedAt(restoreOffer.savedAt);
+    setSaveStatus('saved');
+    setRestoreOffer(null);
+  };
+
+  const handleStartFresh = () => {
+    clearSaved();
+    setRestoreOffer(null);
+  };
+
   // ---------- Tabs ----------
   const handleSelectTab = (requested: TabId | 'challenges') => {
     const tab: TabId = requested === 'challenges' ? lastChallengeTab : requested;
@@ -495,7 +589,12 @@ export default function App() {
         showChallenges={visibleChallenges.length > 0}
         showEqWizard={visibleEqSections.length > 0}
         onLoadCustomMultitrack={handleLoadCustomMultitrack}
+        statusSlot={<SaveIndicator status={saveStatus} savedAt={savedAt} />}
       />
+
+      {restoreOffer && (
+        <RestorePrompt savedAt={restoreOffer.savedAt} onRestore={handleRestore} onStartFresh={handleStartFresh} />
+      )}
 
       <main className="flex-1 p-4 flex flex-col justify-start">
         {/* CHALLENGES SUB-TABS */}

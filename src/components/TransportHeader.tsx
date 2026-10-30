@@ -24,6 +24,7 @@ interface TransportHeaderProps {
   showChallenges?: boolean;
   showEqWizard?: boolean;
   onLoadCustomMultitrack: (files: FileList) => void;
+  statusSlot?: React.ReactNode;
 }
 
 export const TransportHeader: React.FC<TransportHeaderProps> = ({
@@ -46,7 +47,8 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
   onSelectTab,
   showChallenges = true,
   showEqWizard = true,
-  onLoadCustomMultitrack
+  onLoadCustomMultitrack,
+  statusSlot
 }) => {
   const multiFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -78,6 +80,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
 
         {/* Global Action Tools: Multitrack loader, Mixer Style switcher */}
         <div className="flex items-center gap-2">
+          {statusSlot}
           {/* Custom Multitrack Dropper */}
           <input
             type="file"
